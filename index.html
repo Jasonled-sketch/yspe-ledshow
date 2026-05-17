@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>USLED 快速報價</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{
+  --bg:#F0F4F8;--card:#FFFFFF;--border:#DDE3ED;
+  --brand:#1A3A6B;--brand2:#1D9E75;--accent:#2563EB;
+  --text:#1A2236;--sub:#64748B;--light:#94A3B8;
+  --yellow:#F59E0B;--red:#EF4444;--green:#10B981;
+  --mgr-bg:#1A2236;--mgr-card:#243049;--mgr-border:#2E3F5C;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;font-family:'PingFang TC',-apple-system,'Microsoft JhengHei',sans-serif}
+body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+
+/* ══ HEADER ══ */
+.app-bar{
+  background:var(--brand);color:#fff;
+  padding:calc(env(safe-area-inset-top,0)+10px) 16px 10px;
+  position:sticky;top:0;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 12px rgba(26,58,107,.3);
+}
+.bar-logo{display:flex;align-items:center;gap:10px}
+.bar-icon{width:34px;height:34px;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.bar-icon svg{width:22px;height:22px}
+.bar-title{font-size:15px;font-weight:700;letter-spacing:.3px}
+.bar-sub{font-size:9px;color:rgba(255,255,255,.65);margin-top:1px}
+.bar-right{display:flex;align-items:center;gap:8px}
+.role-badge{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer;transition:all .2s;border:1.5px solid transparent}
+.role-badge.sales{background:rgba(255,255,255,.12);color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.2)}
+.role-badge.mgr{background:#F59E0B;color:#1A2236;font-weight:900}
+.cfg-icon{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;border:1px solid rgba(255,255,255,.15)}
+
+/* ══ TABS ══ */
+.tabs{background:#fff;border-bottom:2px solid var(--border);display:flex;position:sticky;top:calc(env(safe-area-inset-top,0)+54px);z-index:99}
+.tab{flex:1;padding:11px 4px;text-align:center;font-size:11px;font-weight:600;color:var(--light);cursor:pointer;position:relative;transition:color .2s}
+.tab.on{color:var(--accent)}
+.tab.on::after{content:'';position:absolute;bottom:-2px;left:15%;width:70%;height:2.5px;background:var(--accent);border-radius:2px 2px 0 0}
+.tab-icon{font-size:16px;display:block;margin-bottom:2px}
+
+/* ══ PAGE ══ */
+.page{display:none;padding:14px 14px calc(80px + env(safe-area-inset-bottom,0));min-height:60vh}
+.page.on{display:block}
+
+/* ══ CARD ══ */
+.card{background:var(--card);border-radius:14px;padding:16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.06);border:1px solid var(--border)}
+.sec-label{font-size:10px;font-weight:700;color:var(--light);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px}
+
+/* ══ FORM ══ */
+.frow{margin-bottom:13px}
+.frow label{display:block;font-size:11px;font-weight:700;color:var(--sub);margin-bottom:5px}
+.frow input,.frow select,.frow textarea{
+  width:100%;padding:12px 14px;font-size:15px;
+  background:#F8FAFC;border:1.5px solid var(--border);border-radius:10px;
+  color:var(--text);outline:none;-webkit-appearance:none;transition:border .2s
+}
+.frow select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;
+}
+.frow input:focus,.frow select:focus,.frow textarea:focus{border-color:var(--accent);background:#fff}
+.frow .hint{font-size:10px;color:var(--light);margin-top:4px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+/* ══ SPEC BOX ══ */
+.spec-box{background:linear-gradient(135deg,#EEF4FF,#F0FDF9);border:1.5px solid #C7D9F9;border-radius:12px;padding:14px;margin-bottom:12px}
+.spec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.spec-cell{background:#fff;border-radius:9px;padding:9px;text-align:center;border:1px solid #E2EAF8}
+.spec-val{font-size:15px;font-weight:800;color:var(--accent)}
+.spec-lab{font-size:8.5px;color:var(--sub);margin-top:2px}
+.spec-cell.warn .spec-val{color:var(--yellow)}
+.spec-cell.ok .spec-val{color:var(--green)}
+.spec-warn{font-size:10px;color:var(--red);margin-top:6px;padding:6px 10px;background:#FEF2F2;border-radius:7px}
+
+/* ══ 報價等級 ══ */
+.tier-card{
+  border-radius:14px;padding:16px;margin-bottom:10px;
+  border:2px solid var(--border);background:#fff;cursor:pointer;
+  transition:all .18s;box-shadow:0 1px 4px rgba(0,0,0,.04)
+}
+.tier-card:active{transform:scale(.98)}
+.tier-card.sel{border-color:var(--accent);background:linear-gradient(135deg,#EEF4FF,#F0F9FF);box-shadow:0 3px 14px rgba(37,99,235,.15)}
+.tier-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.tier-name{font-size:16px;font-weight:800;color:var(--text)}
+.tier-tag{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px}
+.tier-act{background:#FEF3C7;color:#92400E}
+.tier-shop{background:#EDE9FE;color:#4C1D95}
+.tier-min{background:#FEE2E2;color:#991B1B}
+.tier-price-row{display:flex;align-items:baseline;gap:4px}
+.tier-price{font-size:28px;font-weight:900;color:var(--accent)}
+.tier-unit{font-size:12px;color:var(--sub)}
+.tier-total{font-size:12px;color:var(--sub);margin-top:4px}
+/* 管理者看到的成本資訊 */
+.tier-cost-bar{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);display:none}
+.tier-cost-bar.mgr-show{display:block}
+.cost-row{display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px;color:var(--sub)}
+.cost-row strong{color:var(--text)}
+.profit-bar{height:6px;background:#E2EAF8;border-radius:3px;margin-top:6px;overflow:hidden}
+.profit-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--brand2));border-radius:3px;transition:width .4s}
+
+/* ══ 底部按鈕 ══ */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--border);padding:10px 14px calc(10px + env(safe-area-inset-bottom,0));display:flex;gap:8px;box-shadow:0 -2px 12px rgba(0,0,0,.06)}
+.btn{flex:1;padding:14px;border-radius:12px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-primary{background:var(--brand);color:#fff}
+.btn-secondary{background:var(--bg);color:var(--text);border:1.5px solid var(--border);flex:0 0 54px}
+.btn-green{background:linear-gradient(135deg,var(--accent),var(--brand2));color:#fff}
+.btn-share{background:var(--bg);color:var(--brand2);border:1.5px solid #A7F3D0;flex:0 0 54px;font-size:20px;display:flex;align-items:center;justify-content:center}
+
+/* ══ 登入 overlay ══ */
+.lock-overlay{position:fixed;inset:0;z-index:200;background:rgba(10,15,30,.85);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:24px}
+.lock-overlay.show{display:flex}
+.lock-box{background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:340px;text-align:center}
+.lock-icon{font-size:40px;margin-bottom:12px}
+.lock-title{font-size:18px;font-weight:800;color:var(--text);margin-bottom:4px}
+.lock-sub{font-size:12px;color:var(--sub);margin-bottom:20px}
+.lock-input{width:100%;padding:14px;font-size:16px;letter-spacing:4px;text-align:center;border:2px solid var(--border);border-radius:12px;margin-bottom:12px;background:#F8FAFC;outline:none}
+.lock-input:focus{border-color:var(--accent)}
+.lock-btn{width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:700;background:var(--brand);color:#fff;cursor:pointer}
+.lock-cancel{margin-top:10px;font-size:12px;color:var(--sub);cursor:pointer;padding:4px}
+.lock-err{font-size:11px;color:var(--red);margin-top:6px;min-height:16px}
+/* 管理者模式 banner */
+.mgr-banner{background:var(--yellow);color:#1A2236;text-align:center;font-size:11px;font-weight:700;padding:6px;letter-spacing:.5px;display:none}
+.mgr-banner.show{display:block}
+
+/* ══ Config 底板 ══ */
+.sheet{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.5);display:none;align-items:flex-end}
+.sheet.show{display:flex}
+.sheet-inner{background:#fff;border-radius:22px 22px 0 0;width:100%;padding:20px 18px calc(20px + env(safe-area-inset-bottom,0))}
+.sheet-handle{width:40px;height:4px;background:#DDE3ED;border-radius:2px;margin:0 auto 16px}
+.sheet-title{font-size:15px;font-weight:800;margin-bottom:14px}
+.file-drop{border:2px dashed var(--border);border-radius:12px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;background:#F8FAFC}
+.file-drop:active{background:#F0F4F8}
+.file-icon{font-size:32px;margin-bottom:8px}
+.file-text{font-size:13px;font-weight:600;color:var(--sub)}
+.file-hint{font-size:10px;color:var(--light);margin-top:4px}
+.status-chip{display:inline-block;padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;margin-bottom:10px}
+.status-ok{background:#D1FAE5;color:#065F46}
+.status-err{background:#FEE2E2;color:#991B1B}
+
+/* ══ 報價單（白色列印版）══ */
+.quote-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:520px;margin:0 auto}
+.qs{background:#fff;color:#1A2236;font-family:'PingFang TC','Microsoft JhengHei',sans-serif;font-size:10px}
+.qs-hd{background:#1A3A6B;display:flex;align-items:center;gap:10px;padding:10px 14px}
+.qs-hd-logo{background:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:900;color:#1A3A6B;letter-spacing:-.5px}
+.qs-hd-co{color:#fff;font-size:13px;font-weight:700}
+.qs-hd-en{color:rgba(255,255,255,.6);font-size:8px}
+.qs-type{background:#2563EB;color:#fff;text-align:center;font-size:9px;font-weight:700;padding:5px;letter-spacing:2px}
+.qs-qno{display:flex;justify-content:space-between;background:#EEF4FF;padding:4px 10px;font-size:9px;font-weight:700;color:#1A3A6B;border-bottom:1px solid #C7D9F9}
+.qs-info{display:grid;grid-template-columns:1fr 1fr}
+.qs-cell{padding:5px 8px;border-right:1px solid #DDE3ED;border-bottom:1px solid #DDE3ED;font-size:9px}
+.qs-cell-lbl{font-weight:700;color:#2563EB;display:block;margin-bottom:1px;font-size:8px}
+.qs-cell-val{color:#1A2236}
+.qs-item-hd{display:grid;grid-template-columns:22px 1fr 35px 58px 58px;background:#1A3A6B;color:#fff;font-size:8.5px;font-weight:700;text-align:center;padding:5px 8px;gap:2px}
+.qs-item-hd span:nth-child(2){text-align:left}
+.qs-item-row{display:grid;grid-template-columns:22px 1fr 35px 58px 58px;padding:8px;border-bottom:1px solid #EEF0F4;align-items:start;gap:2px;font-size:9px}
+.qs-spec-txt{font-size:9px;color:#374151;line-height:1.75}
+.qs-spec-txt strong{font-weight:700;color:#1A3A6B}
+.qs-total-bar{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 12px;background:#EEF4FF;border-top:2px solid #1A3A6B}
+.qs-total-lbl{font-size:11px;font-weight:700;color:#1A3A6B}
+.qs-total-val{font-size:16px;font-weight:900;color:#2563EB}
+.qs-terms{padding:8px 10px;border-top:1px solid #DDE3ED}
+.qs-term{font-size:7.5px;color:#374151;line-height:1.7;padding-left:10px;position:relative;margin-bottom:1px}
+.qs-term::before{content:'▸';position:absolute;left:0;color:#2563EB}
+.qs-sign{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid #DDE3ED;padding:6px 10px;gap:10px}
+.qs-sign-box{border:1px solid #DDE3ED;border-radius:6px;padding:6px;min-height:46px;display:flex;flex-direction:column;justify-content:space-between}
+.qs-sign-lbl{font-size:8px;font-weight:700;color:#2563EB}
+.qs-sign-co{font-size:7px;color:var(--sub);text-align:right}
+.qs-valid{background:#FEF3C7;text-align:center;font-size:8.5px;color:#92400E;padding:5px;font-weight:600}
+.qs-footer{background:#1A3A6B;color:rgba(255,255,255,.8);text-align:center;font-size:7.5px;padding:7px;line-height:1.9}
+
+/* ══ Toast ══ */
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:rgba(26,58,107,.95);color:#fff;padding:9px 18px;border-radius:24px;
+  font-size:12px;opacity:0;transition:all .28s;pointer-events:none;z-index:999;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ══ MGR Banner ══ -->
+<div class="mgr-banner" id="mgrBanner">🔑 管理者模式 — 顯示成本與毛利資訊</div>
+
+<!-- ══ App Bar ══ -->
+<header class="app-bar">
+  <div class="bar-logo">
+    <div class="bar-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1A3A6B" stroke-width="2.5" stroke-linecap="round">
+        <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+    </div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技有限公司</div></div>
+  </div>
+  <div class="bar-right">
+    <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
+    <div class="cfg-icon" onclick="openSheet()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.8)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </div>
+  </div>
+</header>
+
+<!-- ══ Tabs ══ -->
+<div class="tabs">
+  <div class="tab on" id="tab1" onclick="goPage(1)"><span class="tab-icon">📋</span>客戶</div>
+  <div class="tab" id="tab2" onclick="goPage(2)"><span class="tab-icon">📺</span>產品</div>
+  <div class="tab" id="tab3" onclick="goPage(3)"><span class="tab-icon">💰</span>報價</div>
+  <div class="tab" id="tab4" onclick="goPage(4)"><span class="tab-icon">📄</span>預覽</div>
+</div>
+
+<!-- ══ Page 1: 客戶 ══ -->
+<div id="pg1" class="page on">
+  <div class="card">
+    <div class="sec-label">客戶資訊</div>
+    <div class="frow"><label>客戶名稱</label><input id="c_name" type="text" placeholder="輸入客戶或公司名稱" autocomplete="off"></div>
+    <div class="g2">
+      <div class="frow"><label>聯絡電話</label><input id="c_phone" type="tel" placeholder="09xx-xxxxxx"></div>
+      <div class="frow"><label>報價日期</label><input id="c_date" type="date"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Page 2: 產品 ══ -->
+<div id="pg2" class="page">
+  <div class="card">
+    <div class="sec-label">選擇規格</div>
+    <div class="frow"><label>模組型號</label>
+      <select id="p_mod" onchange="onMod()">
+        <option value="">— 選擇模組 —</option>
+      </select>
+    </div>
+    <div class="g2">
+      <div class="frow"><label>字高（行數）</label><input id="p_rows" type="number" value="2" min="1" step="1" inputmode="numeric" oninput="calc()"><div class="hint" id="h_rows">請先選模組</div></div>
+      <div class="frow"><label>字寬（欄數）</label><input id="p_cols" type="number" value="8" min="1" step="1" inputmode="numeric" oninput="calc()"><div class="hint" id="h_cols">請先選模組</div></div>
+    </div>
+    <div class="frow"><label>鋁框型號</label>
+      <select id="p_frm" onchange="calc()"><option value="">— 選擇框型 —</option></select>
+    </div>
+    <div class="g2">
+      <div class="frow"><label>電源器</label><select id="p_pwr" onchange="calc()"><option value="">— 選擇 —</option></select></div>
+      <div class="frow"><label>控制卡</label><select id="p_ctrl" onchange="calc()"><option value="">— 選擇 —</option></select></div>
+    </div>
+    <div class="g2">
+      <div class="frow"><label>數量（台）</label><input id="p_qty" type="number" value="1" min="1" inputmode="numeric" oninput="calc()"></div>
+      <div class="frow"><label>單/雙面</label><select id="p_dual" onchange="calc()"><option value="1">單面</option><option value="2">雙面</option></select></div>
+    </div>
+  </div>
+
+  <div class="spec-box" id="specBox" style="display:none">
+    <div class="spec-grid">
+      <div class="spec-cell"><div class="spec-val" id="r_chars">—</div><div class="spec-lab">顯示字數</div></div>
+      <div class="spec-cell"><div class="spec-val" id="r_area">—</div><div class="spec-lab">面積(cm)</div></div>
+      <div class="spec-cell"><div class="spec-val" id="r_frame">—</div><div class="spec-lab">含框(cm)</div></div>
+      <div class="spec-cell warn"><div class="spec-val" id="r_watt">—</div><div class="spec-lab">功耗(W)</div></div>
+      <div class="spec-cell ok"><div class="spec-val" id="r_wgt">—</div><div class="spec-lab">重量(kg)</div></div>
+      <div class="spec-cell"><div class="spec-val" id="r_pwrn">—</div><div class="spec-lab">電源器</div></div>
+    </div>
+    <div class="spec-warn" id="r_err" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══ Page 3: 報價 ══ -->
+<div id="pg3" class="page">
+  <div style="margin-bottom:12px;font-size:12px;color:var(--sub)">選擇報價等級，點選後進入預覽</div>
+  <div id="tierArea"></div>
+</div>
+
+<!-- ══ Page 4: 預覽 ══ -->
+<div id="pg4" class="page">
+  <div class="quote-wrap">
+    <div id="quoteSheet"></div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+    <button class="btn btn-green" onclick="saveImg()" style="flex:1">📸 儲存圖片</button>
+    <button class="btn btn-share" onclick="shareImg()">⬆</button>
+  </div>
+</div>
+
+<!-- ══ 底部按鈕 ══ -->
+<div class="bottom-bar" id="bbar">
+  <button class="btn btn-secondary" id="prevBtn" onclick="prev()" style="display:none">‹</button>
+  <button class="btn btn-primary" id="nextBtn" onclick="next()">下一步 →</button>
+</div>
+
+<!-- ══ 鎖定登入 ══ -->
+<div class="lock-overlay" id="lockOverlay">
+  <div class="lock-box">
+    <div class="lock-icon">🔑</div>
+    <div class="lock-title">管理者登入</div>
+    <div class="lock-sub">輸入密碼查看成本與毛利資訊</div>
+    <input type="password" class="lock-input" id="lockPwd" placeholder="••••" maxlength="20" onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="lock-err" id="lockErr"></div>
+    <button class="lock-btn" onclick="doLogin()">登入</button>
+    <div class="lock-cancel" onclick="closeLock()">取消</div>
+  </div>
+</div>
+
+<!-- ══ Config Sheet ══ -->
+<div class="sheet" id="cfgSheet" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet-inner">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">載入成本設定</div>
+    <div id="cfgStatus" style="display:none;margin-bottom:10px"></div>
+    <label class="file-drop" for="cfgFile">
+      <div class="file-icon">📂</div>
+      <div class="file-text">選擇 usled_config_*.json</div>
+      <div class="file-hint">從「參數編輯器」匯出的設定檔</div>
+      <input type="file" id="cfgFile" accept=".json" style="display:none" onchange="loadJson(this)">
+    </label>
+    <button style="width:100%;margin-top:12px;padding:13px;border:none;border-radius:12px;background:var(--brand);color:#fff;font-size:14px;font-weight:700;cursor:pointer" onclick="closeSheet()">確定</button>
+  </div>
+</div>
+
+<!-- ══ Toast ══ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══ 角色與密碼 ══
+var MGR_PWD = 'usled2026'; // ← 可改密碼
+var isMgr = false;
+var curPage = 1;
+var selTier = 0; // 0=當月活動, 1=蝦皮訂製, 2=自取最底
+var RESULT = {};
+
+// ══ 三個報價等級 ══
+var TIERS = [
+  {name:'當月活動', tag:'tier-act', tagTxt:'限時優惠', margin:0.445},
+  {name:'蝦皮訂製', tag:'tier-shop', tagTxt:'電商訂製', margin:0.345},
+  {name:'自取最底', tag:'tier-min', tagTxt:'最低自取', margin:0.182}
+];
+
+// ══ 資料 ══
+var MODS=[], FRMS=[], PWRS=[], CTRL=[];
+var BACK_OFFSET={O:0,N:0,S:1.5,X:2.5,I:4.0,J:3.7,R:4.5,A:7.5,P:8.5};
+
+// ══ 靜態 meta ══
+var MOD_META={
+  P10R:{mh:16,ml:32,ch:1,cw:2,water:'全戶外'},P10C:{mh:16,ml:32,ch:1,cw:2,water:'全戶外'},
+  P10S:{mh:16,ml:32,ch:1,cw:2,water:'全戶外'},P08C:{mh:12.8,ml:25.6,ch:1,cw:2,water:'全戶外'},
+  P06C:{mh:19.2,ml:19.2,ch:2,cw:2,water:'全戶外'},P05C:{mh:16,ml:32,ch:2,cw:4,water:'全戶外'},
+  P5CM:{mh:16,ml:16,ch:2,cw:2,water:'全戶外'},P04C:{mh:12.8,ml:25.6,ch:2,cw:4,water:'全戶外'},
+  P03C:{mh:19.2,ml:19.2,ch:4,cw:4,water:'全戶外'},P25F:{mh:16,ml:32,ch:4,cw:8,water:'全戶外'},
+  M10C:{mh:16,ml:32,ch:1,cw:2,water:'半戶外'},M10R:{mh:16,ml:32,ch:1,cw:2,water:'半戶外'},
+  M06C:{mh:19.2,ml:38.4,ch:2,cw:4,water:'室內'},M05C:{mh:16,ml:32,ch:2,cw:4,water:'室內'},
+  M04C:{mh:12.8,ml:25.6,ch:2,cw:4,water:'室內'},M4CL:{mh:25.6,ml:25.6,ch:4,cw:4,water:'室內'},
+  M47D:{mh:15.2,ml:30.4,ch:2,cw:4,water:'室內'},M03C:{mh:19.2,ml:19.2,ch:4,cw:4,water:'室內'},
+  M25F:{mh:16,ml:32,ch:4,cw:8,water:'室內'},M02C:{mh:16,ml:32,ch:5,cw:10,water:'室內'},
+  M186:{mh:16,ml:32,ch:5,cw:11,water:'室內'},Q4:{mh:16,ml:32,ch:3,cw:5,water:'室內'}
+};
+var FRM_META={
+  R:{model:'2590F3',edge:2.5,grp:'outdoor'},P:{model:'9045B',edge:4.5,grp:'outdoor'},
+  N:{model:'9025',edge:0,grp:'outdoor'},J:{model:'2060',edge:2.0,grp:'outdoor'},
+  A:{model:'092A',edge:4.0,grp:'outdoor'},I:{model:'2260',edge:2.2,grp:'indoor'},
+  S:{model:'1025',edge:1.0,grp:'indoor'},X:{model:'3815',edge:1.5,grp:'indoor'},
+  O:{model:'塑膠背板',edge:0,grp:'none'}
+};
+var PWR_SPEC={HAM:'明瑋5V60A/AC110V',HAT:'創聯5V40A/AC110V',HBM:'明瑋5V60A/AC220V',HBT:'創聯5V40A/AC220V',HSH1:'恒聯5V10A/全電壓',HSH2:'恒聯5V15A/全電壓',HSM1:'明瑋5V10A/全電壓',HSM2:'明瑋5V20A/全電壓',HSM3:'明瑋5V30A/全電壓',LAA0:'無/DC5V',LAA3:'黑殼5V3A/DC5V',LAA6:'黑殼5V6A/DC5V',LBG1:'灌膠5V10A/DC12-24V',LBH1:'恒聯5V10A/DC12-30V',LBH2:'恒聯5V20A/DC12-30V',LBH3:'恒聯5V30A/DC12-30V',LCH2:'恒聯5V20A/DC15-75V'};
+
+window.onload = function(){
+  var d=new Date();
+  document.getElementById('c_date').value=d.toISOString().slice(0,10);
+  // 從 localStorage 讀取設定（參數編輯器共享）
+  try{
+    var raw=localStorage.getItem('usled_cfg_v49');
+    if(raw){buildFromSnap(JSON.parse(raw));toast('✅ 已從參數編輯器載入設定');}
+    else{buildDefault();toast('⚠ 請載入 usled_config.json');}
+  }catch(e){buildDefault();}
+};
+
+// ── 從localStorage snap建立 ──
+function buildFromSnap(snap){
+  var v=snap.vals||{};
+  MODS=[];
+  Object.keys(MOD_META).forEach(function(id){
+    var m=MOD_META[id];
+    var twd=parseFloat(v['mt_'+id]||0),wg=parseFloat(v['mw_'+id]||0),wpm=parseFloat(v['mp_'+id]||0);
+    MODS.push(Object.assign({id:id,twd:twd,wg:wg,wpm:wpm},m));
+  });
+  FRMS=[];
+  Object.keys(FRM_META).forEach(function(id){
+    var m=FRM_META[id];
+    FRMS.push(Object.assign({id:id,wg_cm:parseFloat(v['fw_'+id]||0),corner_wg:parseFloat(v['fcw_'+id]||0)},m));
+  });
+  PWRS=[];
+  ['HAM','HAT','HBM','HBT','HSH1','HSH2','HSM1','HSM2','HSM3','LAA0','LAA3','LAA6','LBG1','LBH1','LBH2','LBH3','LCH2'].forEach(function(id){
+    PWRS.push({id:id,spec:PWR_SPEC[id]||id,watt:parseFloat(v['pw_'+id]||0),wg:parseFloat(v['pg_'+id]||0),price:parseFloat(v['pp_'+id]||0),inwire_p:parseFloat(v['piw_r_'+id]||0)*4.7});
+  });
+  CTRL=[];
+  ['HD-D16','HD-C16L','HD-U6A','LM-30A','HD-A5L','HD-A4','HD-A3L','HD-E64','HD-W66','HD-WF4','HD-WF2','RHX-64W512','RHX-32W320','RHX-Q10','RHX-Q8B','RHX-Q4A1','RHX-Q4AM','RHX-64WUN1024','RHX-8Q2','RHX-8C1'].forEach(function(id){
+    CTRL.push({id:id,price:parseFloat(v['cp_'+id]||0),wg:parseFloat(v['cw_'+id]||0)});
+  });
+  // 報價等級
+  if(v['ti_2'])TIERS[0].margin=parseFloat(v['ti_2'])/100;
+  if(v['ti_4'])TIERS[1].margin=parseFloat(v['ti_4'])/100;
+  if(v['ti_6'])TIERS[2].margin=parseFloat(v['ti_6'])/100;
+  buildUI();
+}
+
+// ── 從 JSON 檔建立 ──
+function buildFromJson(cfg){
+  MODS=[];
+  Object.keys(cfg.mods||{}).forEach(function(id){
+    var m=MOD_META[id];if(!m)return;
+    var d=cfg.mods[id];
+    MODS.push(Object.assign({id:id,twd:d.twd,wg:d.wg,wpm:d.wpm},m));
+  });
+  FRMS=[];
+  Object.keys(cfg.frms||{}).forEach(function(id){
+    var m=FRM_META[id];if(!m)return;
+    var d=cfg.frms[id];
+    FRMS.push(Object.assign({id:id,wg_cm:d.wg_cm,corner_wg:d.corner_wg},m));
+  });
+  PWRS=[];
+  Object.keys(cfg.pwrs||{}).forEach(function(id){
+    var d=cfg.pwrs[id];
+    PWRS.push({id:id,spec:PWR_SPEC[id]||id,watt:d.watt,wg:d.wg,price:d.price,inwire_p:(d.inwire_rmb||0)*(cfg.base&&cfg.base.rate||4.7)});
+  });
+  CTRL=[];
+  Object.keys(cfg.ctrl||{}).forEach(function(id){
+    var d=cfg.ctrl[id];CTRL.push({id:id,price:d.price,wg:d.wg});
+  });
+  if(cfg.tiers){var t=cfg.tiers;if(t[2])TIERS[0].margin=t[2]/100;if(t[4])TIERS[1].margin=t[4]/100;if(t[6])TIERS[2].margin=t[6]/100;}
+  buildUI();
+}
+
+// ── 預設（無設定時）──
+function buildDefault(){
+  // 至少塞幾個模組讓UI不空
+  ['P04C','P10C','M05C','M04C'].forEach(function(id){
+    var m=MOD_META[id];if(!m)return;
+    MODS.push(Object.assign({id:id,twd:0,wg:0,wpm:0},m));
+  });
+  Object.keys(FRM_META).forEach(function(id){FRMS.push(Object.assign({id:id,wg_cm:0,corner_wg:0},FRM_META[id]));});
+  buildUI();
+}
+
+// ── 建立下拉選單 ──
+function buildUI(){
+  var ms=document.getElementById('p_mod');
+  ms.innerHTML='<option value="">— 選擇模組 —</option>';
+  MODS.forEach(function(m){
+    var o=document.createElement('option');
+    o.value=m.id;o.textContent=m.id+'　'+m.water+'　'+m.ch+'行'+m.cw+'列/片';
+    ms.appendChild(o);
+  });
+  var fs=document.getElementById('p_frm');
+  fs.innerHTML='<option value="">— 選擇框型 —</option>';
+  FRMS.forEach(function(f){
+    var o=document.createElement('option');
+    o.value=f.id;o.textContent=f.id+'  '+f.model+(f.edge?' 邊'+f.edge+'cm':'');
+    fs.appendChild(o);
+  });
+  var ps=document.getElementById('p_pwr');
+  ps.innerHTML='<option value="">— 選擇電源器 —</option>';
+  PWRS.forEach(function(p){
+    var o=document.createElement('option');
+    o.value=p.id;o.textContent=p.id+'  '+p.spec;
+    ps.appendChild(o);
+  });
+  var cs=document.getElementById('p_ctrl');
+  cs.innerHTML='<option value="">— 選擇控制卡 —</option>';
+  CTRL.forEach(function(c){
+    var o=document.createElement('option');
+    o.value=c.id;o.textContent=c.id;
+    cs.appendChild(o);
+  });
+}
+
+// ── 模組切換 ──
+function onMod(){
+  var mid=document.getElementById('p_mod').value;
+  var m=MODS.find(function(x){return x.id===mid;});
+  if(m){
+    document.getElementById('h_rows').textContent='每片'+m.ch+'行，需為'+m.ch+'的倍數';
+    document.getElementById('h_cols').textContent='每片'+m.cw+'列，需為'+m.cw+'的倍數';
+  }
+  calc();
+}
+
+// ── 計算規格 ──
+function G(id){var e=document.getElementById(id);return e?parseFloat(e.value)||0:0;}
+function GS(id){var e=document.getElementById(id);return e?e.value:'';}
+
+function calc(){
+  var mid=GS('p_mod'),fid=GS('p_frm'),pid=GS('p_pwr'),cid=GS('p_ctrl');
+  var m=MODS.find(function(x){return x.id===mid;});
+  if(!m){document.getElementById('specBox').style.display='none';RESULT={};updateTiers();return;}
+  document.getElementById('specBox').style.display='';
+  var rows=G('p_rows')||1,cols=G('p_cols')||1,dual=G('p_dual')||1,qty=G('p_qty')||1;
+  var mRows=Math.round(rows/m.ch),mCols=Math.round(cols/m.cw);
+  var Ds=mRows*mCols,D=Ds*dual;
+  var dispH=m.mh*mRows,dispW=m.ml*mCols;
+  var f=FRMS.find(function(x){return x.id===fid;}),fEdge=f?f.edge:0;
+  var fh=dispH+fEdge*2,fw=dispW+fEdge*2;
+  var p=PWRS.find(function(x){return x.id===pid;}),ct=CTRL.find(function(x){return x.id===cid;});
+  var totalW=m.wpm*D,pwrN=0;
+  if(p&&p.watt>0)pwrN=Math.ceil(totalW/(p.watt*1.0)); // 負載率100%
+  // 重量
+  var boff=f?(BACK_OFFSET[fid]||0):0;
+  var backH=dispH+boff,backW=dispW+boff,cai=backH*backW/918;
+  var modWg=m.wg*D,frmWg=f?(f.wg_cm*(fh+fw)*2+4*f.corner_wg):0;
+  var pwrWg=p?p.wg*pwrN:0,ctrlWg=ct?ct.wg:0,backWg=cai*207;
+  var totalKg=(modWg+frmWg+pwrWg+ctrlWg+backWg)/1000;
+  // 成本（管理者用）
+  var matCost=m.twd*D+(p?p.price*pwrN:0)+(ct?ct.price:0)+(f?G('fp_'+fid)*((fh+fw)*2):0);
+  // 顯示
+  document.getElementById('r_chars').textContent=rows*cols*dual+'字';
+  document.getElementById('r_area').textContent=dispH.toFixed(0)+'×'+dispW.toFixed(0);
+  document.getElementById('r_frame').textContent=(fEdge?fh.toFixed(0)+'×'+fw.toFixed(0):dispH.toFixed(0)+'×'+dispW.toFixed(0));
+  document.getElementById('r_watt').textContent=totalW.toFixed(0)+'W';
+  document.getElementById('r_wgt').textContent=totalKg.toFixed(2)+'kg';
+  // 解析點數：每字固定16點
+  var ptH=rows*16;
+  var ptW=cols*16;
+  var ptTotal=ptH*ptW;
+  document.getElementById('r_pwrn').textContent=pwrN>0?(pid+'×'+pwrN):'—';
+  RESULT.ptH=ptH; RESULT.ptW=ptW; RESULT.ptTotal=ptTotal;
+  var errs=[];
+  if(rows%m.ch!==0)errs.push('字高'+rows+'需為'+m.ch+'的倍數');
+  if(cols%m.cw!==0)errs.push('字寬'+cols+'需為'+m.cw+'的倍數');
+  var errEl=document.getElementById('r_err');
+  if(errs.length){errEl.textContent='⚠ '+errs.join('　');errEl.style.display='';}
+  else errEl.style.display='none';
+  // 快報基準 = 標價未稅（若有快報/字）；否則用模組台幣×D×2估算
+  var chars=rows*cols*dual;
+  var stdPrice=Math.round((m.twd*D*2.5)/100)*100; // 用成本估算標價
+  RESULT={mid:mid,fid:fid,pid:pid,cid:cid,m:m,f:f,p:p,ct:ct,
+    rows:rows,cols:cols,dual:dual,qty:qty,D:D,Ds:Ds,mRows:mRows,mCols:mCols,
+    dispH:dispH,dispW:dispW,fh:fh,fw:fw,totalW:totalW,pwrN:pwrN,
+    totalKg:totalKg,chars:chars,stdPrice:stdPrice,matCost:matCost,
+    ptH:ptH,ptW:ptW,ptTotal:ptTotal};
+  updateTiers();
+}
+
+// ── 更新報價等級 ──
+function updateTiers(){
+  var area=document.getElementById('tierArea');
+  area.innerHTML='';
+  if(!RESULT.stdPrice){
+    area.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">請先在「產品」頁選擇模組規格</div>';return;
+  }
+  var r=RESULT;
+  TIERS.forEach(function(t,i){
+    // 反推售價：標價÷(1-tier_margin)×(1-標價毛利) 
+    // 簡化：直接用 stdPrice × tier_factor
+    var price=Math.round(r.stdPrice*(1-TIERS[0].margin)/(1-t.margin)/100)*100;
+    var total=price*r.qty;
+    var div=document.createElement('div');
+    div.className='tier-card'+(i===selTier?' sel':'');
+    div.dataset.i=i;
+    div.dataset.price=price;
+    // 毛利金額（管理者）
+    var profit=price-r.matCost;
+    var profitPct=r.matCost>0?(profit/price*100):0;
+    var mgrHtml=isMgr?`
+      <div class="tier-cost-bar mgr-show">
+        <div class="cost-row"><span>材料成本</span><strong>$${Math.round(r.matCost).toLocaleString()}</strong></div>
+        <div class="cost-row"><span>毛利金額</span><strong style="color:var(--green)">$${Math.round(profit).toLocaleString()}</strong></div>
+        <div class="cost-row"><span>毛利率</span><strong>${profitPct.toFixed(1)}%</strong></div>
+        <div class="profit-bar"><div class="profit-fill" style="width:${Math.min(profitPct,100)}%"></div></div>
+      </div>`:'';
+    div.innerHTML=`
+      <div class="tier-top">
+        <div>
+          <div class="tier-name">${t.name}</div>
+          <div class="tier-total">共 ${r.qty} 台　合計 $${total.toLocaleString()}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="tier-tag ${t.tag}">${t.tagTxt}</span>
+          ${i===selTier?'<div style="font-size:11px;color:var(--accent);margin-top:4px;font-weight:700">✓ 已選</div>':''}
+        </div>
+      </div>
+      <div class="tier-price-row">
+        <span class="tier-price">$${price.toLocaleString()}</span>
+        <span class="tier-unit">元 / 台</span>
+      </div>
+      ${mgrHtml}`;
+    div.onclick=function(){
+      selTier=parseInt(this.dataset.i);
+      RESULT.unitPrice=parseInt(this.dataset.price);
+      RESULT.totalPrice=RESULT.unitPrice*r.qty;
+      RESULT.tierName=TIERS[selTier].name;
+      updateTiers();
+    };
+    area.appendChild(div);
+    if(i===selTier){RESULT.unitPrice=price;RESULT.totalPrice=total;RESULT.tierName=t.name;}
+  });
+}
+
+// ── 頁面切換 ──
+function goPage(n){
+  if(n>1&&MODS.length===0){toast('請先載入設定檔');return;}
+  curPage=n;
+  for(var i=1;i<=4;i++){
+    document.getElementById('pg'+i).classList.toggle('on',i===n);
+    document.getElementById('tab'+i).classList.toggle('on',i===n);
+  }
+  document.getElementById('prevBtn').style.display=n>1?'':'none';
+  if(n===4){
+    try{buildQuote();}catch(e){console.error('buildQuote error:',e);document.getElementById('quoteSheet').innerHTML='<div style="padding:30px;color:red;text-align:center">⚠ 請先選擇模組與框型再進入預覽</div>';}
+    document.getElementById('bbar').style.display='none';
+  }
+  else{document.getElementById('bbar').style.display='';document.getElementById('nextBtn').textContent=n===3?'產生報價單 ✓':'下一步 →';}
+}
+function next(){if(curPage<4)goPage(curPage+1);}
+function prev(){if(curPage>1)goPage(curPage-1);}
+
+// ── 角色切換 ──
+function toggleRole(){
+  if(isMgr){isMgr=false;applyRole();}
+  else{document.getElementById('lockPwd').value='';document.getElementById('lockErr').textContent='';document.getElementById('lockOverlay').classList.add('show');}
+}
+function doLogin(){
+  var pwd=document.getElementById('lockPwd').value;
+  if(pwd===MGR_PWD){isMgr=true;document.getElementById('lockOverlay').classList.remove('show');applyRole();toast('🔑 管理者模式已開啟');}
+  else{document.getElementById('lockErr').textContent='密碼錯誤，請重試';}
+}
+function closeLock(){document.getElementById('lockOverlay').classList.remove('show');}
+function applyRole(){
+  var b=document.getElementById('roleBadge'),mg=document.getElementById('mgrBanner');
+  if(isMgr){b.textContent='管理者 ✓';b.className='role-badge mgr';mg.classList.add('show');}
+  else{b.textContent='業務 ▾';b.className='role-badge sales';mg.classList.remove('show');}
+  updateTiers(); // 重新渲染含/不含成本
+}
+
+// ── 載入JSON ──
+function loadJson(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var cfg=JSON.parse(e.target.result);
+      buildFromJson(cfg);
+      var st=document.getElementById('cfgStatus');
+      st.style.display='';
+      st.innerHTML='<span class="status-chip status-ok">✅ 載入成功：'+file.name+'</span>';
+      toast('✅ 設定已更新');
+    }catch(err){
+      var st=document.getElementById('cfgStatus');
+      st.style.display='';
+      st.innerHTML='<span class="status-chip status-err">❌ 載入失敗：'+err.message+'</span>';
+    }
+    input.value='';
+  };
+  reader.readAsText(file);
+}
+
+// ── Config Sheet ──
+function openSheet(){document.getElementById('cfgSheet').classList.add('show');}
+function closeSheet(){document.getElementById('cfgSheet').classList.remove('show');}
+
+// ── 建立報價單 ──
+function buildQuote(){
+  var r=RESULT,client=GS('c_name')||'—',phone=GS('c_phone')||'—',dateStr=GS('c_date')||'—';
+  var price=r.unitPrice||0,total=r.totalPrice||0,qty=r.qty||1;
+  var mid=r.mid||'',fid=r.fid||'',pid=r.pid||'',cid=r.cid||'';
+  var rows2=parseInt(r.rows)||0,cols2=parseInt(r.cols)||0;
+  var typeCode=(mid||'')+(rows2<10?'0':'')+rows2+(cols2<10?'0':'')+cols2+(fid?'-'+fid:'')+(pid||'');
+  var d=new Date(dateStr);var days='日一二三四五六';
+  var dStr=dateStr+'（'+days[d.getDay()]+'）';
+  document.getElementById('quoteSheet').innerHTML=`
+    <div class="qs">
+      <div class="qs-hd">
+        <div class="qs-hd-logo">YSPE<span style="color:#F59E0B">LED</span></div>
+        <div><div class="qs-hd-co">譽 昇 科 技 有 限 公 司</div><div class="qs-hd-en">YUSHEM TECHNICA LPHOTOELECTRIC</div></div>
+      </div>
+      <div class="qs-type">☑ LED字幕機　☑ 跑馬燈　☑ 電視牆　☑ 亮化工程　專案報價單</div>
+      <div class="qs-qno"><span>報價等級：${r.tierName||'—'}</span><span>報價日期：${dStr}</span></div>
+      <div class="qs-info">
+        <div class="qs-cell"><span class="qs-cell-lbl">客戶名稱</span><span class="qs-cell-val">${client}</span></div>
+        <div class="qs-cell"><span class="qs-cell-lbl">連絡電話</span><span class="qs-cell-val">${phone}</span></div>
+        <div class="qs-cell" style="grid-column:span 2"><span class="qs-cell-lbl">機型款式</span><span class="qs-cell-val">${typeCode}　${r.dual>1?'雙面':'單面'}</span></div>
+      </div>
+      <div class="qs-item-hd"><span>序</span><span>規格內容</span><span>數量</span><span>單價</span><span>小計</span></div>
+      <div class="qs-item-row">
+        <div style="font-weight:800;color:#1A3A6B">A1</div>
+        <div class="qs-spec-txt">
+          規格：電子顯示看板-${typeCode} ${r.dual>1?'雙面':'單面'}<br>
+          顯示顏色：全彩256色(超亮)<br>
+          顯示字數：(H)${(r.rows<10?'0':'')+r.rows}字*(W)${(r.cols<10?'0':'')+r.cols}字，${r.dual>1?'雙面':'單面'}共計${r.chars||'—'}字<br>
+          解析點數：(H)${r.ptH||'—'}點 * (W)${r.ptW||'—'}點<br>
+          總顯示點：${r.ptTotal?r.ptTotal.toLocaleString():'—'} pot<br>
+          顯示面積：(H)${r.dispH?(r.dispH.toFixed(0)):'-'}cm * (W)${r.dispW?(r.dispW.toFixed(0)):'-'}cm<br>
+          含框尺寸：(H)${r.fh?(r.fh.toFixed(0)):'-'}cm * (W)${r.fw?(r.fw.toFixed(0)):'-'}cm(T)${r.f?(r.f.edge*2+7).toFixed(0):9}cm<br>
+          使用電壓：${(pid&&(pid.startsWith('HBM')||pid.startsWith('HBT')))?'AC 220V':'AC 110V'} (面對機子右下側出線)<br>
+          結構外框：${(r.f&&r.f.grp!=='none')?'抗鏽加厚型雙層鋁合金':'輕型塑膠背板'}<br>
+          傳輸方式：手機APP傳輸${cid&&cid.startsWith('HD')?'(屏掌控)':cid&&cid.startsWith('RHX')?'(RHX)':''}<br>
+          平均功率：${r.totalW?Math.round(r.totalW*0.33):'-'} W/hr(參考)<br>
+          防水程度：${r.m&&r.m.water.includes('戶外')?'全戶外防雨':'室內防潮'}<br>
+          機體重量：約${r.totalKg?(r.totalKg.toFixed(2)):'-'}kg±5%
+        </div>
+        <div style="text-align:center;font-weight:700">${qty}<br><span style="font-size:7px;color:#64748B">台</span></div>
+        <div style="text-align:right;font-weight:700;color:#2563EB">$${price.toLocaleString()}<br><span style="font-size:7px;color:#64748B">元</span></div>
+        <div style="text-align:right;font-weight:800;color:#1A3A6B">$${total.toLocaleString()}</div>
+      </div>
+      <div class="qs-total-bar">
+        <span class="qs-total-lbl">現金未稅總計</span>
+        <span class="qs-total-val">NT ${total.toLocaleString()}</span>
+      </div>
+      <div class="qs-terms">
+        <div class="qs-term">交貨日期：正常訂單成立起7-13個工作天（不含週六日.國定假日）。特殊/天災則順延</div>
+        <div class="qs-term">付款方式：定金40%訂單成立。寄貨前/安裝完畢結清。匯款手續費請勿內扣</div>
+        <div class="qs-term">第一銀行 路竹分行（007）　戶名：譽昇科技有限公司　帳號：730-10-053103</div>
+        <div class="qs-term">保固條款：電子產品保固壹年，燈蕊屬消耗性光源（千分之3以內不在保固範圍）</div>
+      </div>
+      <div class="qs-sign">
+        <div class="qs-sign-box"><div class="qs-sign-lbl">購方簽章（甲方）</div><div></div><div class="qs-sign-co">簽　名</div></div>
+        <div class="qs-sign-box"><div class="qs-sign-lbl">售方簽章（乙方）</div><div></div><div class="qs-sign-co">譽昇科技有限公司</div></div>
+      </div>
+      <div class="qs-valid">本報價單有效日期：7天（含當日）　逾期重新報價</div>
+      <div class="qs-footer">
+        譽昇科技有限公司　統編：54825796　網站：www.yspeled.com　專線：0800-394349<br>
+        ◆LED字幕機 ◆LED電視牆 ◆LED光景亮化 ◆LED燈條燈飾 ◆工程自動化顯示<br>
+        Google搜尋【岡山LED】高雄市岡山區溪西路2-2號　TEL:07-6251898
+      </div>
+    </div>`;
+}
+
+// ── 儲存圖片 ──
+function saveImg(){
+  toast('📸 產生中...');
+  html2canvas(document.getElementById('quoteSheet'),{scale:2.5,backgroundColor:'#ffffff',useCORS:true}).then(function(cv){
+    var a=document.createElement('a');
+    var r2=RESULT,dateRaw=(GS('c_date')||'').replace(/-/g,'').slice(2);
+    var client=(GS('c_name')||'客戶').replace(/[\s\/\\:*?"<>|]/g,'');
+    var rows2=parseInt(r2.rows)||0,cols2=parseInt(r2.cols)||0;
+    var modCode=(r2.mid||'')+(rows2<10?'0':'')+rows2+(cols2<10?'0':'')+cols2;
+    var frmCode=r2.fid||'';
+    var pwrShort=(r2.pid||'').slice(0,2);
+    var sideStr=(r2.dual||1)>1?'雙面':'單面';
+    a.download=dateRaw+'-'+client+'-'+modCode+'-'+frmCode+pwrShort+sideStr+'.png';
+    a.href=cv.toDataURL('image/png');a.click();
+    toast('✅ 已儲存');
+  });
+}
+function shareImg(){
+  toast('📸 產生中...');
+  html2canvas(document.getElementById('quoteSheet'),{scale:2.5,backgroundColor:'#ffffff'}).then(function(cv){
+    cv.toBlob(function(blob){
+      var r2=RESULT,dateRaw=(GS('c_date')||'').replace(/-/g,'').slice(2);
+      var client2=(GS('c_name')||'客戶').replace(/[\s\/\\:*?"<>|]/g,'');
+      var rows2=parseInt(r2.rows)||0,cols2=parseInt(r2.cols)||0;
+      var modCode=(r2.mid||'')+(rows2<10?'0':'')+rows2+(cols2<10?'0':'')+cols2;
+      var frmCode=r2.fid||''; var pwrShort=(r2.pid||'').slice(0,2); var sideStr=(r2.dual||1)>1?'雙面':'單面';
+      var fname=dateRaw+'-'+client2+'-'+modCode+'-'+frmCode+pwrShort+sideStr+'.png';
+      var file=new File([blob],fname,{type:'image/png'});
+      if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+        navigator.share({files:[file],title:'USLED報價單'}).catch(function(){saveImg();});
+      } else {saveImg();}
+    });
+  });
+}
+
+// ── Toast ──
+function toast(msg){
+  var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._to);t._to=setTimeout(function(){t.classList.remove('show');},2500);
+}
+</script>
+</body>
+</html>

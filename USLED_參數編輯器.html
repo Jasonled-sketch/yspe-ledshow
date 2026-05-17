@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>USLED 參數編輯器 v4.9.3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,sans-serif}
+body{background:#F7F6F3;color:#1A1916;font-size:14px;padding-bottom:3rem}
+header{background:#1A1916;color:#fff;padding:.8rem 1.5rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:12px}
+header h1{font-size:14.5px;font-weight:500}
+header p{font-size:9.5px;color:rgba(255,255,255,.5);margin-top:1px}
+.hbadge{margin-left:auto;font-size:10px;padding:3px 9px;border:1px solid rgba(255,255,255,.2);border-radius:20px;color:rgba(255,255,255,.7)}
+.hbadge.dirty{background:rgba(217,119,6,.4);color:#FEF3C7}
+nav{background:#fff;border-bottom:1px solid #E2DED7;display:flex;overflow-x:auto;position:sticky;top:52px;z-index:99}
+.nt{padding:8px 11px;font-size:10.5px;font-weight:500;cursor:pointer;border-bottom:2px solid transparent;color:#6B6761;white-space:nowrap;user-select:none}
+.nt:hover,.nt.on{color:#185FA5;border-bottom-color:#185FA5}
+.wrap{max-width:1200px;margin:0 auto;padding:.875rem}
+.tc{display:none}.tc.on{display:block}
+.notice{background:#E6F1FB;border-left:3px solid #185FA5;border-radius:0 8px 8px 0;padding:8px 12px;font-size:11.5px;color:#0C447C;line-height:1.6;margin-bottom:.75rem}
+.card{background:#fff;border:0.5px solid #E2DED7;border-radius:10px;padding:11px;margin-bottom:7px}
+.st{font-size:9.5px;font-weight:700;letter-spacing:1.5px;color:#A09B95;border-bottom:0.5px solid #E2DED7;padding-bottom:4px;margin:.7rem 0 7px;text-transform:uppercase}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.f{display:flex;flex-direction:column;gap:2px}
+.f label{font-size:9px;font-weight:600;color:#6B6761}
+.f input,.f select{padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:11.5px;color:#1A1916;background:#fff;width:100%;outline:none}
+.f input:focus,.f select:focus{border-color:#185FA5}
+.f .u{font-size:9px;color:#A09B95;margin-top:1px;line-height:1.5}
+.changed{border-color:#D97706!important;background:#FFFBEB!important}
+.kbox{background:#E6F1FB;border-radius:8px;padding:9px;margin-top:7px}
+.knum{font-size:22px;font-weight:600;color:#185FA5}
+.rrow{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.ri{background:#F7F6F3;border-radius:7px;padding:5px 9px;flex:1;min-width:70px;text-align:center}
+.rin{font-size:13px;font-weight:600}
+.ril{font-size:8px;color:#A09B95;margin-top:1px}
+.tbl{width:100%;border-collapse:collapse;font-size:10.5px}
+.tbl th{text-align:left;padding:4px 5px;background:#F7F6F3;border-bottom:0.5px solid #E2DED7;font-size:9px;font-weight:700;color:#6B6761;white-space:nowrap}
+.tbl td{padding:3px 5px;border-bottom:0.5px solid #E2DED7;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#FAFAF8}
+.tbl td.nm{font-weight:700;color:#185FA5;white-space:nowrap;font-size:10px}
+.tbl td.sm{font-size:9.5px;color:#6B6761}
+.tbl input{padding:2px 5px;border:0.5px solid #E2DED7;border-radius:4px;font-size:10.5px;background:#fff;color:#1A1916;outline:none}
+.tbl input:focus{border-color:#185FA5}
+.tbl input:disabled{opacity:.4;background:#F7F6F3}
+.tout{background:#E1F5EE;color:#085041;font-size:8.5px;padding:1px 4px;border-radius:3px;font-weight:700}
+.tin{background:#EDE9FE;color:#3730A3;font-size:8.5px;padding:1px 4px;border-radius:3px;font-weight:700}
+.tsemi{background:#FEF3C7;color:#92400E;font-size:8.5px;padding:1px 4px;border-radius:3px;font-weight:700}
+.tnon{background:#F1EFE8;color:#6B6761;font-size:8.5px;padding:1px 4px;border-radius:3px;font-weight:700}
+.tdc{background:#EDE9FE;color:#4C1D95;font-size:8.5px;padding:1px 4px;border-radius:3px;font-weight:700}
+.sbtn{font-size:9px;padding:2px 6px;border-radius:7px;border:1px solid;cursor:pointer;font-weight:600;white-space:nowrap}
+.srmb{background:#EDE9FE;color:#4C1D95;border-color:#C4B5FD}
+.stwd{background:#E1F5EE;color:#085041;border-color:#6EE7B7}
+.tedit{border-color:#1D9E75!important;background:#F0FDF4!important;color:#085041!important;font-weight:700!important}
+.tauto{background:#F7F6F3!important;color:#185FA5!important;font-weight:700}
+.ship-cost{font-size:9px;color:#D97706;font-weight:600;text-align:right;white-space:nowrap}
+.btn-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+.btn{padding:7px 13px;border-radius:7px;border:0.5px solid #E2DED7;font-size:11.5px;font-weight:500;cursor:pointer}
+.btnp{background:#185FA5;color:#fff;border-color:#185FA5}
+.btng{background:transparent;color:#1A1916}
+.btng:hover{background:#F0EEE9}
+.sbox{background:#F7F6F3;border-radius:8px;padding:9px;font-size:10px;font-family:monospace;color:#1A1916;line-height:1.9;white-space:pre-wrap;max-height:280px;overflow-y:auto;border:0.5px solid #E2DED7;margin-bottom:7px}
+.vbox{background:#F7F6F3;border-radius:7px;padding:7px 10px;font-size:10px;color:#6B6761;line-height:1.9;margin-top:5px}
+.errbox{background:#FEE2E2;border-left:3px solid #DC2626;border-radius:0 8px 8px 0;padding:5px 9px;font-size:10px;color:#991B1B;margin-top:5px;display:none}
+.fmbox{background:#E6F1FB;border-radius:7px;padding:7px 11px;font-size:11.5px;color:#0C447C;margin-bottom:7px}
+/* 成本明細表 */
+.ctbl{width:100%;border-collapse:collapse;font-size:10.5px;margin-top:5px}
+.ctbl th{padding:4px 7px;font-size:8.5px;font-weight:700;color:#fff;text-align:left;white-space:nowrap}
+.ctbl th.hA{background:#374151}.ctbl th.hB{text-align:center;background:#374151}
+.ctbl th.hC{text-align:right;background:#374151}.ctbl th.hD{text-align:right;background:#185FA5}
+.ctbl th.hE{text-align:right;background:#4B5563}
+.ctbl td{padding:3px 7px;border-bottom:0.5px solid #E2DED7;font-size:10.5px;vertical-align:middle}
+.ctbl td.tQ{text-align:center;color:#6B6761;font-size:10px}
+.ctbl td.tU{text-align:right;color:#6B6761;font-size:10px}
+.ctbl td.tS{text-align:right;font-weight:600;color:#185FA5}
+.ctbl td.tW{text-align:right;color:#6B6761;font-size:9.5px}
+.ctbl tr.stg td{background:#1A1916;color:#fff;font-weight:700;font-size:10px;padding:4px 7px}
+.ctbl tr.stg td.tS{color:#86EFAC;background:#1A1916}
+.ctbl tr.stg td.tW{color:#D1D5DB;background:#1A1916}
+.ctbl tr.naR td{color:#C0B8B0;font-style:italic;font-size:9.5px;padding:2px 7px}
+.ctbl tr.totR td{background:#111;color:#fff;font-weight:700}
+.ctbl tr.totR td.tS{color:#86EFAC;background:#111}
+.ctbl tr.totR td.tW{color:#D1D5DB;background:#111}
+.ctbl tr.laborR td{background:#E6F1FB;font-weight:600;font-size:10.5px}
+.ctbl tr.laborR td.tS{color:#0C447C}
+/* note span in cell */
+.ctbl td .note{font-size:8.5px;color:#A09B95;margin-left:5px}
+/* 摘要格 */
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.scell{background:#F7F6F3;border-radius:7px;padding:8px;text-align:center}
+.sn{font-size:14px;font-weight:700}.sl{font-size:8px;color:#A09B95;margin-top:1px}
+.scell.hi{background:#E6F1FB}.scell.hi .sn{color:#185FA5}
+.scell.hot{background:#FEF3C7}.scell.hot .sn{color:#92400E}
+.scell.grn{background:#ECFDF5}.scell.grn .sn{color:#065F46}
+.scell.red{background:#FEE2E2}.scell.red .sn{color:#DC2626}
+</style>
+</head>
+<body>
+<header>
+  <div style="width:26px;height:26px;border-radius:5px;background:#185FA5;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0">U</div>
+  <div><h1>USLED 譽昇光電 — 參數編輯器 v4.9.3</h1><p>控制卡來源切換 · 電源線RMB/重量 · 內聯顯示 · 小計1位小數 · 背板才數計算值</p></div>
+  <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
+  <button onclick="EXPORT_CFG()" style="background:#1D9E75;color:#fff;border:none;border-radius:6px;padding:5px 11px;font-size:10.5px;cursor:pointer;font-weight:600">💾 匯出設定</button>
+  <label style="background:#374151;color:#fff;border-radius:6px;padding:5px 11px;font-size:10.5px;cursor:pointer;font-weight:600">📂 載入設定<input type="file" id="importFile" accept=".json" style="display:none" onchange="IMPORT_CFG(this)"></label>
+  <div class="hbadge" id="hbadge">未修改</div>
+</div>
+</header>
+<nav>
+  <div class="nt on" id="n-base"  onclick="GT('base')">① 基礎</div>
+  <div class="nt" id="n-mod"   onclick="GT('mod')">② 模組(22)</div>
+  <div class="nt" id="n-frm"   onclick="GT('frm')">③ 鋁框(9)</div>
+  <div class="nt" id="n-pwr"   onclick="GT('pwr')">④ 電源器(17)</div>
+  <div class="nt" id="n-ctrl"  onclick="GT('ctrl')">⑤ 控制卡(20)</div>
+  <div class="nt" id="n-parts" onclick="GT('parts')">⑥ 零件單價</div>
+  <div class="nt" id="n-sc"    onclick="GT('sc')">⑦ 積分規則</div>
+  <div class="nt" id="n-cfg"   onclick="GT('cfg')">⑧ 配置計算</div>
+  <div class="nt" id="n-tier"  onclick="GT('tier')">⑨ 報價等級</div>
+  <div class="nt" id="n-exp"   onclick="GT('exp')">📋 摘要</div>
+</nav>
+<div class="wrap">
+
+<!-- ① 基礎 -->
+<div id="t-base" class="tc on">
+  <div class="notice">📝 修改任何欄位即時更新。<strong>黃色邊框</strong> = 已變動。設定會<strong>自動儲存</strong>在此瀏覽器，下次開啟自動還原。</div>
+  <div id="localNotice" style="display:none;background:#ECFDF5;border-left:3px solid #1D9E75;border-radius:0 8px 8px 0;padding:7px 12px;font-size:11px;color:#065F46;margin-bottom:.75rem"></div>
+  <div class="st">基礎參數</div>
+  <div class="card">
+    <div class="g4">
+      <div class="f"><label>人民幣匯率（台幣）</label><input type="number" id="rate" value="4.7" step="0.01" oninput="CALC()"><div class="u">1人民幣 = ? 台幣</div></div>
+      <div class="f"><label>師傅時薪（元/hr）</label><input type="number" id="wage" value="350" step="1" oninput="CALC()"><div class="u">= <span id="wMin">4.68</span> 元/分鐘</div></div>
+      <div class="f"><label>積分單價（元/分）</label><input type="number" id="sp" value="22" step="0.5" oninput="CALC()"><div class="u">KPI 換算基準</div></div>
+      <div class="f"><label>海快運費（人民幣/kg）</label><input type="number" id="shipRate" value="8.5" step="0.1" oninput="CALC()"><div class="u">只計算🇨🇳來源材料</div></div>
+    </div>
+    <div class="kbox">
+      <div class="g2">
+        <div class="f"><label style="color:#0C447C">員工月薪（元）</label><input type="number" id="sal" value="50000" step="1000" oninput="CALC()" style="border-color:#185FA5"><div class="u">月薪 ÷ 積分單價 = 最低積分目標</div></div>
+        <div style="text-align:center;padding:6px"><div class="knum" id="kTgt">2,273</div><div style="font-size:9.5px;color:#0C447C;margin-top:2px">分／月</div><div style="font-size:10px;color:#185FA5;margin-top:3px">≈ <span id="kDay">103</span> 分／工作天</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="st">管銷加乘係數</div>
+  <div class="card">
+    <div class="g4">
+      <div class="f"><label>資金成本(%)</label><input type="number" id="cap" value="6" step="0.5" oninput="CALC()"></div>
+      <div class="f"><label>稅額(%)</label><input type="number" id="tax" value="5" step="0.5" oninput="CALC()"></div>
+      <div class="f"><label>風險準備金(%)</label><input type="number" id="risk" value="5" step="0.5" oninput="CALC()"></div>
+      <div class="f"><label>最低獲利(%)</label><input type="number" id="pft" value="3" step="0.5" oninput="CALC()"></div>
+    </div>
+    <div class="rrow">
+      <div class="ri"><div class="rin" id="ohT">117%</div><div class="ril">管銷比例</div></div>
+      <div class="ri"><div class="rin" id="ohF">×1.170</div><div class="ril">材料乘數</div></div>
+      <div class="ri"><div class="rin" id="ohE">$2,814</div><div class="ril">範例$2,405後</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ② 模組 -->
+<div id="t-mod" class="tc">
+  <div class="notice">wpm=每字平均功耗×ch×cw（每片總W）。🇨🇳台幣=(RMB+重量kg×海快)×匯率。</div>
+  <div class="st">LED 顯示模組（22種）</div>
+  <div class="card" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>型號</th><th>模組(cm)</th><th>ch</th><th>cw</th><th>防水</th><th>快報/字</th><th>重量(g/片)</th><th>功耗(W/片)</th><th>來源</th><th>人民幣¥</th><th>運費</th><th>台幣/片</th></tr></thead>
+      <tbody id="mTb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ③ 鋁框 -->
+<div id="t-frm" class="tc">
+  <div class="notice"><span class="tout">R/P/N/J/A戶外</span>→門型鐵+磁鐵+後滿膠　<span class="tin">X/I/S室內</span>→玻纖板+滑軌+模組螺絲　<span class="tnon">O</span>→磁鐵</div>
+  <div class="st">鋁框（9種）</div>
+  <div class="card" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>代號</th><th>型號</th><th>邊高</th><th>框厚</th><th>防水</th><th>g/cm</th><th>彎角重(g)</th><th>彎角價</th><th>框架($/cm)</th><th>框型</th><th>背板外擴</th></tr></thead>
+      <tbody id="fTb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ④ 電源器 -->
+<div id="t-pwr" class="tc">
+  <div class="notice">RMB=變壓器RMB（不含線材）。輸入電源線RMB/重量/台幣可在右側各別調整。</div>
+  <div class="st">電源器（17種）</div>
+  <div class="card" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>代號</th><th>電壓</th><th>規格</th><th>來源</th><th>瓦數(W)</th><th>重量(g)</th><th>人民幣¥</th><th>運費</th><th>台幣/顆</th><th>輸入電源線規格</th><th>線材¥(RMB)</th><th>線材重(g)</th><th>線材台幣</th></tr></thead>
+      <tbody id="pTb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑤ 控制卡 -->
+<div id="t-ctrl" class="tc">
+  <div class="notice">🇹🇼直接輸入台幣；🇨🇳人民幣+運費自動換算台幣。</div>
+  <div class="st">控制卡（20種）</div>
+  <div class="card" style="overflow-x:auto">
+    <table class="tbl">
+      <thead><tr><th>型號</th><th>重量(g)</th><th>來源</th><th>人民幣¥</th><th>運費</th><th>台幣單價</th><th>適用範圍</th></tr></thead>
+      <tbody id="cTb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ⑥ 零件單價 -->
+<div id="t-parts" class="tc">
+  <div class="notice">配置計算器依框型自動套用零件公式。所有單價與重量皆可調整。</div>
+  <div class="st">1-組框零件</div>
+  <div class="card">
+    <div class="g3">
+      <div class="f"><label>框角螺絲(自攻) $/只</label><input type="number" id="p_cornscrew_p" value="0.5" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_cornscrew_w" value="2" step="0.5" style="width:44px;display:inline-block;padding:2px 3px">g/只　X/I/S=4只，戶外=8只</div></div>
+      <div class="f"><label>排水孔塞 $/個</label><input type="number" id="p_drain_p" value="1" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_drain_w" value="3" step="0.5" style="width:44px;display:inline-block;padding:2px 3px">g/個　戶外，≤128cm基本3個+每超60cm+1</div></div>
+      <div class="f"><label>滑軌(15×15×4mm-2分牙) $/顆</label><input type="number" id="p_rail_p" value="3" step="0.5" oninput="CHK()"><div class="u">重:<input type="number" id="p_rail_w" value="6" step="1" style="width:44px;display:inline-block;padding:2px 3px">g/顆　X/I/S框 4顆</div></div>
+    </div>
+  </div>
+  <div class="st">2-上架零件（固定件依cm計費）</div>
+  <div class="card">
+    <div class="g4">
+      <div class="f"><label>固定A-玻纖板 $/cm</label><input type="number" id="p_glass_p" value="0.8" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_glass_w" value="1.5" step="0.1" style="width:44px;display:inline-block;padding:2px 3px">g/cm　X/I/S，(列+1)支×(H+3)cm</div></div>
+      <div class="f"><label>固定B-門型鐵 $/cm</label><input type="number" id="p_bracket_p" value="0.25" step="0.05" oninput="CHK()"><div class="u">重:<input type="number" id="p_bracket_w" value="4" step="0.5" style="width:44px;display:inline-block;padding:2px 3px">g/cm　戶外，(列+1)支×(H+3)cm</div></div>
+      <div class="f"><label>固定架螺絲(自攻) $/只</label><input type="number" id="p_fixscrew_p" value="0.5" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_fixscrew_w" value="2" step="0.5" style="width:44px;display:inline-block;padding:2px 3px">g/只　每支固定架2只</div></div>
+      <div class="f"><label>模組螺絲(平頭) $/個</label><input type="number" id="p_modscrew_p" value="0.3" step="0.05" oninput="CHK()"><div class="u">重:<input type="number" id="p_modscrew_w" value="1" step="0.2" style="width:44px;display:inline-block;padding:2px 3px">g/個　固定A，每片4個</div></div>
+    </div>
+    <div class="g4" style="margin-top:8px">
+      <div class="f"><label>磁鐵1組4顆 $/組</label><input type="number" id="p_magnet_p" value="7.2" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_magnet_w" value="14" step="1" style="width:44px;display:inline-block;padding:2px 3px">g/組　戶外+O框</div></div>
+      <div class="f"><label>膠化-前點膠 $/片</label><input type="number" id="p_preglue_p" value="1.2" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_preglue_w" value="0.5" step="0.1" style="width:44px;display:inline-block;padding:2px 3px">g/片　所有框型</div></div>
+      <div class="f"><label>膠化-後滿膠 $/片</label><input type="number" id="p_fullglue_p" value="4.0" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_fullglue_w" value="2" step="0.1" style="width:44px;display:inline-block;padding:2px 3px">g/片　R/P/N/J/A框</div></div>
+      <div class="f"></div>
+    </div>
+  </div>
+  <div class="st">3-接線零件</div>
+  <div class="card">
+    <div class="g4">
+      <div class="f"><label>16P排線 $/條</label><input type="number" id="p_ribbon_p" value="8" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_ribbon_w" value="10" step="1" style="width:44px;display:inline-block;padding:2px 3px">g/條　每片D一條</div></div>
+      <div class="f"><label>內DC電源線 $/條</label><input type="number" id="p_dcwire_p" value="8" step="0.1" oninput="CHK()"><div class="u">重:<input type="number" id="p_dcwire_w" value="19" step="1" style="width:44px;display:inline-block;padding:2px 3px">g/條　每片D一條</div></div>
+      <div class="f"></div><div class="f"></div>
+    </div>
+  </div>
+  <div class="st">4-配接零件</div>
+  <div class="card">
+    <div class="g4">
+      <div class="f"><label>內變壓器線 $/條</label><input type="number" id="p_transwire_p" value="12" step="0.5" oninput="CHK()"><div class="u">重:<input type="number" id="p_transwire_w" value="70" step="1" style="width:44px;display:inline-block;padding:2px 3px">g/條　每顆電源器1條</div></div>
+      <div class="f"><div style="font-size:9px;color:#A09B95;padding-top:14px">輸入電源線：依電源器型號，<br>請在④電源器 tab 各別調整RMB與重量</div></div>
+      <div class="f"></div><div class="f"></div>
+    </div>
+  </div>
+  <div class="st">5-封板零件</div>
+  <div class="card">
+    <div class="g4">
+      <div class="f"><label>背板 $/才</label><input type="number" id="p_back_p" value="45" step="1" oninput="CHK()"><div class="u">重:<input type="number" id="p_back_w" value="207" step="1" style="width:44px;display:inline-block;padding:2px 3px">g/才　材積=H×W/(30.3×30.3)</div></div>
+      <div class="f"><label>背板螺絲(自攻) $/顆</label><input type="number" id="p_screw_p" value="0.5" step="0.05" oninput="CHK()"><div class="u">重:<input type="number" id="p_screw_w" value="1.15" step="0.1" style="width:44px;display:inline-block;padding:2px 3px">g/顆　周長每20cm一顆</div></div>
+      <div class="f"><label>膠化-封板 $/cm</label><input type="number" id="p_sealglue_p" value="0.1" step="0.01" oninput="CHK()"><div class="u">重:<input type="number" id="p_sealglue_w" value="0.1" step="0.05" style="width:44px;display:inline-block;padding:2px 3px">g/cm　背板周長×$0.1/cm</div></div>
+      <div class="f"></div>
+    </div>
+  </div>
+  <div class="st">工時參數（分鐘）</div>
+  <div class="card">
+    <div class="g4">
+      <div class="f"><label>01.前置作業(min/台)</label><input type="number" id="t01" value="0.33" step="0.01" oninput="CHK()"></div>
+      <div class="f"><label>04.組鋁框彎角(min/台)</label><input type="number" id="t04" value="1" step="0.1" oninput="CHK()"></div>
+      <div class="f"><label>02.模組拼接打膠(min/片)</label><input type="number" id="t02" value="1.01" step="0.01" oninput="CHK()"></div>
+      <div class="f"><label>05.模組上架(min/片)</label><input type="number" id="t05" value="0.5" step="0.1" oninput="CHK()"></div>
+    </div>
+    <div class="g4" style="margin-top:7px">
+      <div class="f"><label>06.上支架固定(min/支)</label><input type="number" id="t06" value="0.5" step="0.1" oninput="CHK()"></div>
+      <div class="f"><label>07.電線固定黏片(min/片)</label><input type="number" id="t07" value="0.233" step="0.01" oninput="CHK()"></div>
+      <div class="f"><label>10+13+14.電源器全程(min/顆)</label><input type="number" id="t10" value="5.867" step="0.1" oninput="CHK()"></div>
+      <div class="f"><label>11.上排線(min/條)</label><input type="number" id="t11" value="0.2" step="0.05" oninput="CHK()"></div>
+    </div>
+    <div class="g4" style="margin-top:7px">
+      <div class="f"><label>12.上DC電源線(min/條)</label><input type="number" id="t12" value="0.2" step="0.05" oninput="CHK()"></div>
+      <div class="f"><label>15+16.控制+送電(min)</label><input type="number" id="t16" value="5.5" step="0.1" oninput="CHK()"></div>
+      <div class="f"><label>17.貼標拍照(min/顆電源)</label><input type="number" id="t17" value="1.5" step="0.1" oninput="CHK()"></div>
+      <div class="f"><label>19.上背板(min/才)</label><input type="number" id="t19" value="0.25" step="0.05" oninput="CHK()"></div>
+    </div>
+    <div class="g4" style="margin-top:7px">
+      <div class="f"><label>20.鎖背板螺絲(min/顆)</label><input type="number" id="t20" value="0.1" step="0.01" oninput="CHK()"></div>
+      <div class="f"><label>包裝工時(min/台)</label><input type="number" id="t_pack" value="0" step="0.5" oninput="CHK()"></div>
+      <div class="f"></div><div class="f"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑦ 積分規則 -->
+<div id="t-sc" class="tc">
+  <div class="notice" style="font-size:11px">積分 = KPI評比基準。每積分 = $<span id="spShow">22</span> 元。</div>
+  <div class="st">框型基礎積分公式</div>
+  <div class="card">
+    <div class="g3" style="margin-bottom:10px">
+      <div class="f"><label>無框（O款）基礎分</label><input type="number" id="scO" value="3.5" step="0.5" oninput="SC()"><div class="u">積分 = 基礎 + D片數</div></div>
+      <div class="f"><label>室內框（X/I/S款）基礎分</label><input type="number" id="scIn" value="4.5" step="0.5" oninput="SC()"><div class="u">積分 = 基礎 + D片數</div></div>
+      <div class="f"><label>戶外框短邊基礎分（≤112cm）</label><input type="number" id="scOut" value="5.5" step="0.5" oninput="SC()"><div class="u">長邊≤112cm 時用此值</div></div>
+    </div>
+    <div style="background:#FEF3C7;border-left:3px solid #D97706;border-radius:0 8px 8px 0;padding:8px 11px;font-size:11px;color:#92400E;line-height:2;margin-bottom:10px">
+      戶外框長邊&gt;112cm → 基礎=ROUND(含框高×含框寬÷<input type="number" id="scDiv" value="450" step="10" oninput="SC()" style="width:55px;border:1px solid #D97706;border-radius:4px;padding:2px 4px;font-size:11px;background:#FFFBEB;display:inline-block">)　最終積分 = 基礎 + D × 2
+    </div>
+    <div class="g4" style="margin-bottom:8px">
+      <div class="f"><label>含框高(cm)</label><input type="number" id="calH" value="17.8" step="0.1" oninput="SC()" onchange="SC()"></div>
+      <div class="f"><label>含框寬(cm)</label><input type="number" id="calW" value="107.4" step="0.1" oninput="SC()" onchange="SC()"></div>
+      <div class="f"><label>模組片數 D</label><input type="number" id="calD" value="4" step="1" min="1" oninput="SC()" onchange="SC()"></div>
+      <div class="f"><label>框型</label><select id="calType" onchange="SC()" style="padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:11.5px;background:#fff;width:100%"><option value="out">戶外框（R/P/N/J/A）</option><option value="in">室內框（X/I/S）</option><option value="o">無框（O款）</option></select></div>
+    </div>
+    <div style="background:#E6F1FB;border-radius:8px;padding:9px;font-size:12px;line-height:2;color:#0C447C">
+      長邊：<strong id="rLong">107.4</strong> cm　<span id="rRule" style="color:#6B6761;font-size:10.5px"></span><br>
+      基礎：<strong id="rBase" style="color:#185FA5">5.5</strong>　D×2=<strong id="rD2">8</strong>　→　<strong id="rTotal" style="font-size:17px;color:#185FA5">13.5</strong> 分
+    </div>
+    <div class="vbox">P04C0216(R戶外4片)→<strong id="v1" style="color:#185FA5">13.5</strong>分　P05C1012(R戶外15片)→<strong id="v2" style="color:#185FA5">35.5</strong>分　M05C0208(X室內2片)→<strong id="v3" style="color:#185FA5">6.5</strong>分</div>
+  </div>
+  <div class="st">KPI 月薪換算</div>
+  <div class="card">
+    <div class="kbox">
+      <div class="g2">
+        <div class="f"><label style="color:#0C447C">員工月薪（元）</label><input type="number" id="salSc" value="50000" step="1000" oninput="SALSC()" style="border-color:#185FA5"></div>
+        <div style="text-align:center;padding:6px"><div class="knum" id="kTgtSc">2,273</div><div style="font-size:9.5px;color:#0C447C;margin-top:2px">分／月</div><div style="font-size:10px;color:#185FA5;margin-top:2px">≈ <span id="kDaySc">103</span> 分/天</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ⑧ 配置計算器 -->
+<div id="t-cfg" class="tc">
+  <div class="notice">★ 片數D=(字高÷ch)×(字寬÷cw)　完整5製程零件清單　框型自動套用零件規則</div>
+  <div class="st">輸入規格</div>
+  <div class="card">
+    <div class="g4" style="margin-bottom:7px">
+      <div class="f"><label>選擇模組</label><select id="cfgMod" onchange="CFG()" style="padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:11px;background:#fff;width:100%"><option value="">— 選擇 —</option></select></div>
+      <div class="f"><label>選擇鋁框</label><select id="cfgFrm" onchange="CFG()" style="padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:11px;background:#fff;width:100%"><option value="">— 選擇 —</option></select></div>
+      <div class="f"><label>字高（列數）</label><input type="number" id="cfgRows" value="2" min="1" step="1" oninput="CFG()" onchange="CFG()"><div class="u" id="cfgRowsHint">機型代碼前兩位</div></div>
+      <div class="f"><label>字寬（欄數）</label><input type="number" id="cfgCols" value="16" min="1" step="1" oninput="CFG()" onchange="CFG()"><div class="u" id="cfgColsHint">機型代碼後兩位</div></div>
+    </div>
+    <div class="g5">
+      <div class="f"><label>選擇電源器</label><select id="cfgPwr" onchange="CFG()" style="padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:11px;background:#fff;width:100%"><option value="">— 選擇 —</option></select></div>
+      <div class="f"><label>選擇控制卡</label><select id="cfgCtrl" onchange="CFG()" style="padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:11px;background:#fff;width:100%"><option value="">— 選擇 —</option></select></div>
+      <div class="f"><label>負載率(%)</label><input type="number" id="cfgLoad" value="70" min="50" max="100" step="5" oninput="CFG()"><div class="u">建議70%</div></div>
+      <div class="f"><label>單面/雙面</label><select id="cfgDual" onchange="CFG()" style="padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:11px;background:#fff;width:100%"><option value="1">單面</option><option value="2">雙面</option></select></div>
+      <div class="f"><label>快速報價/字</label><input type="number" id="cfgQPrice" value="205" step="5" oninput="CFG()"><div class="u">選模組後自動帶入</div></div>
+    </div>
+    <div class="errbox" id="cfgErr"></div>
+    <div id="frameRuleBox" style="display:none;margin-top:6px;padding:7px 10px;border-radius:7px;font-size:11px;line-height:1.7"></div>
+  </div>
+  <div class="st">完整材料清單與成本</div>
+  <div class="card">
+    <div class="fmbox" id="cfgFormula">選擇模組後顯示計算說明</div>
+    <table class="ctbl">
+      <thead><tr><th class="hA" style="width:42%">材料項目</th><th class="hB" style="width:11%">數量</th><th class="hC" style="width:13%">單價</th><th class="hD" style="width:17%">小計(元)</th><th class="hE" style="width:17%">重量</th></tr></thead>
+      <tbody id="costBody"></tbody>
+    </table>
+    <div class="sgrid">
+      <div class="scell hot"><div class="sn" id="cr_cost">—</div><div class="sl">材料現金成本</div></div>
+      <div class="scell grn"><div class="sn" id="cr_labor">—</div><div class="sl">工時成本</div></div>
+      <div class="scell hi"><div class="sn" id="cr_wgt">—</div><div class="sl">機台淨重</div></div>
+      <div class="scell hi"><div class="sn" id="cr_score">—</div><div class="sl">積分/台</div></div>
+    </div>
+    <div class="sgrid" style="margin-top:0">
+      <div class="scell red"><div class="sn" id="cr_total">—</div><div class="sl">總製造成本</div></div>
+      <div class="scell"><div class="sn" id="cr_time">—</div><div class="sl">總工時(分)</div></div>
+      <div class="scell"><div class="sn" id="cr_D">—</div><div class="sl">模組片數</div></div>
+      <div class="scell"><div class="sn" id="cr_qp">—</div><div class="sl">快速報價</div></div>
+    </div>
+  </div>
+  <div class="st">Ragic 同步</div>
+  <div class="card">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span style="font-size:10.5px;color:#6B6761;white-space:nowrap">Fan28/</span>
+      <input id="ragicPath" value="forms/6" style="flex:1;min-width:100px;padding:5px 7px;border:0.5px solid #E2DED7;border-radius:7px;font-size:10.5px">
+      <button class="btn btnp" onclick="RAGIC()">⬇ 從 Ragic 載入</button>
+      <span id="ragicSt" style="font-size:10px;color:#6B6761"></span>
+    </div>
+    <div class="vbox" id="ragicResult" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ⑨ 報價等級 -->
+<div id="t-tier" class="tc">
+  <div class="notice">售價 = 總成本 ÷ (1 − 毛利率)</div>
+  <div class="st">報價等級</div>
+  <div class="card">
+    <table class="tbl">
+      <thead><tr><th>等級</th><th>場景</th><th>毛利率(%)</th><th>P04C0216售價</th><th>超出底線</th></tr></thead>
+      <tbody id="tierTb"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 摘要 -->
+<div id="t-exp" class="tc">
+  <div class="st">產生摘要 → 複製給 Claude</div>
+  <div class="sbox" id="sbox">點「產生摘要」後顯示</div>
+  <div class="btn-row">
+    <button class="btn btnp" onclick="SUM()">📋 產生摘要</button>
+    <button class="btn btng" onclick="COPY()">複製</button>
+    <button class="btn btng" onclick="RESET()">↺ 重設</button>
+  </div>
+</div>
+
+</div>
+<script>
+// ══ 框型分類 ══
+var FG={R:"outdoor",P:"outdoor",N:"outdoor",J:"outdoor",A:"outdoor",X:"indoor",I:"indoor",S:"indoor",O:"none"};
+// ══ 背板外擴量（cm，加到H和W各一次） ══
+var BACK_OFFSET={O:0,N:0,S:1.5,X:2.5,I:4.0,J:3.7,R:4.5,A:7.5,P:8.5};
+// ══ 電源器輸入線規格 ══
+var PWR_INWIRE={HAM:"0.75mm插頭線",HBM:"0.75mm插頭線",HAT:"0.75mm插頭線",HBT:"0.75mm插頭線",HSH1:"0.75mm插頭線",HSH2:"0.75mm插頭線",HSM1:"0.75mm插頭線",HSM2:"0.75mm插頭線",HSM3:"0.75mm插頭線",LAA0:"USB20AWG-0.5mm",LAA3:"USB20AWG-0.5mm",LAA6:"USB18AWG-0.75mm",LBG1:"DC母頭0.75mm",LBH1:"DC母頭0.75mm",LBH2:"DC母頭0.75mm",LBH3:"紅白平打1.25mm",LCH2:"DC母頭0.75mm"};
+
+// ══ 模組 ══
+var MODS=[
+  {id:"P10R",mh:16,  ml:32,  ch:1,cw:2, wpm:33,wg:450,water:"全戶外",q:450,rmb:30, twd:0,  src:"rmb"},
+  {id:"P10C",mh:16,  ml:32,  ch:1,cw:2, wpm:33,wg:403,water:"全戶外",q:550,rmb:55, twd:0,  src:"rmb"},
+  {id:"P10S",mh:16,  ml:32,  ch:1,cw:2, wpm:33,wg:430,water:"全戶外",q:600,rmb:58, twd:0,  src:"rmb"},
+  {id:"P08C",mh:12.8,ml:25.6,ch:1,cw:2, wpm:23,wg:272,water:"全戶外",q:500,rmb:45, twd:0,  src:"rmb"},
+  {id:"P06C",mh:19.2,ml:19.2,ch:2,cw:2, wpm:50,wg:216,water:"全戶外",q:450,rmb:48, twd:0,  src:"rmb"},
+  {id:"P05C",mh:16,  ml:32,  ch:2,cw:4, wpm:48,wg:445,water:"全戶外",q:210,rmb:75, twd:0,  src:"rmb"},
+  {id:"P5CM",mh:16,  ml:16,  ch:2,cw:2, wpm:24,wg:210,water:"全戶外",q:240,rmb:50, twd:0,  src:"rmb"},
+  {id:"P04C",mh:12.8,ml:25.6,ch:2,cw:4, wpm:48,wg:284,water:"全戶外",q:205,rmb:78, twd:0,  src:"rmb"},
+  {id:"P03C",mh:19.2,ml:19.2,ch:4,cw:4, wpm:50,wg:313,water:"全戶外",q:100,rmb:82, twd:0,  src:"rmb"},
+  {id:"P25F",mh:16,  ml:32,  ch:4,cw:8, wpm:53,wg:520,water:"全戶外",q:115,rmb:184,twd:0,  src:"rmb"},
+  {id:"M10C",mh:16,  ml:32,  ch:1,cw:2, wpm:16,wg:300,water:"半戶外",q:250,rmb:30, twd:0,  src:"rmb"},
+  {id:"M10R",mh:16,  ml:32,  ch:1,cw:2, wpm:16,wg:248,water:"半戶外",q:400,rmb:23, twd:0,  src:"rmb"},
+  {id:"M06C",mh:19.2,ml:38.4,ch:2,cw:4, wpm:24,wg:0,  water:"室內",  q:120,rmb:0,  twd:0,  src:"twd"},
+  {id:"M05C",mh:16,  ml:32,  ch:2,cw:4, wpm:23,wg:286,water:"室內",  q:85, rmb:38, twd:0,  src:"rmb"},
+  {id:"M04C",mh:12.8,ml:25.6,ch:2,cw:4, wpm:23,wg:178,water:"室內",  q:90, rmb:39, twd:0,  src:"rmb"},
+  {id:"M4CL",mh:25.6,ml:25.6,ch:4,cw:4, wpm:8, wg:0,  water:"室內",  q:80, rmb:47, twd:0,  src:"rmb"},
+  {id:"M47D",mh:15.2,ml:30.4,ch:2,cw:4, wpm:16,wg:0,  water:"室內",  q:80, rmb:35, twd:0,  src:"rmb"},
+  {id:"M03C",mh:19.2,ml:19.2,ch:4,cw:4, wpm:8, wg:232,water:"室內",  q:60, rmb:43, twd:0,  src:"rmb"},
+  {id:"M25F",mh:16,  ml:32,  ch:4,cw:8, wpm:10,wg:222,water:"室內",  q:50, rmb:78, twd:0,  src:"rmb"},
+  {id:"M02C",mh:16,  ml:32,  ch:5,cw:10,wpm:15,wg:222,water:"室內",  q:40, rmb:0,  twd:725,src:"twd"},
+  {id:"M186",mh:16,  ml:32,  ch:5,cw:11,wpm:10,wg:250,water:"室內",  q:35, rmb:113,twd:0,  src:"rmb"},
+  {id:"Q4",  mh:16,  ml:32,  ch:3,cw:5, wpm:16,wg:250,water:"室內",  q:0,  rmb:0,  twd:315,src:"twd"}
+];
+
+var FRMS=[
+  {id:"R",model:"2590F3",  edge:2.5,thick:9,  wp:true, wg_cm:6.97,corner_wg:34,corner:15.0,price:1.372,grp:"outdoor"},
+  {id:"P",model:"9045B",   edge:4.5,thick:9,  wp:true, wg_cm:8.9, corner_wg:69,corner:17.0,price:1.752,grp:"outdoor"},
+  {id:"N",model:"9025",    edge:0,  thick:9,  wp:true, wg_cm:6.97,corner_wg:34,corner:15.0,price:1.372,grp:"outdoor"},
+  {id:"J",model:"2060",    edge:2.0,thick:6,  wp:true, wg_cm:4.3, corner_wg:34,corner:21.5,price:0.847,grp:"outdoor"},
+  {id:"A",model:"092A",    edge:4.0,thick:8,  wp:true, wg_cm:10.0,corner_wg:0, corner:30.0,price:1.969,grp:"outdoor"},
+  {id:"I",model:"2260",    edge:2.2,thick:6,  wp:false,wg_cm:4.3, corner_wg:19,corner:8.0, price:0.847,grp:"indoor"},
+  {id:"S",model:"1025",    edge:1.0,thick:2.5,wp:false,wg_cm:2.0, corner_wg:11,corner:15.0,price:0,    grp:"indoor"},
+  {id:"X",model:"3815",    edge:1.5,thick:3.8,wp:false,wg_cm:3.2, corner_wg:11,corner:7.95,price:0.630,grp:"indoor"},
+  {id:"O",model:"塑膠背板",edge:0,  thick:1,  wp:false,wg_cm:1.0, corner_wg:0, corner:0,   price:0,    grp:"none"}
+];
+
+// inwire_rmb/wg = 輸入電源線（從牆壁到電源器）的RMB單價與重量
+var PWRS=[
+  // wg=變壓器重量（不含線材）, rmb=變壓器RMB（不含線材）
+  {id:"HAM", v:"AC 110V",    spec:"明瑋 5V60A", watt:300,wg:740,price:560,  rmb:0,   src:"twd",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HAT", v:"AC 110V",    spec:"創聯 5V40A", watt:200,wg:404,price:223,  rmb:44,   src:"rmb",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HBM", v:"AC 220V",    spec:"明瑋 5V60A", watt:300,wg:740,price:560,  rmb:0,   src:"twd",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HBT", v:"AC 220V",    spec:"創聯 5V40A", watt:200,wg:404,price:223,  rmb:44,   src:"rmb",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HSH1", v:"AC 110-220V",    spec:"恒聯 5V10A", watt:70,wg:0,price:103,  rmb:22,   src:"rmb",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HSH2", v:"AC 110-220V",    spec:"恒聯 5V15A", watt:105,wg:0,price:132,  rmb:28,   src:"rmb",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HSM1", v:"AC 110-220V",    spec:"明瑋 5V10A", watt:50,wg:213,price:290,  rmb:0,   src:"twd",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HSM2", v:"AC 110-220V",    spec:"明瑋 5V20A", watt:100,wg:315,price:330,  rmb:0,   src:"twd",inwire_rmb:2.8,inwire_wg:20},
+  {id:"HSM3", v:"AC 110-220V",    spec:"明瑋 5V30A", watt:150,wg:419,price:435,  rmb:0,   src:"twd",inwire_rmb:2.8,inwire_wg:20},
+  {id:"LAA0", v:"DC 5V",    spec:"無", watt:0,wg:0,price:0,  rmb:0,   src:"rmb",inwire_rmb:2,inwire_wg:10},
+  {id:"LAA3", v:"DC 5V",    spec:"黑殼5V3A", watt:15,wg:55,price:21,  rmb:4,   src:"rmb",inwire_rmb:2,inwire_wg:10},
+  {id:"LAA6", v:"DC 5V",    spec:"黑殼5V6A", watt:46,wg:264,price:88,  rmb:16.5,   src:"rmb",inwire_rmb:3.5,inwire_wg:30},
+  {id:"LBG1", v:"DC 12-24V",    spec:"灌膠5V10A", watt:50,wg:72,price:97,  rmb:20,   src:"rmb",inwire_rmb:1.8,inwire_wg:20},
+  {id:"LBH1", v:"DC 12-30V",    spec:"恒聯 5V10A", watt:70,wg:85,price:107,  rmb:22,   src:"rmb",inwire_rmb:1.8,inwire_wg:20},
+  {id:"LBH2", v:"DC 12-30V",    spec:"恒聯 5V20A", watt:144,wg:151,price:156,  rmb:32,   src:"rmb",inwire_rmb:1.8,inwire_wg:20},
+  {id:"LBH3", v:"DC 12-30V",    spec:"恒聯 5V30A", watt:200,wg:210,price:290,  rmb:60,   src:"rmb",inwire_rmb:2.3,inwire_wg:20},
+  {id:"LCH2", v:"DC 15-75V",    spec:"恒聯 5V20A", watt:144,wg:151,price:265,  rmb:55,   src:"rmb",inwire_rmb:1.8,inwire_wg:20}
+]
+
+// CTRL: 加入 src, rmb（預設全部台灣進貨，可手動切換）
+var CTRL=[
+  {id:"HD-D16",  desc:"4萬點640×64",  wg:65, price:1350,src:"twd",rmb:0},
+  {id:"HD-C16L",  desc:"65萬像素，最寬2048",  wg:65, price:2100,src:"twd",rmb:0},
+  {id:"HD-U6A",  desc:"",  wg:20, price:99,src:"rmb",rmb:21},
+  {id:"LM-30A",  desc:"",  wg:250, price:1349,src:"rmb",rmb:285},
+  {id:"HD-A5L",  desc:"",  wg:800, price:5100,src:"twd",rmb:0},
+  {id:"HD-A4",  desc:"",  wg:600, price:3600,src:"twd",rmb:0},
+  {id:"HD-A3L",  desc:"65萬",  wg:400, price:1900,src:"twd",rmb:0},
+  {id:"HD-E64",  desc:"",  wg:60, price:609,src:"twd",rmb:0},
+  {id:"HD-W66",  desc:"",  wg:100, price:1414,src:"rmb",rmb:300},
+  {id:"HD-WF4",  desc:"768×128，最寬1280，最高256",  wg:31, price:230,src:"twd",rmb:0},
+  {id:"HD-WF2",  desc:"768×64，最寬1280，最高128",  wg:21, price:123,src:"rmb",rmb:26},
+  {id:"RHX-64W512",  desc:"",  wg:18, price:85,src:"rmb",rmb:18},
+  {id:"RHX-32W320",  desc:"",  wg:14, price:33,src:"rmb",rmb:7},
+  {id:"RHX-Q10",  desc:"全彩160×640低灰，最大寬4096",  wg:60, price:557,src:"rmb",rmb:118},
+  {id:"RHX-Q8B",  desc:"128×384低灰",  wg:50, price:284,src:"rmb",rmb:60},
+  {id:"RHX-Q4A1",  desc:"64×384低灰",  wg:30, price:180,src:"rmb",rmb:38},
+  {id:"RHX-Q4AM",  desc:"64×192低灰",  wg:27, price:114,src:"rmb",rmb:24},
+  {id:"RHX-64WUN1024",  desc:"",  wg:50, price:369,src:"rmb",rmb:78},
+  {id:"RHX-8Q2",  desc:"32×384低灰",  wg:16, price:48,src:"rmb",rmb:10},
+  {id:"RHX-8C1",  desc:"16×768低灰",  wg:13, price:57,src:"rmb",rmb:12}
+];
+
+var TIERS=[
+  {name:"快速報價",note:"每字×$205",fixed:6560,margin:0},
+  {name:"標價未稅",note:"官網/現場",margin:0.60},
+  {name:"當月活動",note:"限時促銷", margin:0.445},
+  {name:"特別會員",note:"VIP老客戶",margin:0.40},
+  {name:"蝦皮訂製",note:"電商訂製", margin:0.345},
+  {name:"蝦皮常規",note:"電商日常", margin:0.27},
+  {name:"自取最底",note:"少量自取", margin:0.182},
+  {name:"特殊/經銷",note:"代理批量",margin:0.133}
+];
+
+var mSrc={},pSrc={},cSrc={};
+MODS.forEach(function(m){mSrc[m.id]=m.src;});
+PWRS.forEach(function(p){pSrc[p.id]=p.src;});
+CTRL.forEach(function(c){cSrc[c.id]=c.src;});
+
+var DF={rate:4.7,wage:350,sp:22,sal:50000,shipRate:8.5,cap:6,tax:5,risk:5,pft:3,
+  scO:3.5,scIn:4.5,scOut:5.5,scDiv:450,
+  p_cornscrew_p:0.5,p_cornscrew_w:2,p_drain_p:1,p_drain_w:3,
+  p_rail_p:3,p_rail_w:6,
+  p_glass_p:0.8,p_glass_w:1.5,p_bracket_p:0.25,p_bracket_w:4,
+  p_fixscrew_p:0.5,p_fixscrew_w:2,p_modscrew_p:0.3,p_modscrew_w:1,
+  p_magnet_p:7.2,p_magnet_w:14,p_preglue_p:1.2,p_preglue_w:0.5,
+  p_fullglue_p:4.0,p_fullglue_w:2,
+  p_ribbon_p:8,p_ribbon_w:10,p_dcwire_p:8,p_dcwire_w:19,
+  p_transwire_p:12,p_transwire_w:70,
+  p_back_p:45,p_back_w:207,p_screw_p:0.5,p_screw_w:1.15,p_sealglue_p:0.1,p_sealglue_w:0.1,
+  t01:0.33,t04:1,t02:1.01,t05:0.5,t06:0.5,t07:0.233,
+  t10:5.867,t11:0.2,t12:0.2,t16:5.5,t17:1.5,t19:0.25,t20:0.1,t_pack:0};
+MODS.forEach(function(m){DF["mr_"+m.id]=m.rmb;DF["mt_"+m.id]=m.twd;DF["mw_"+m.id]=m.wg;DF["mp_"+m.id]=m.wpm;});
+FRMS.forEach(function(f){DF["fp_"+f.id]=f.price;DF["fc_"+f.id]=f.corner;DF["fw_"+f.id]=f.wg_cm;DF["fcw_"+f.id]=f.corner_wg;});
+PWRS.forEach(function(p){DF["pp_"+p.id]=p.price;DF["pr_"+p.id]=p.rmb;DF["pw_"+p.id]=p.watt;DF["pg_"+p.id]=p.wg;DF["piw_r_"+p.id]=p.inwire_rmb;DF["piw_w_"+p.id]=p.inwire_wg;});
+CTRL.forEach(function(c){DF["cp_"+c.id]=c.price;DF["cw_"+c.id]=c.wg;DF["cr_"+c.id]=c.rmb;});
+TIERS.forEach(function(t,i){if(t.margin>0)DF["ti_"+i]=t.margin*100;});
+
+function GT(n){document.querySelectorAll(".tc").forEach(function(e){e.classList.remove("on");});document.querySelectorAll(".nt").forEach(function(e){e.classList.remove("on");});var tc=document.getElementById("t-"+n),nt=document.getElementById("n-"+n);if(tc)tc.classList.add("on");if(nt)nt.classList.add("on");}
+function G(id){var e=document.getElementById(id);return e?parseFloat(e.value)||0:0;}
+function S(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+function cnTwd(rmb,wg){return Math.round((rmb+wg/1000*G("shipRate"))*G("rate"));}
+function FMT(n){return n.toFixed(1);}  // 1 decimal
+function FD(n,d){return n.toFixed(d!=null?d:1);}
+function ceil(x){return Math.ceil(x);}
+
+function BUILD(){
+  var h="";
+  MODS.forEach(function(m){
+    var isTwd=mSrc[m.id]==="twd",wc=m.water==="全戶外"?"tout":m.water==="半戶外"?"tsemi":"tin";
+    var twdV=isTwd?m.twd:cnTwd(m.rmb,m.wg),sV=isTwd?"—":"+¥"+(m.wg/1000*8.5).toFixed(2);
+    h+="<tr><td class='nm'>"+m.id+"</td><td class='sm'>"+m.mh+"×"+m.ml+"</td><td class='cc'>"+m.ch+"</td><td class='cc'>"+m.cw+"</td>";
+    h+="<td><span class='"+wc+"'>"+m.water+"</span></td><td class='sm'>$"+m.q+"</td>";
+    h+="<td><input type='number' id='mw_"+m.id+"' value='"+m.wg+"' step='5' min='0' style='width:50px' oninput='CALC()'>g</td>";
+    h+="<td><input type='number' id='mp_"+m.id+"' value='"+m.wpm+"' step='0.5' min='0' style='width:45px' oninput='CHK()'>W</td>";
+    h+="<td><button class='sbtn "+(isTwd?"stwd":"srmb")+"' id='msb_"+m.id+"' data-mid='"+m.id+"' onclick='TGM(this.dataset.mid)'>"+(isTwd?"🇹🇼":"🇨🇳")+"</button></td>";
+    h+="<td><input type='number' id='mr_"+m.id+"' value='"+m.rmb+"' step='0.5' style='width:55px' oninput='CALC()'"+(isTwd?" disabled":"")+" ></td>";
+    h+="<td class='ship-cost' id='ms_"+m.id+"'>"+sV+"</td>";
+    h+="<td><input type='number' id='mt_"+m.id+"' value='"+twdV+"' step='1' style='width:62px' oninput='CHK()' class='"+(isTwd?"tedit":"tauto")+"'"+(isTwd?"":" readonly")+"></td></tr>";
+  });
+  document.getElementById("mTb").innerHTML=h;
+
+  h="";
+  FRMS.forEach(function(f){
+    var wt=f.wp?"<span class='tout'>✅防水</span>":"<span class='tin'>❌不防水</span>";
+    var gTag=f.grp==="outdoor"?"<span class='tout'>戶外</span>":f.grp==="indoor"?"<span class='tin'>室內</span>":"<span class='tnon'>無框</span>";
+    var boff=(BACK_OFFSET[f.id]||0)*10; // mm
+    h+="<tr><td class='nm'>"+f.id+"</td><td class='sm'>"+f.model+"</td><td class='sm'>"+(f.edge||"—")+"cm</td><td class='sm'>"+f.thick+"cm</td><td>"+wt+"</td>";
+    h+="<td><input type='number' id='fw_"+f.id+"' value='"+f.wg_cm+"' step='0.1' min='0' style='width:58px' oninput='CHK()'>g/cm</td>";
+    h+="<td><input type='number' id='fcw_"+f.id+"' value='"+f.corner_wg+"' step='1' min='0' style='width:45px' oninput='CHK()'>g</td>";
+    h+="<td><input type='number' id='fc_"+f.id+"' value='"+f.corner+"' step='0.5' min='0' style='width:55px' oninput='CHK()'></td>";
+    h+="<td><input type='number' id='fp_"+f.id+"' value='"+f.price+"' step='0.001' min='0' style='width:55px' oninput='CHK()'></td>";
+    h+="<td>"+gTag+"</td><td class='sm' style='color:#D97706'>+"+boff+"mm</td></tr>";
+  });
+  document.getElementById("fTb").innerHTML=h;
+
+  h="";
+  PWRS.forEach(function(p){
+    var isTwd=pSrc[p.id]==="twd",vc=p.v.indexOf("AC")>=0?"tout":p.v.indexOf("DC 5")>=0?"tdc":"tsemi";
+    var twdV=isTwd?p.price:cnTwd(p.rmb,p.wg),sV=isTwd?"—":"+¥"+(p.wg/1000*8.5).toFixed(2);
+    h+="<tr><td class='nm'>"+p.id+"</td><td><span class='"+vc+"'>"+p.v+"</span></td><td class='sm'>"+p.spec+"</td>";
+    h+="<td><button class='sbtn "+(isTwd?"stwd":"srmb")+"' id='psb_"+p.id+"' data-pid='"+p.id+"' onclick='TGP(this.dataset.pid)'>"+(isTwd?"🇹🇼":"🇨🇳")+"</button></td>";
+    h+="<td><input type='number' id='pw_"+p.id+"' value='"+p.watt+"' step='5' min='0' style='width:47px' oninput='CHK()'>W</td>";
+    h+="<td><input type='number' id='pg_"+p.id+"' value='"+p.wg+"' step='5' min='0' style='width:52px' oninput='CALC()'>g</td>";
+    h+="<td><input type='number' id='pr_"+p.id+"' value='"+p.rmb+"' step='0.5' min='0' style='width:52px' oninput='CALC()'"+(isTwd?" disabled":"")+" ></td>";
+    h+="<td class='ship-cost' id='ps_"+p.id+"'>"+sV+"</td>";
+    h+="<td><input type='number' id='pp_"+p.id+"' value='"+twdV+"' step='1' min='0' style='width:62px' oninput='CHK()' class='"+(isTwd?"tedit":"tauto")+"'"+(isTwd?"":" readonly")+"></td>";
+    h+="<td class='sm'>"+(PWR_INWIRE[p.id]||"")+"</td>";
+    h+="<td><input type='number' id='piw_r_"+p.id+"' value='"+p.inwire_rmb+"' step='0.1' min='0' style='width:50px' oninput='CALC()'>¥</td>";
+    h+="<td><input type='number' id='piw_w_"+p.id+"' value='"+p.inwire_wg+"' step='1' min='0' style='width:50px' oninput='CALC()'>g</td>";
+    h+="<td><span id='piw_t_"+p.id+"' style='font-size:10.5px;color:#185FA5;font-weight:700;white-space:nowrap'>$"+cnTwd(p.inwire_rmb,p.inwire_wg)+"</span></td>";
+    h+="</tr>";
+  });
+  document.getElementById("pTb").innerHTML=h;
+
+  h="";
+  CTRL.forEach(function(c){
+    var isTwd=cSrc[c.id]==="twd";
+    var twdV=isTwd?c.price:cnTwd(c.rmb,c.wg);
+    h+="<tr><td class='nm'>"+c.id+"</td>";
+    h+="<td><input type='number' id='cw_"+c.id+"' value='"+c.wg+"' step='1' min='0' style='width:56px' oninput='CALC()'>g</td>";
+    h+="<td><button class='sbtn "+(isTwd?"stwd":"srmb")+"' id='csb_"+c.id+"' data-cid='"+c.id+"' onclick='TGC(this.dataset.cid)'>"+(isTwd?"🇹🇼":"🇨🇳")+"</button></td>";
+    h+="<td><input type='number' id='cr_"+c.id+"' value='"+c.rmb+"' step='1' min='0' style='width:58px' oninput='CALC()'"+(isTwd?" disabled":"")+" ></td>";
+    h+="<td class='ship-cost' id='cs_"+c.id+"'>—</td>";
+    h+="<td><input type='number' id='cp_"+c.id+"' value='"+twdV+"' step='1' min='0' style='width:70px' oninput='CHK()' class='"+(isTwd?"tedit":"tauto")+"'"+(isTwd?"":" readonly")+">元</td>";
+    h+="<td class='sm'>"+c.desc+"</td></tr>";
+  });
+  document.getElementById("cTb").innerHTML=h;
+
+  h="";
+  TIERS.forEach(function(t,i){var inp=t.fixed?"<span class='sm'>每字×$205 固定</span>":"<input type='number' id='ti_"+i+"' value='"+(t.margin*100).toFixed(1)+"' step='0.5' min='0' max='99' style='width:68px' oninput='CALC()'>";h+="<tr><td style='font-weight:700'>"+t.name+"</td><td class='sm'>"+t.note+"</td><td>"+inp+"</td><td id='tp_"+i+"' style='text-align:right;font-weight:700;color:#185FA5'>—</td><td id='tm_"+i+"' style='text-align:right;font-size:10px;color:#6B6761'>—</td></tr>";});
+  document.getElementById("tierTb").innerHTML=h;
+
+  var ms=document.getElementById("cfgMod");
+  MODS.forEach(function(m){var o=document.createElement("option");o.value=m.id;o.textContent=m.id+" | "+m.ch+"H×"+m.cw+"W/片";o.dataset.ch=m.ch;o.dataset.cw=m.cw;o.dataset.mh=m.mh;o.dataset.ml=m.ml;o.dataset.q=m.q;ms.appendChild(o);});
+  var fs=document.getElementById("cfgFrm");
+  FRMS.forEach(function(f){var o=document.createElement("option");o.value=f.id;o.textContent=f.id+" "+f.model+" 邊"+f.edge+"cm";o.dataset.edge=f.edge;o.dataset.wp=f.wp?1:0;o.dataset.wg_cm=f.wg_cm;o.dataset.cwg=f.corner_wg;o.dataset.grp=f.grp;fs.appendChild(o);});
+  var ps=document.getElementById("cfgPwr");
+  PWRS.forEach(function(p){var o=document.createElement("option");o.value=p.id;o.textContent=p.id+" "+p.spec+" "+p.watt+"W";o.dataset.watt=p.watt;o.dataset.wg=p.wg;ps.appendChild(o);});
+  var cs=document.getElementById("cfgCtrl");
+  CTRL.forEach(function(c){var o=document.createElement("option");o.value=c.id;o.textContent=c.id+" $"+c.price;o.dataset.price=c.price;o.dataset.wg=c.wg;cs.appendChild(o);});
+}
+
+function TGM(id){var b=document.getElementById("msb_"+id),r=document.getElementById("mr_"+id),t=document.getElementById("mt_"+id);if(mSrc[id]==="twd"){mSrc[id]="rmb";b.textContent="🇨🇳";b.className="sbtn srmb";r.disabled=false;t.readOnly=true;t.className="tauto";CALC();}else{mSrc[id]="twd";b.textContent="🇹🇼";b.className="sbtn stwd";r.disabled=true;t.readOnly=false;t.className="tedit";t.focus();}CHK();}
+function TGP(id){var b=document.getElementById("psb_"+id),r=document.getElementById("pr_"+id),t=document.getElementById("pp_"+id);if(pSrc[id]==="twd"){pSrc[id]="rmb";b.textContent="🇨🇳";b.className="sbtn srmb";r.disabled=false;t.readOnly=true;t.className="tauto";CALC();}else{pSrc[id]="twd";b.textContent="🇹🇼";b.className="sbtn stwd";r.disabled=true;t.readOnly=false;t.className="tedit";t.focus();}CHK();}
+function TGC(id){var b=document.getElementById("csb_"+id),r=document.getElementById("cr_"+id),t=document.getElementById("cp_"+id);if(cSrc[id]==="twd"){cSrc[id]="rmb";b.textContent="🇨🇳";b.className="sbtn srmb";r.disabled=false;t.readOnly=true;t.className="tauto";CALC();}else{cSrc[id]="twd";b.textContent="🇹🇼";b.className="sbtn stwd";r.disabled=true;t.readOnly=false;t.className="tedit";t.focus();}CHK();}
+
+function CALC(){
+  var rate=G("rate"),wage=G("wage"),spv=G("sp"),salv=G("sal"),sr=G("shipRate");
+  S("wMin",(wage/60).toFixed(2));S("kTgt",Math.round(salv/spv).toLocaleString());S("kDay",Math.round(salv/spv/22));
+  var oh=G("cap")+G("tax")+G("risk")+G("pft"),fac=1+oh/100;
+  S("ohT",(100+oh).toFixed(1)+"%");S("ohF","×"+fac.toFixed(3));S("ohE","$"+Math.round(2405*fac));
+  MODS.forEach(function(m){if(mSrc[m.id]==="rmb"){var rmb=G("mr_"+m.id),wg=G("mw_"+m.id),s=wg/1000*sr;var el=document.getElementById("mt_"+m.id);if(el)el.value=Math.round((rmb+s)*rate);var se=document.getElementById("ms_"+m.id);if(se)se.textContent="+¥"+s.toFixed(2);}else{var se=document.getElementById("ms_"+m.id);if(se)se.textContent="—";}});
+  PWRS.forEach(function(p){if(pSrc[p.id]==="rmb"){var rmb=G("pr_"+p.id),wg=G("pg_"+p.id),s=wg/1000*sr;var el=document.getElementById("pp_"+p.id);if(el)el.value=Math.round((rmb+s)*rate);var se=document.getElementById("ps_"+p.id);if(se)se.textContent="+¥"+s.toFixed(2);}else{var se=document.getElementById("ps_"+p.id);if(se)se.textContent="—";}});
+  CTRL.forEach(function(c){if(cSrc[c.id]==="rmb"){var rmb=G("cr_"+c.id),wg=G("cw_"+c.id),s=wg/1000*sr;var el=document.getElementById("cp_"+c.id);if(el)el.value=Math.round((rmb+s)*rate);var se=document.getElementById("cs_"+c.id);if(se)se.textContent="+¥"+s.toFixed(2);}else{var se=document.getElementById("cs_"+c.id);if(se)se.textContent="—";}});
+  PWRS.forEach(function(p){var t=document.getElementById("piw_t_"+p.id);if(t)t.textContent="$"+cnTwd(G("piw_r_"+p.id),G("piw_w_"+p.id));});
+  var BASE=3062;
+  TIERS.forEach(function(t,i){var pe=document.getElementById("tp_"+i),me=document.getElementById("tm_"+i);if(!pe)return;if(t.fixed){pe.textContent="$"+t.fixed.toLocaleString();if(me)me.textContent="+$"+(t.fixed-BASE).toLocaleString();}else{var el=document.getElementById("ti_"+i);var mv=el?parseFloat(el.value)/100:t.margin;if(mv<=0||mv>=1){pe.textContent="—";return;}var price=Math.round(BASE/(1-mv));pe.textContent="$"+price.toLocaleString();if(me)me.textContent="+$"+(price-BASE).toLocaleString();}});
+  SC();CHK();
+}
+
+function SC(){
+  var scO=G("scO"),scIn=G("scIn"),scOut=G("scOut"),scDiv=G("scDiv")||450,spv=G("sp"),salv=G("sal"),tgt=salv/spv;
+  S("spShow",spv);S("kTgtSc",Math.round(tgt).toLocaleString());S("kDaySc",Math.round(tgt/22));
+  var calH=G("calH"),calW=G("calW"),calD=G("calD"),tp=document.getElementById("calType"),tpv=tp?tp.value:"out";
+  var longE=Math.max(calH,calW);S("rLong",longE.toFixed(1));
+  var base,d2,total;
+  if(tpv==="out"){if(longE<=112){base=scOut;S("rRule","≤112cm → 用基礎值 "+scOut);}else{base=Math.round(calH*calW/scDiv);S("rRule",">112cm → ROUND("+calH+"×"+calW+"/"+scDiv+")="+base);}d2=calD*2;total=base+d2;S("rD2",d2);}
+  else if(tpv==="in"){base=scIn+calD;total=base;S("rD2","+"+calD);S("rRule","室內 "+scIn+"+"+calD);}
+  else{base=scO+calD;total=base;S("rD2","+"+calD);S("rRule","無框 "+scO+"+"+calD);}
+  S("rBase",base);S("rTotal",total.toFixed(1));
+  S("v1",(scOut+4*2).toFixed(1));S("v2",(scOut+15*2).toFixed(1));S("v3",(scIn+2).toFixed(1));
+}
+
+// ══════════════════════════════════════════
+// 配置計算 v4.8
+// ══════════════════════════════════════════
+function CFG(){
+  var ms=document.getElementById("cfgMod"),fs=document.getElementById("cfgFrm");
+  var ps=document.getElementById("cfgPwr"),cs=document.getElementById("cfgCtrl");
+  var errEl=document.getElementById("cfgErr"),fmEl=document.getElementById("cfgFormula");
+  var ruleBox=document.getElementById("frameRuleBox");
+  errEl.style.display="none";ruleBox.style.display="none";
+  if(!ms||!ms.value){fmEl.textContent="選擇模組後顯示計算說明";return;}
+
+  var mOpt=ms.options[ms.selectedIndex];
+  var ch=parseInt(mOpt.dataset.ch)||1,cw=parseInt(mOpt.dataset.cw)||1;
+  var modH=parseFloat(mOpt.dataset.mh)||16,modL=parseFloat(mOpt.dataset.ml)||32;
+  document.getElementById("cfgQPrice").value=parseInt(mOpt.dataset.q)||0;
+  document.getElementById("cfgRowsHint").textContent="每片ch="+ch+"，需為"+ch+"的倍數";
+  document.getElementById("cfgColsHint").textContent="每片cw="+cw+"，需為"+cw+"的倍數";
+
+  var rows=G("cfgRows")||1,cols=G("cfgCols")||1,dual=G("cfgDual")||1,loadPct=(G("cfgLoad")||70)/100;
+  var errs=[];
+  if(rows%ch!==0)errs.push("字高"+rows+"需為"+ch+"的倍數");
+  if(cols%cw!==0)errs.push("字寬"+cols+"需為"+cw+"的倍數");
+  if(errs.length){errEl.textContent="⚠ "+errs.join(" | ");errEl.style.display="";}
+
+  var mRows=Math.round(rows/ch),mCols=Math.round(cols/cw);
+  var Ds=mRows*mCols,D=Ds*dual;
+  fmEl.textContent=ms.value+" | "+rows+"÷"+ch+"="+mRows+"行 × "+cols+"÷"+cw+"="+mCols+"列 = "+Ds+"片"+(dual>1?" ×2面="+D+"片":"");
+
+  // ── 尺寸 ──
+  var dispH=modH*mRows,dispW=modL*mCols;
+  var fEdge=0,isOut=false,fWgCm=0,fCwg=0,fGrp="none",fId="";
+  if(fs&&fs.value){var fOpt=fs.options[fs.selectedIndex];fEdge=parseFloat(fOpt.dataset.edge)||0;isOut=parseInt(fOpt.dataset.wp)===1;fWgCm=parseFloat(fOpt.dataset.wg_cm)||0;fCwg=parseFloat(fOpt.dataset.cwg)||0;fGrp=fOpt.dataset.grp||"none";fId=fs.value;}
+  var fh=dispH+fEdge*2,fw=dispW+fEdge*2; // 含框尺寸（用於積分/展示）
+  // 鋁框周長：使用顯示尺寸（dispH/dispW），非含框尺寸
+  var framPerim=(dispH+dispW)*2;
+
+  // ── 背板尺寸（含框型外擴量）──
+  var boff=fId?(BACK_OFFSET[fId]||0):0;
+  var backH=dispH+boff,backW=dispW+boff;
+  // 才數：H×W/(30.3×30.3)
+  var cai=backH*backW/(30.3*30.3);
+  var backPerim=(backH+backW)*2;
+  var backScrewCnt=ceil(backPerim/20);
+
+  // ── 框型規則提示 ──
+  if(fId){
+    ruleBox.style.display="";
+    var rc=fGrp==="outdoor"?"background:#E1F5EE;color:#085041":fGrp==="indoor"?"background:#EDE9FE;color:#3730A3":"background:#F1EFE8;color:#6B6761";
+    ruleBox.setAttribute("style","display:block;margin-top:6px;padding:7px 10px;border-radius:7px;font-size:11px;line-height:1.7;"+rc);
+    ruleBox.textContent=fGrp==="outdoor"?"🔧 戶外框("+fId+")：門型鐵 + 磁鐵 + 前點膠 + 後滿膠 + 排水孔塞 + 框角螺絲×8":fGrp==="indoor"?"🔧 室內框("+fId+")：玻纖板 + 滑軌×4顆 + 模組螺絲 + 前點膠 + 框角螺絲×4":"🔧 無框(O)：磁鐵 + 前點膠";
+  }
+
+  // ── 電源器 ──
+  var pwrN=0,pwrLabel="請選電源器",pwrWatt=200,pwrWg=0,pwrPrice=0,pwrId="";
+  if(ps&&ps.value){pwrId=ps.value;var pOpt=ps.options[ps.selectedIndex];var pwEl=document.getElementById("pw_"+pwrId);pwrWatt=pwEl?parseFloat(pwEl.value)||parseFloat(pOpt.dataset.watt):parseFloat(pOpt.dataset.watt)||200;pwrWg=parseFloat(pOpt.dataset.wg)||0;var wpmNow=G("mp_"+ms.value)||0;var eff=pwrWatt*loadPct;pwrN=eff>0?ceil(wpmNow*D/eff):1;var ppEl=document.getElementById("pp_"+pwrId);pwrPrice=ppEl?parseFloat(ppEl.value)||0:0;pwrLabel=pwrId+" × "+pwrN+"顆";}
+
+  // ── 輸入電源線（依電源器型號） ──
+  var inwire_rmb=pwrId?G("piw_r_"+pwrId):2.8;
+  var inwire_wg=pwrId?G("piw_w_"+pwrId):20;
+  var inwire_twd=cnTwd(inwire_rmb,inwire_wg);
+  var inwire_spec=pwrId?(PWR_INWIRE[pwrId]||"插頭線"):"插頭線";
+
+  // ── 控制卡 ──
+  var ctrlPrice=0,ctrlWg=0,ctrlId="";
+  if(cs&&cs.value){ctrlId=cs.value;var cOpt=cs.options[cs.selectedIndex];ctrlWg=parseFloat(cOpt.dataset.wg)||0;var cpEl=document.getElementById("cp_"+ctrlId);ctrlPrice=cpEl?parseFloat(cpEl.value)||0:0;}
+
+  // ── 積分 ──
+  var scO=G("scO")||3.5,scIn=G("scIn")||4.5,scOut=G("scOut")||5.5,scDiv=G("scDiv")||450;
+  var score;
+  if(fGrp==="none"||!fId){score=scO+Ds;}
+  else if(fGrp==="outdoor"){var longE=Math.max(fh,fw);var b2=longE<=112?scOut:Math.round(fh*fw/scDiv);score=b2+Ds*2;}
+  else{score=scIn+Ds;}
+
+  // ══ 零件單價 ══
+  var PP={};
+  ["cornscrew","drain","rail","glass","bracket","fixscrew","modscrew","magnet","preglue","fullglue","ribbon","dcwire","transwire","back","screw","sealglue"].forEach(function(k){PP[k+"_p"]=G("p_"+k+"_p");PP[k+"_w"]=G("p_"+k+"_w");});
+
+  // ── 固定件計算 ──
+  var cornScrewCnt=(fGrp==="outdoor")?8:(fGrp==="indoor")?4:0;
+  var drainCnt=0;if(fGrp==="outdoor"){drainCnt=3+Math.max(0,ceil((dispW-128)/60));}
+  var railCnt=(fGrp==="indoor")?4:0;
+  var frmPrice=fId?G("fp_"+fId)||0:0,cornerPrice=fId?G("fc_"+fId)||0:0;
+  var fWgCmNow=fId?G("fw_"+fId)||0:0,fCwgNow=fId?G("fcw_"+fId)||0:0;
+  var fixCount=mCols+1,fixLen=dispH+3,fixTotal=fixCount*fixLen;
+  var hasBracket=(fGrp==="outdoor"),hasGlass=(fGrp==="indoor");
+  var fixScrewCnt=(fGrp==="outdoor"||fGrp==="indoor")?fixCount*2:0;
+  var modScrewCnt=(fGrp==="indoor")?4*D:0;
+  var modObj=MODS.find(function(m){return m.id===ms.value;});
+  var modPrice=modObj?G("mt_"+modObj.id)||0:0,modWgPer=modObj?G("mw_"+modObj.id)||modObj.wg:0;
+  var hasMagnet=(fGrp==="outdoor"),hasFullGlue=(fGrp==="outdoor"); // O框不用磁鐵
+
+  // ══ 建立明細表（所有描述內聯，不換行）══
+  var tbody="",totalCost=0,totalWgt=0;
+
+  // helper: 加料行（內聯備註）
+  function row(name,note,qty,qu,upStr,cost,wgtG,skip){
+    if(skip){tbody+="<tr class='naR'><td colspan='5'>— "+name+"（本框型不適用）</td></tr>";return;}
+    totalCost+=cost||0;totalWgt+=(wgtG||0)/1000;
+    var nameCell=name+(note?"<span class='note'>"+note+"</span>":"");
+    tbody+="<tr><td style='padding-left:14px'>"+nameCell+"</td>";
+    tbody+="<td class='tQ'>"+qty+" "+qu+"</td>";
+    tbody+="<td class='tU'>"+upStr+"</td>";
+    tbody+="<td class='tS'>$"+FMT(cost)+"</td>";
+    tbody+="<td class='tW'>"+(wgtG!=null&&wgtG>0?FD(wgtG,0)+"g":"—")+"</td></tr>";
+  }
+  function stgHdr(label,cost,wgtG){tbody+="<tr class='stg'><td>"+label+"</td><td></td><td></td><td class='tS'>$"+FMT(cost)+"</td><td class='tW'>"+FD(wgtG,0)+"g</td></tr>";}
+
+  // 1-組框
+  var s1c=frmPrice*framPerim+cornerPrice*4+cornScrewCnt*PP.cornscrew_p+drainCnt*PP.drain_p+railCnt*PP.rail_p;
+  var s1w=fWgCmNow*framPerim+4*fCwgNow+cornScrewCnt*PP.cornscrew_w+drainCnt*PP.drain_w+railCnt*PP.rail_w;
+  stgHdr("1-組框",s1c,s1w);
+  var frmNote=fId?"高"+FD(dispH,1)+"cm×2 + 寬"+FD(dispW,1)+"cm×2 = "+FD(framPerim,0)+"cm":"";
+  row("鋁框 ("+fId+")",frmNote,FD(framPerim,0),"cm","$"+FD(frmPrice,3)+"/cm",frmPrice*framPerim,fWgCmNow*framPerim,!fId);
+  row("彎角 ("+fId+")",null,4,"個","$"+cornerPrice+"/個",cornerPrice*4,4*fCwgNow,!fId);
+  row("框角螺絲(自攻)",(fGrp==="outdoor"?"8只":"X/I/S=4只"),cornScrewCnt,"只","$"+PP.cornscrew_p+"/只",cornScrewCnt*PP.cornscrew_p,cornScrewCnt*PP.cornscrew_w,cornScrewCnt===0);
+  row("排水孔塞","≤128cm基本3+每超60cm+1，寬"+FD(dispW,0)+"cm",drainCnt,"個","$"+PP.drain_p+"/個",drainCnt*PP.drain_p,drainCnt*PP.drain_w,fGrp!=="outdoor");
+  row("滑軌(15×15×4mm-2分牙)","X/I/S框4顆",railCnt,"顆","$"+PP.rail_p+"/顆",railCnt*PP.rail_p,railCnt*PP.rail_w,fGrp!=="indoor");
+
+  // 2-上架
+  var brkCost=hasBracket?fixTotal*PP.bracket_p:0,brkWg=hasBracket?fixTotal*PP.bracket_w:0;
+  var glassCost=hasGlass?fixTotal*PP.glass_p:0,glassWg=hasGlass?fixTotal*PP.glass_w:0;
+  var s2c=brkCost+glassCost+fixScrewCnt*PP.fixscrew_p+modScrewCnt*PP.modscrew_p+modPrice*D+(hasMagnet?PP.magnet_p*D:0)+PP.preglue_p*D+(hasFullGlue?PP.fullglue_p*D:0);
+  var s2w=brkWg+glassWg+fixScrewCnt*PP.fixscrew_w+modScrewCnt*PP.modscrew_w+modWgPer*D+(hasMagnet?PP.magnet_w*D:0)+PP.preglue_w*D+(hasFullGlue?PP.fullglue_w*D:0);
+  stgHdr("2-上架",s2c,s2w);
+  var fixNote="(列數+1)="+fixCount+"支，每支"+(dispH+3)+"cm，共"+FD(fixTotal,0)+"cm";
+  row("固定B-門型鐵",fixNote,FD(fixTotal,0),"cm","$"+PP.bracket_p+"/cm",brkCost,brkWg,!hasBracket);
+  row("固定A-玻纖板",fixNote,FD(fixTotal,0),"cm","$"+PP.glass_p+"/cm",glassCost,glassWg,!hasGlass);
+  row("固定架螺絲(自攻)","每支固定架2只，共"+fixCount+"支",fixScrewCnt,"只","$"+PP.fixscrew_p+"/只",fixScrewCnt*PP.fixscrew_p,fixScrewCnt*PP.fixscrew_w,fixScrewCnt===0);
+  row("模組 ("+ms.value+")",null,D,"片","$"+Math.round(modPrice)+"/片",modPrice*D,modWgPer*D,false);
+  row("磁鐵(1組4顆)","每片D一組",D,"組","$"+PP.magnet_p+"/組",PP.magnet_p*D,PP.magnet_w*D,!hasMagnet);
+  row("模組螺絲(平頭)","固定A，每片4個",modScrewCnt,"個","$"+PP.modscrew_p+"/個",modScrewCnt*PP.modscrew_p,modScrewCnt*PP.modscrew_w,fGrp!=="indoor");
+  row("膠化-前點膠","所有框型",D,"片","$"+PP.preglue_p+"/片",PP.preglue_p*D,PP.preglue_w*D,false);
+  row("膠化-後滿膠","R/P/N/J/A框",D,"片","$"+PP.fullglue_p+"/片",PP.fullglue_p*D,PP.fullglue_w*D,!hasFullGlue);
+
+  // 3-接線
+  var s3c=PP.ribbon_p*D+PP.dcwire_p*D,s3w=PP.ribbon_w*D+PP.dcwire_w*D;
+  stgHdr("3-接線",s3c,s3w);
+  row("16P排線","每片一條",D,"條","$"+PP.ribbon_p+"/條",PP.ribbon_p*D,PP.ribbon_w*D,false);
+  row("內DC電源線","每片一條",D,"條","$"+PP.dcwire_p+"/條",PP.dcwire_p*D,PP.dcwire_w*D,false);
+
+  // 4-配接
+  var s4c=pwrPrice*pwrN+ctrlPrice+PP.transwire_p*pwrN+inwire_twd*pwrN;
+  var s4w=pwrWg*pwrN+ctrlWg+PP.transwire_w*pwrN+inwire_wg*pwrN;
+  stgHdr("4-配接",s4c,s4w);
+  var wpmNow=G("mp_"+ms.value)||0;
+  row("電源器 ("+pwrId+")","功耗"+wpmNow+"W/片×"+D+"片="+FD(wpmNow*D,0)+"W，負載"+Math.round(loadPct*100)+"%",pwrN,"顆","$"+Math.round(pwrPrice)+"/顆",pwrPrice*pwrN,pwrWg*pwrN,!pwrId);
+  row("控制卡 ("+ctrlId+")",null,1,"片","$"+Math.round(ctrlPrice)+"/片",ctrlPrice,ctrlWg,!ctrlId);
+  row("內變壓器線","每顆電源器1條",pwrN,"條","$"+PP.transwire_p+"/條",PP.transwire_p*pwrN,PP.transwire_w*pwrN,!pwrId);
+  row("輸入電源線("+inwire_spec+")","¥"+inwire_rmb+"+"+inwire_wg+"g/條×"+pwrN+"條",pwrN,"條","$"+inwire_twd+"/條",inwire_twd*pwrN,inwire_wg*pwrN,!pwrId);
+
+  // 5-封板
+  var backInfo=FD(backH,1)+"×"+FD(backW,1)+"cm  "+FD(cai,2)+"才";
+  var isNone=(fGrp==="none");
+  var s5c=(isNone?0:PP.back_p*cai+PP.screw_p*backScrewCnt)+PP.sealglue_p*backPerim;
+  var s5w=(isNone?0:PP.back_w*cai+PP.screw_w*backScrewCnt)+PP.sealglue_w*backPerim;
+  stgHdr("5-封板",s5c,s5w);
+  row("背板",backInfo,FD(cai,2),"才","$"+PP.back_p+"/才",PP.back_p*cai,PP.back_w*cai,fGrp==="none");
+  row("背板螺絲(自攻)","周長"+FD(backPerim,0)+"cm÷20="+backScrewCnt+"顆",backScrewCnt,"顆","$"+PP.screw_p+"/顆",PP.screw_p*backScrewCnt,PP.screw_w*backScrewCnt,fGrp==="none");
+  row("膠化-封板","周長×$0.1/cm",FD(backPerim,0),"cm","$"+PP.sealglue_p+"/cm",PP.sealglue_p*backPerim,PP.sealglue_w*backPerim,false); // O框也需要
+
+  // 合計
+  tbody+="<tr class='totR'><td>材料合計</td><td></td><td></td><td class='tS'>$"+FMT(totalCost)+"</td><td class='tW'>"+FD(totalWgt,3)+"kg</td></tr>";
+
+  // 工時
+  var tMin=0;
+  tMin+=G("t01")*1;tMin+=G("t04")*1;tMin+=G("t02")*D;tMin+=G("t05")*D;
+  var fixSupportCnt=(fGrp==="outdoor"||fGrp==="indoor")?fixCount:0;
+  tMin+=G("t06")*fixSupportCnt;tMin+=G("t07")*D;tMin+=G("t10")*pwrN;
+  tMin+=G("t11")*D;tMin+=G("t12")*D;tMin+=G("t16")*1;tMin+=G("t17")*pwrN;
+  tMin+=G("t19")*cai;tMin+=G("t20")*backScrewCnt;tMin+=G("t_pack")*1;
+  var laborCost=tMin*G("wage")/60;
+  tbody+="<tr class='laborR'><td>🕐 工時："+FD(tMin,1)+"分鐘</td><td></td><td></td><td class='tS' style='color:#065F46'>$"+FMT(laborCost)+"</td><td></td></tr>";
+
+  document.getElementById("costBody").innerHTML=tbody;
+  var chars=G("cfgRows")*G("cfgCols"),qp=G("cfgQPrice")*chars*dual;
+  S("cr_cost","$"+FMT(totalCost));S("cr_labor","$"+FMT(laborCost));
+  S("cr_wgt",FD(totalWgt,2)+"kg");S("cr_score",score.toFixed(1)+"分");
+  S("cr_total","$"+FMT(totalCost+laborCost));S("cr_time",FD(tMin,1)+"分");
+  S("cr_D",Ds+(dual>1?" ×2="+D:"")+"片");S("cr_qp",qp>0?"$"+Math.round(qp).toLocaleString():"—");
+}
+
+function RAGIC(){var path=document.getElementById("ragicPath").value;var key="QWcyd2ZLcHpvSHdoYlBGVDY2R09Pa0QwTmxMQTN5amZEVk9ZQmtYWUd0ZHl0V1dIUHA2NWpWbGVod2htWmpqUQ==";var st=document.getElementById("ragicSt"),res=document.getElementById("ragicResult");st.textContent="⏳ 連線中...";res.style.display="none";fetch("https://ap10.ragic.com/Fan28/"+path+"?api&v=3&limit=200&APIKey="+encodeURIComponent(key)).then(function(r){if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(function(data){var keys=Object.keys(data).filter(function(k){return k!=="_ragic_info";});st.textContent="✅ "+keys.length+"筆";res.style.display="";res.textContent="forms/"+path+" 共"+keys.length+"筆\n欄位："+Object.keys(data[keys[0]]||{}).slice(0,12).join("、");}).catch(function(e){st.textContent="❌ "+e.message;});}
+
+function CHK(){var n=0;Object.keys(DF).forEach(function(id){var el=document.getElementById(id);if(!el)return;var c=Math.abs(parseFloat(el.value)-DF[id])>0.001;el.classList.toggle("changed",c);if(c)n++;});MODS.forEach(function(m){if(mSrc[m.id]!==m.src)n++;});PWRS.forEach(function(p){if(pSrc[p.id]!==p.src)n++;});CTRL.forEach(function(c){if(cSrc[c.id]!==c.src)n++;});var b=document.getElementById("hbadge");b.textContent=n>0?"已修改 "+n+" 項":"未修改";b.classList.toggle("dirty",n>0);}
+function SALSC(){document.getElementById("sal").value=document.getElementById("salSc").value;SC();CHK();}
+
+function SUM(){
+  var lines=["=== USLED 參數更新摘要 v4.9 ===",""],ch=[];
+  var sl={rate:"匯率",wage:"師傅時薪",sp:"積分單價",sal:"KPI月薪",shipRate:"海快費率",cap:"資金%",tax:"稅額%",risk:"風險%",pft:"獲利%",scO:"積分無框",scIn:"積分室內",scOut:"積分戶外",scDiv:"積分除數"};
+  Object.keys(sl).forEach(function(id){var el=document.getElementById(id);if(!el)return;var v=parseFloat(el.value);if(Math.abs(v-DF[id])>0.001)ch.push(sl[id]+": "+DF[id]+" → "+v);});
+  Object.keys(DF).forEach(function(id){if(!id.startsWith("p_")&&!id.startsWith("t"))return;var el=document.getElementById(id);if(!el)return;var v=parseFloat(el.value);if(Math.abs(v-DF[id])>0.001)ch.push(id+": "+DF[id]+" → "+v);});
+  MODS.forEach(function(m){if(mSrc[m.id]!==m.src)ch.push("模組"+m.id+"來源: "+m.src+" → "+mSrc[m.id]);["mr_","mw_","mp_"].forEach(function(pf){var el=document.getElementById(pf+m.id),def=DF[pf+m.id];if(el&&Math.abs(parseFloat(el.value)-def)>0.001)ch.push(pf+m.id+": "+def+" → "+el.value);});});
+  PWRS.forEach(function(p){if(pSrc[p.id]!==p.src)ch.push("電源"+p.id+"來源: "+p.src+" → "+pSrc[p.id]);["pp_","pr_","pg_","piw_r_","piw_w_"].forEach(function(pf){var el=document.getElementById(pf+p.id),def=DF[pf+p.id];if(el&&Math.abs(parseFloat(el.value)-def)>0.001)ch.push(pf+p.id+": "+def+" → "+el.value);});});
+  CTRL.forEach(function(c){if(cSrc[c.id]!==c.src)ch.push("控制卡"+c.id+"來源: "+c.src+" → "+cSrc[c.id]);["cp_","cr_","cw_"].forEach(function(pf){var el=document.getElementById(pf+c.id),def=DF[pf+c.id];if(el&&def!=null&&Math.abs(parseFloat(el.value)-def)>0.001)ch.push(pf+c.id+": "+def+" → "+el.value);});});
+  FRMS.forEach(function(f){["fp_","fc_"].forEach(function(pf){var el=document.getElementById(pf+f.id),def=DF[pf+f.id];if(el&&Math.abs(parseFloat(el.value)-def)>0.001)ch.push(pf+f.id+": "+def+" → "+el.value);});});
+  TIERS.forEach(function(t,i){if(t.fixed)return;var el=document.getElementById("ti_"+i);if(el&&Math.abs(parseFloat(el.value)-t.margin*100)>0.01)ch.push(t.name+"毛利%: "+(t.margin*100).toFixed(1)+" → "+el.value);});
+  if(!ch.length)lines.push("（沒有修改任何數值）");
+  else{lines.push("【變更（"+ch.length+"項）】");ch.forEach(function(c){lines.push("  • "+c);});}
+  lines.push("","【關鍵值】","  匯率:"+G("rate")+"　海快:"+G("shipRate")+"RMB/kg","  時薪:$"+G("wage")+"/hr　積分:$"+G("sp")+"/分","  月薪$"+G("sal")+" → 最低"+Math.round(G("sal")/G("sp"))+"分/月");
+  document.getElementById("sbox").textContent=lines.join("\n");GT("exp");
+}
+function COPY(){var t=document.getElementById("sbox").textContent;if(navigator.clipboard){navigator.clipboard.writeText(t).then(function(){alert("已複製！");});}else{var ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand("copy");document.body.removeChild(ta);alert("已複製！");}}
+function RESET(){
+  if(!confirm("確定重設所有值？"))return;
+  MODS.forEach(function(m){mSrc[m.id]=m.src;var b=document.getElementById("msb_"+m.id),r=document.getElementById("mr_"+m.id),t=document.getElementById("mt_"+m.id),w=document.getElementById("mw_"+m.id),p=document.getElementById("mp_"+m.id);if(b){b.textContent=m.src==="twd"?"🇹🇼":"🇨🇳";b.className="sbtn "+(m.src==="twd"?"stwd":"srmb");}if(r){r.value=m.rmb;r.disabled=m.src==="twd";}if(t){t.value=m.twd;t.readOnly=m.src==="rmb";t.className=m.src==="twd"?"tedit":"tauto";}if(w)w.value=m.wg;if(p)p.value=m.wpm;});
+  PWRS.forEach(function(p){pSrc[p.id]=p.src;var b=document.getElementById("psb_"+p.id),r=document.getElementById("pr_"+p.id),t=document.getElementById("pp_"+p.id),w=document.getElementById("pw_"+p.id),g=document.getElementById("pg_"+p.id);if(b){b.textContent=p.src==="twd"?"🇹🇼":"🇨🇳";b.className="sbtn "+(p.src==="twd"?"stwd":"srmb");}if(r){r.value=p.rmb;r.disabled=p.src==="twd";}if(t){t.value=p.price;t.readOnly=p.src==="rmb";t.className=p.src==="twd"?"tedit":"tauto";}if(w)w.value=p.watt;if(g)g.value=p.wg;var iwr=document.getElementById("piw_r_"+p.id),iww=document.getElementById("piw_w_"+p.id);if(iwr)iwr.value=p.inwire_rmb;if(iww)iww.value=p.inwire_wg;});
+  CTRL.forEach(function(c){cSrc[c.id]=c.src;var b=document.getElementById("csb_"+c.id),r=document.getElementById("cr_"+c.id),t=document.getElementById("cp_"+c.id),w=document.getElementById("cw_"+c.id);if(b){b.textContent=c.src==="twd"?"🇹🇼":"🇨🇳";b.className="sbtn "+(c.src==="twd"?"stwd":"srmb");}if(r){r.value=c.rmb;r.disabled=c.src==="twd";}if(t){t.value=c.price;t.readOnly=c.src==="rmb";t.className=c.src==="twd"?"tedit":"tauto";}if(w)w.value=c.wg;});
+  Object.keys(DF).forEach(function(id){var el=document.getElementById(id);if(el)el.value=DF[id];});
+  FRMS.forEach(function(f){["fp_","fc_","fw_","fcw_"].forEach(function(pf){var el=document.getElementById(pf+f.id);if(el)el.value=f[{fp_:"price",fc_:"corner",fw_:"wg_cm",fcw_:"corner_wg"}[pf]];});});
+  CALC();
+}
+BUILD();
+// ══ localStorage 自動記憶 ══
+// 每次輸入欄變動時自動儲存
+(function(){
+  var STORE_KEY='usled_cfg_v49';
+  // 自動儲存：所有input/select變動都觸發
+  function AUTO_SAVE(){
+    var snap={mSrc:JSON.parse(JSON.stringify(mSrc)),pSrc:JSON.parse(JSON.stringify(pSrc)),cSrc:JSON.parse(JSON.stringify(cSrc)),vals:{}};
+    document.querySelectorAll('input[id],select[id]').forEach(function(el){if(el.id)snap.vals[el.id]=el.value;});
+    try{localStorage.setItem(STORE_KEY,JSON.stringify(snap));}catch(e){}
+  }
+  // 自動載入：頁面啟動時
+  function AUTO_LOAD(){
+    var raw;try{raw=localStorage.getItem(STORE_KEY);}catch(e){}
+    if(!raw)return;
+    var snap;try{snap=JSON.parse(raw);}catch(e){return;}
+    // 還原 src 狀態
+    if(snap.mSrc)Object.keys(snap.mSrc).forEach(function(id){
+      if(mSrc[id]!==snap.mSrc[id]){mSrc[id]=snap.mSrc[id];var b=document.getElementById('msb_'+id);if(b){b.textContent=snap.mSrc[id]==='twd'?'🇹🇼':'🇨🇳';b.className='sbtn '+(snap.mSrc[id]==='twd'?'stwd':'srmb');}var r=document.getElementById('mr_'+id),t=document.getElementById('mt_'+id);if(r)r.disabled=snap.mSrc[id]==='twd';if(t){t.readOnly=snap.mSrc[id]==='rmb';t.className=snap.mSrc[id]==='twd'?'tedit':'tauto';}}
+    });
+    if(snap.pSrc)Object.keys(snap.pSrc).forEach(function(id){
+      if(pSrc[id]!==snap.pSrc[id]){pSrc[id]=snap.pSrc[id];var b=document.getElementById('psb_'+id);if(b){b.textContent=snap.pSrc[id]==='twd'?'🇹🇼':'🇨🇳';b.className='sbtn '+(snap.pSrc[id]==='twd'?'stwd':'srmb');}var r=document.getElementById('pr_'+id),t=document.getElementById('pp_'+id);if(r)r.disabled=snap.pSrc[id]==='twd';if(t){t.readOnly=snap.pSrc[id]==='rmb';t.className=snap.pSrc[id]==='twd'?'tedit':'tauto';}}
+    });
+    if(snap.cSrc)Object.keys(snap.cSrc).forEach(function(id){
+      if(cSrc[id]!==snap.cSrc[id]){cSrc[id]=snap.cSrc[id];var b=document.getElementById('csb_'+id);if(b){b.textContent=snap.cSrc[id]==='twd'?'🇹🇼':'🇨🇳';b.className='sbtn '+(snap.cSrc[id]==='twd'?'stwd':'srmb');}var r=document.getElementById('cr_'+id),t=document.getElementById('cp_'+id);if(r)r.disabled=snap.cSrc[id]==='twd';if(t){t.readOnly=snap.cSrc[id]==='rmb';t.className=snap.cSrc[id]==='twd'?'tedit':'tauto';}}
+    });
+    // 還原數值
+    if(snap.vals)Object.keys(snap.vals).forEach(function(id){var el=document.getElementById(id);if(el&&el.tagName!=='BUTTON')el.value=snap.vals[id];});
+    CALC();
+    // 顯示最後儲存提示
+    var b=document.getElementById('hbadge');if(b)b.title='已自動載入上次設定';
+  }
+  // 監聽所有輸入
+  document.addEventListener('input',AUTO_SAVE);
+  document.addEventListener('change',AUTO_SAVE);
+  // 啟動時載入 + 提示
+  setTimeout(function(){
+    AUTO_LOAD();
+    var notice=document.getElementById('localNotice');
+    var raw;try{raw=localStorage.getItem(STORE_KEY);}catch(e){}
+    if(raw&&notice){notice.style.display='';try{var d=JSON.parse(raw);var ts=d.vals&&d.vals._ts?d.vals._ts:'';}catch(e){}notice.textContent='✅ 已自動載入上次儲存的設定（在同一台電腦/瀏覽器有效）';}
+  },100);
+  // 把 AUTO_SAVE 掛到 EXPORT 和 IMPORT 後也同步
+  var origExport=window.EXPORT_CFG;
+  window.EXPORT_CFG=function(){AUTO_SAVE();origExport();};
+})();
+CALC();SC();
+// ══════════════════════════════════════════
+// 匯出/載入設定 (v4.9)
+// ══════════════════════════════════════════
+function EXPORT_CFG(){
+  var cfg={
+    _version:"4.9",
+    _exported:new Date().toISOString().slice(0,16).replace("T"," "),
+    base:{},mods:{},frms:{},pwrs:{},ctrl:{},parts:{},tiers:{}
+  };
+  // 基礎
+  ["rate","wage","sp","sal","shipRate","cap","tax","risk","pft",
+   "scO","scIn","scOut","scDiv"].forEach(function(id){cfg.base[id]=G(id);});
+  // 模組
+  MODS.forEach(function(m){
+    cfg.mods[m.id]={src:mSrc[m.id],rmb:G("mr_"+m.id),twd:G("mt_"+m.id),wg:G("mw_"+m.id),wpm:G("mp_"+m.id)};
+  });
+  // 鋁框
+  FRMS.forEach(function(f){
+    cfg.frms[f.id]={price:G("fp_"+f.id),corner:G("fc_"+f.id),wg_cm:G("fw_"+f.id),corner_wg:G("fcw_"+f.id)};
+  });
+  // 電源器
+  PWRS.forEach(function(p){
+    cfg.pwrs[p.id]={src:pSrc[p.id],rmb:G("pr_"+p.id),price:G("pp_"+p.id),wg:G("pg_"+p.id),watt:G("pw_"+p.id),inwire_rmb:G("piw_r_"+p.id),inwire_wg:G("piw_w_"+p.id)};
+  });
+  // 控制卡
+  CTRL.forEach(function(ct){
+    cfg.ctrl[ct.id]={src:cSrc[ct.id],rmb:G("cr_"+ct.id),price:G("cp_"+ct.id),wg:G("cw_"+ct.id)};
+  });
+  // 零件
+  var pkeys=["cornscrew_p","cornscrew_w","drain_p","drain_w","rail_p","rail_w",
+    "glass_p","glass_w","bracket_p","bracket_w","fixscrew_p","fixscrew_w",
+    "modscrew_p","modscrew_w","magnet_p","magnet_w","preglue_p","preglue_w",
+    "fullglue_p","fullglue_w","ribbon_p","ribbon_w","dcwire_p","dcwire_w",
+    "transwire_p","transwire_w","back_p","back_w","screw_p","screw_w","sealglue_p","sealglue_w",
+    "t01","t04","t02","t05","t06","t07","t10","t11","t12","t16","t17","t19","t20","t_pack"];
+  pkeys.forEach(function(k){
+    var id=k.indexOf("_p")>=0||k.indexOf("_w")>=0?"p_"+k:k;
+    cfg.parts[k]=G(id);
+  });
+  // 報價等級
+  TIERS.forEach(function(t,i){if(t.margin>0){var el=document.getElementById("ti_"+i);if(el)cfg.tiers[i]=parseFloat(el.value);}});
+
+  var json=JSON.stringify(cfg,null,2);
+  var blob=new Blob([json],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  var d=new Date();
+  a.download="usled_config_"+d.getFullYear()+""+(d.getMonth()+1<10?"0":"")+(d.getMonth()+1)+""+d.getDate()+".json";
+  a.click();
+  alert("✅ 設定已匯出！\n上傳到 GitHub 後，報價單系統即可自動讀取最新成本。");
+}
+
+function IMPORT_CFG(input){
+  var file=input.files[0]; if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var cfg=JSON.parse(e.target.result);
+      // 基礎
+      if(cfg.base)Object.keys(cfg.base).forEach(function(id){var el=document.getElementById(id);if(el)el.value=cfg.base[id];});
+      // 模組
+      if(cfg.mods)MODS.forEach(function(m){var d=cfg.mods[m.id];if(!d)return;
+        mSrc[m.id]=d.src||m.src;
+        var b=document.getElementById("msb_"+m.id),r=document.getElementById("mr_"+m.id),t=document.getElementById("mt_"+m.id),w=document.getElementById("mw_"+m.id),p=document.getElementById("mp_"+m.id);
+        if(b){b.textContent=d.src==="twd"?"🇹🇼":"🇨🇳";b.className="sbtn "+(d.src==="twd"?"stwd":"srmb");}
+        if(r){r.value=d.rmb;r.disabled=d.src==="twd";}
+        if(t){t.value=d.twd;t.readOnly=d.src==="rmb";t.className=d.src==="twd"?"tedit":"tauto";}
+        if(w)w.value=d.wg; if(p)p.value=d.wpm;
+      });
+      // 鋁框
+      if(cfg.frms)FRMS.forEach(function(f){var d=cfg.frms[f.id];if(!d)return;
+        var p=document.getElementById("fp_"+f.id),c=document.getElementById("fc_"+f.id),fw=document.getElementById("fw_"+f.id),fcw=document.getElementById("fcw_"+f.id);
+        if(p)p.value=d.price;if(c)c.value=d.corner;if(fw)fw.value=d.wg_cm;if(fcw)fcw.value=d.corner_wg;
+      });
+      // 電源器
+      if(cfg.pwrs)PWRS.forEach(function(p){var d=cfg.pwrs[p.id];if(!d)return;
+        pSrc[p.id]=d.src||p.src;
+        var b=document.getElementById("psb_"+p.id),r=document.getElementById("pr_"+p.id),t=document.getElementById("pp_"+p.id),w=document.getElementById("pw_"+p.id),g=document.getElementById("pg_"+p.id),iwr=document.getElementById("piw_r_"+p.id),iww=document.getElementById("piw_w_"+p.id);
+        if(b){b.textContent=d.src==="twd"?"🇹🇼":"🇨🇳";b.className="sbtn "+(d.src==="twd"?"stwd":"srmb");}
+        if(r){r.value=d.rmb;r.disabled=d.src==="twd";}
+        if(t){t.value=d.price;t.readOnly=d.src==="rmb";t.className=d.src==="twd"?"tedit":"tauto";}
+        if(w)w.value=d.watt;if(g)g.value=d.wg;if(iwr)iwr.value=d.inwire_rmb;if(iww)iww.value=d.inwire_wg;
+      });
+      // 控制卡
+      if(cfg.ctrl)CTRL.forEach(function(ct){var d=cfg.ctrl[ct.id];if(!d)return;
+        cSrc[ct.id]=d.src||ct.src;
+        var b=document.getElementById("csb_"+ct.id),r=document.getElementById("cr_"+ct.id),t=document.getElementById("cp_"+ct.id),w=document.getElementById("cw_"+ct.id);
+        if(b){b.textContent=d.src==="twd"?"🇹🇼":"🇨🇳";b.className="sbtn "+(d.src==="twd"?"stwd":"srmb");}
+        if(r){r.value=d.rmb;r.disabled=d.src==="twd";}
+        if(t){t.value=d.price;t.readOnly=d.src==="rmb";t.className=d.src==="twd"?"tedit":"tauto";}
+        if(w)w.value=d.wg;
+      });
+      // 零件
+      if(cfg.parts){
+        var pkeys=["cornscrew_p","cornscrew_w","drain_p","drain_w","rail_p","rail_w",
+          "glass_p","glass_w","bracket_p","bracket_w","fixscrew_p","fixscrew_w",
+          "modscrew_p","modscrew_w","magnet_p","magnet_w","preglue_p","preglue_w",
+          "fullglue_p","fullglue_w","ribbon_p","ribbon_w","dcwire_p","dcwire_w",
+          "transwire_p","transwire_w","back_p","back_w","screw_p","screw_w","sealglue_p","sealglue_w",
+          "t01","t04","t02","t05","t06","t07","t10","t11","t12","t16","t17","t19","t20","t_pack"];
+        pkeys.forEach(function(k){
+          var id=k.indexOf("_p")>=0||k.indexOf("_w")>=0?"p_"+k:k;
+          var el=document.getElementById(id);if(el&&cfg.parts[k]!=null)el.value=cfg.parts[k];
+        });
+      }
+      // 報價等級
+      if(cfg.tiers)Object.keys(cfg.tiers).forEach(function(i){var el=document.getElementById("ti_"+i);if(el)el.value=cfg.tiers[i];});
+      CALC();
+      var ver=cfg._version||"?";var exp=cfg._exported||"";
+      alert("✅ 設定載入完成！\n版本："+ver+"　匯出時間："+exp);
+    }catch(err){alert("❌ 載入失敗："+err.message);}
+    input.value="";
+  };
+  reader.readAsText(file);
+}
+
+</script>
+</body>
+</html>
