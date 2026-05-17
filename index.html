@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v5.2</title>
+<title>USLED 快速報價 v5.3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.2</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.3</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1564,9 +1564,10 @@ function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
   var base=normalizeRagicUrl(cfg.url);
-  // 重點：mapFieldNames=true 讓 Ragic 用「欄位名稱」對應而非數字 ID
-  var url=buildRagicUrl(base,'mapFieldNames=true');
-  var fd=new FormData();
+  // Ragic POST 必須用 URL-encoded（不能用 multipart/form-data）
+  // 同時加 mapName 和 mapFieldNames 雙保險（不同版本 Ragic 用不同參數名）
+  var url=buildRagicUrl(base,'mapName=true&mapFieldNames=true');
+  var fd=new URLSearchParams();
   fd.append('客戶名稱',rec.customer||'');
   fd.append('聯絡電話',rec.phone||'');
   fd.append('報價日期',rec.quoteDate||'');
@@ -1590,8 +1591,11 @@ function pushToRagic(rec){
   fd.append('建立時間',rec.createdAt||'');
   return fetch(url,{
     method:'POST',
-    headers:{'Authorization':'Basic '+btoa('APIKey:'+cfg.key)},
-    body:fd
+    headers:{
+      'Authorization':'Basic '+btoa('APIKey:'+cfg.key),
+      'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'
+    },
+    body:fd.toString()
   }).then(function(r){
     return r.text().then(function(txt){
       if(!r.ok){
@@ -1603,11 +1607,15 @@ function pushToRagic(rec){
       var result={raw:txt,savedFields:0,ragicId:''};
       try{
         var obj=JSON.parse(txt);
-        result.ragicId=obj.ragicId||obj.recordId||'';
+        result.ragicId=obj.ragicId||obj.recordId||obj._ragicId||'';
         if(obj.status&&obj.status!=='SUCCESS')throw new Error(obj.msg||obj.status);
-        // 看實際存進去幾個欄位
-        if(obj.record){
-          result.savedFields=Object.keys(obj.record).filter(function(k){return !k.startsWith('_')&&obj.record[k]!=='';}).length;
+        // 支援多種 Ragic 回應格式：record, data, 或直接展開的欄位
+        var fieldSrc=obj.record||obj.data||obj.fields||null;
+        if(fieldSrc){
+          result.savedFields=Object.keys(fieldSrc).filter(function(k){return !k.startsWith('_')&&fieldSrc[k]!==''&&fieldSrc[k]!=null;}).length;
+        }else{
+          // 沒有 record 結構但 SUCCESS：直接看 obj 上有沒有非系統欄位
+          result.savedFields=Object.keys(obj).filter(function(k){return !k.startsWith('_')&&k!=='status'&&k!=='ragicId'&&k!=='msg'&&obj[k]!==''&&typeof obj[k]!=='object';}).length;
         }
       }catch(e){if(e.message)throw e;}
       return result;
