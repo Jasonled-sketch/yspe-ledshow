@@ -147,6 +147,8 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 
 /* ══ 報價單（白色列印版）══ */
 .quote-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:520px;margin:0 auto}
+.quote-scale-container{width:100%;overflow:hidden;border-radius:12px}
+.quote-scale-inner{transform-origin:top left;width:520px}
 .qs{background:#fff;color:#1A2236;font-family:'PingFang TC','Microsoft JhengHei',sans-serif;font-size:10px}
 .qs-hd{background:#1A3A6B;display:flex;align-items:center;gap:10px;padding:10px 14px}
 .qs-hd-logo{background:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:900;color:#1A3A6B;letter-spacing:-.5px}
@@ -273,8 +275,10 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 
 <!-- ══ Page 4: 預覽 ══ -->
 <div id="pg4" class="page">
-  <div class="quote-wrap">
-    <div id="quoteSheet"></div>
+  <div class="quote-scale-container" id="quoteContainer">
+    <div class="quote-scale-inner" id="quoteInner">
+      <div id="quoteSheet"></div>
+    </div>
   </div>
   <div style="display:flex;gap:8px;margin-top:12px">
     <button class="btn btn-green" onclick="saveImg()" style="flex:1">📸 儲存圖片</button>
@@ -619,6 +623,17 @@ function goPage(n){
   if(n===4){
     try{buildQuote();}catch(e){console.error('buildQuote error:',e);document.getElementById('quoteSheet').innerHTML='<div style="padding:30px;color:red;text-align:center">⚠ 請先選擇模組與框型再進入預覽</div>';}
     document.getElementById('bbar').style.display='none';
+    // 自動縮放報價單到手機寬度
+    setTimeout(function(){
+      var inner=document.getElementById('quoteInner');
+      var container=document.getElementById('quoteContainer');
+      if(inner&&container){
+        var scale=container.offsetWidth/520;
+        inner.style.transform='scale('+scale+')';
+        inner.style.transformOrigin='top left';
+        container.style.height=(inner.offsetHeight*scale)+'px';
+      }
+    },50);
   }
   else{document.getElementById('bbar').style.display='';document.getElementById('nextBtn').textContent=n===3?'產生報價單 ✓':'下一步 →';}
 }
