@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v5.3</title>
+<title>USLED 快速報價 v5.4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.3</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.4</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1560,35 +1560,61 @@ function testRagicCfg(){
   });
 }
 
+// ══ Ragic 欄位 ID 對應表（v5.4：改用欄位 ID 直接 POST，繞過 mapName）══
+// 如果未來改 Ragic 表單，重新編號需要在這裡更新
+var RAGIC_FIELD_IDS = {
+  customer:  '1002827',   // 客戶名稱
+  phone:     '1002828',   // 聯絡電話
+  quoteDate: '1002826',   // 報價日期
+  mod:       '1002829',   // 模組
+  frm:       '1002830',   // 鋁框
+  pwr:       '1002831',   // 電源器
+  ctrl:      '1002832',   // 控制卡
+  cols:      '1002833',   // 字寬
+  rows:      '1002834',   // 字高
+  dual:      '1002835',   // 單雙面
+  qty:       '1002836',   // 數量
+  tier:      '1002837',   // 報價等級
+  unitPrice: '1002838',   // 單價
+  totalPrice:'1002839',   // 總價
+  dispH:     '1002840',   // 面積H
+  dispW:     '1002841',   // 面積W
+  totalW:    '1002842',   // 功率W
+  totalKg:   '1002843',   // 重量kg
+  matCost:   '1002844',   // 成本
+  localId:   '1002845',   // 本機ID
+  createdAt: '1002846'    // 建立時間
+};
+
 function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
   var base=normalizeRagicUrl(cfg.url);
-  // Ragic POST 必須用 URL-encoded（不能用 multipart/form-data）
-  // 同時加 mapName 和 mapFieldNames 雙保險（不同版本 Ragic 用不同參數名）
-  var url=buildRagicUrl(base,'mapName=true&mapFieldNames=true');
+  // 用欄位 ID 直接 POST（Ragic POST 認 ID 不認名稱）
+  var url=buildRagicUrl(base,'');
+  var F=RAGIC_FIELD_IDS;
   var fd=new URLSearchParams();
-  fd.append('客戶名稱',rec.customer||'');
-  fd.append('聯絡電話',rec.phone||'');
-  fd.append('報價日期',rec.quoteDate||'');
-  fd.append('模組',rec.mid||'');
-  fd.append('鋁框',rec.fid||'');
-  fd.append('電源器',rec.pid||'');
-  fd.append('控制卡',rec.cid||'');
-  fd.append('字高',rec.rows||0);
-  fd.append('字寬',rec.cols||0);
-  fd.append('單雙面',rec.dual>1?'雙面':'單面');
-  fd.append('數量',rec.qty||0);
-  fd.append('報價等級',rec.tierName||'');
-  fd.append('單價',rec.unitPrice||0);
-  fd.append('總價',rec.totalPrice||0);
-  fd.append('面積H',Math.round(rec.dispH||0));
-  fd.append('面積W',Math.round(rec.dispW||0));
-  fd.append('功率W',Math.round(rec.totalW||0));
-  fd.append('重量kg',(rec.totalKg||0).toFixed(2));
-  fd.append('成本',rec.matCost||0);
-  fd.append('本機ID',rec.id);
-  fd.append('建立時間',rec.createdAt||'');
+  fd.append(F.customer,  rec.customer||'');
+  fd.append(F.phone,     rec.phone||'');
+  fd.append(F.quoteDate, rec.quoteDate||'');
+  fd.append(F.mod,       rec.mid||'');
+  fd.append(F.frm,       rec.fid||'');
+  fd.append(F.pwr,       rec.pid||'');
+  fd.append(F.ctrl,      rec.cid||'');
+  fd.append(F.rows,      rec.rows||0);
+  fd.append(F.cols,      rec.cols||0);
+  fd.append(F.dual,      rec.dual>1?'雙面':'單面');
+  fd.append(F.qty,       rec.qty||0);
+  fd.append(F.tier,      rec.tierName||'');
+  fd.append(F.unitPrice, rec.unitPrice||0);
+  fd.append(F.totalPrice,rec.totalPrice||0);
+  fd.append(F.dispH,     Math.round(rec.dispH||0));
+  fd.append(F.dispW,     Math.round(rec.dispW||0));
+  fd.append(F.totalW,    Math.round(rec.totalW||0));
+  fd.append(F.totalKg,   (rec.totalKg||0).toFixed(2));
+  fd.append(F.matCost,   rec.matCost||0);
+  fd.append(F.localId,   rec.id||'');
+  fd.append(F.createdAt, rec.createdAt||'');
   return fetch(url,{
     method:'POST',
     headers:{
