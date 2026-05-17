@@ -321,6 +321,9 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 <div class="toast" id="toast"></div>
 
 <script>
+// ══ 內建預設設定（從usled_config_20260517.json燒入）══
+var BUILTIN_CFG = {"_version":"4.9","_exported":"2026-05-17 03:47","base":{"rate":4.7,"wage":350,"sp":22,"sal":50000,"shipRate":8.5,"cap":6,"tax":5,"risk":5,"pft":3,"scO":3.5,"scIn":4.5,"scOut":5.5,"scDiv":450},"mods":{"P10R":{"src":"rmb","rmb":30,"twd":159,"wg":450,"wpm":33},"P10C":{"src":"rmb","rmb":50,"twd":251,"wg":403,"wpm":33},"P10S":{"src":"rmb","rmb":55,"twd":276,"wg":430,"wpm":33},"P08C":{"src":"rmb","rmb":46,"twd":227,"wg":272,"wpm":23},"P06C":{"src":"rmb","rmb":48,"twd":234,"wg":216,"wpm":50},"P05C":{"src":"twd","rmb":75,"twd":335,"wg":445,"wpm":48},"P5CM":{"src":"rmb","rmb":55,"twd":267,"wg":210,"wpm":24},"P04C":{"src":"rmb","rmb":58,"twd":284,"wg":284,"wpm":48},"P03C":{"src":"rmb","rmb":82,"twd":398,"wg":313,"wpm":50},"P25F":{"src":"rmb","rmb":168,"twd":810,"wg":520,"wpm":53},"M10C":{"src":"rmb","rmb":30,"twd":153,"wg":300,"wpm":23},"M10R":{"src":"rmb","rmb":26,"twd":132,"wg":248,"wpm":23},"M06C":{"src":"rmb","rmb":55,"twd":269,"wg":260,"wpm":23},"M05C":{"src":"rmb","rmb":38,"twd":190,"wg":286,"wpm":17.5},"M04C":{"src":"rmb","rmb":43,"twd":209,"wg":178,"wpm":17.5},"M4CL":{"src":"rmb","rmb":44,"twd":221,"wg":347,"wpm":8},"M47D":{"src":"rmb","rmb":24,"twd":123,"wg":255,"wpm":17.5},"M03C":{"src":"rmb","rmb":54,"twd":263,"wg":232,"wpm":8},"M25F":{"src":"rmb","rmb":65,"twd":314,"wg":222,"wpm":17.5},"M02C":{"src":"twd","rmb":0,"twd":725,"wg":222,"wpm":15},"M186":{"src":"rmb","rmb":113,"twd":541,"wg":250,"wpm":17.5},"Q4":{"src":"twd","rmb":0,"twd":315,"wg":250,"wpm":17.5}},"frms":{"R":{"price":1.372,"corner":15,"wg_cm":6.97,"corner_wg":34},"P":{"price":1.752,"corner":17,"wg_cm":8.9,"corner_wg":69},"N":{"price":1.372,"corner":15,"wg_cm":6.97,"corner_wg":34},"J":{"price":0.847,"corner":21.5,"wg_cm":4.3,"corner_wg":34},"A":{"price":1.969,"corner":30,"wg_cm":10,"corner_wg":0},"I":{"price":0.847,"corner":8,"wg_cm":4.3,"corner_wg":19},"S":{"price":0,"corner":15,"wg_cm":2,"corner_wg":11},"X":{"price":0.63,"corner":7.95,"wg_cm":3.2,"corner_wg":11},"O":{"price":0,"corner":7.5,"wg_cm":0,"corner_wg":30}},"pwrs":{"HAM":{"src":"twd","rmb":0,"price":560,"wg":740,"watt":300,"inwire_rmb":2.8,"inwire_wg":20},"HAT":{"src":"rmb","rmb":44,"price":223,"wg":404,"watt":200,"inwire_rmb":2.8,"inwire_wg":20},"HBM":{"src":"twd","rmb":0,"price":560,"wg":740,"watt":300,"inwire_rmb":2.8,"inwire_wg":20},"HBT":{"src":"rmb","rmb":44,"price":223,"wg":404,"watt":200,"inwire_rmb":2.8,"inwire_wg":20},"HSH1":{"src":"rmb","rmb":22,"price":103,"wg":0,"watt":70,"inwire_rmb":2.8,"inwire_wg":20},"HSH2":{"src":"rmb","rmb":28,"price":132,"wg":0,"watt":105,"inwire_rmb":2.8,"inwire_wg":20},"HSM1":{"src":"twd","rmb":0,"price":290,"wg":213,"watt":50,"inwire_rmb":2.8,"inwire_wg":20},"HSM2":{"src":"twd","rmb":0,"price":330,"wg":315,"watt":100,"inwire_rmb":2.8,"inwire_wg":20},"HSM3":{"src":"twd","rmb":0,"price":435,"wg":419,"watt":150,"inwire_rmb":2.8,"inwire_wg":20},"LAA0":{"src":"rmb","rmb":0,"price":0,"wg":0,"watt":0,"inwire_rmb":2,"inwire_wg":10},"LAA3":{"src":"rmb","rmb":4,"price":21,"wg":55,"watt":15,"inwire_rmb":2,"inwire_wg":10},"LAA6":{"src":"rmb","rmb":16.5,"price":88,"wg":264,"watt":46,"inwire_rmb":3.5,"inwire_wg":30},"LBG1":{"src":"rmb","rmb":20,"price":97,"wg":72,"watt":50,"inwire_rmb":1.8,"inwire_wg":20},"LBH1":{"src":"rmb","rmb":22,"price":107,"wg":85,"watt":70,"inwire_rmb":1.8,"inwire_wg":20},"LBH2":{"src":"rmb","rmb":32,"price":156,"wg":151,"watt":144,"inwire_rmb":1.8,"inwire_wg":20},"LBH3":{"src":"rmb","rmb":60,"price":290,"wg":210,"watt":200,"inwire_rmb":2.3,"inwire_wg":20},"LCH2":{"src":"rmb","rmb":55,"price":265,"wg":151,"watt":144,"inwire_rmb":1.8,"inwire_wg":20}},"ctrl":{"HD-D16":{"src":"twd","rmb":0,"price":1350,"wg":65},"HD-C16L":{"src":"twd","rmb":0,"price":2100,"wg":65},"HD-U6A":{"src":"rmb","rmb":21,"price":99,"wg":20},"LM-30A":{"src":"rmb","rmb":285,"price":1349,"wg":250},"HD-A5L":{"src":"twd","rmb":0,"price":5100,"wg":800},"HD-A4":{"src":"twd","rmb":0,"price":3600,"wg":600},"HD-A3L":{"src":"twd","rmb":0,"price":1900,"wg":400},"HD-E64":{"src":"twd","rmb":0,"price":609,"wg":60},"HD-W66":{"src":"rmb","rmb":300,"price":1414,"wg":100},"HD-WF4":{"src":"twd","rmb":0,"price":230,"wg":31},"HD-WF2":{"src":"rmb","rmb":26,"price":123,"wg":21},"RHX-64W512":{"src":"rmb","rmb":18,"price":85,"wg":18},"RHX-32W320":{"src":"rmb","rmb":7,"price":33,"wg":14},"RHX-Q10":{"src":"rmb","rmb":118,"price":557,"wg":60},"RHX-Q8B":{"src":"rmb","rmb":60,"price":284,"wg":50},"RHX-Q4A1":{"src":"rmb","rmb":38,"price":180,"wg":30},"RHX-Q4AM":{"src":"rmb","rmb":24,"price":114,"wg":27},"RHX-Q4M":{"src":"rmb","rmb":78,"price":369,"wg":50},"RHX-8Q2":{"src":"rmb","rmb":10,"price":48,"wg":16},"RHX-8C1":{"src":"rmb","rmb":12,"price":57,"wg":13}},"parts":{"cornscrew_p":0.5,"cornscrew_w":2,"drain_p":1,"drain_w":3,"rail_p":3,"rail_w":6,"glass_p":0.8,"glass_w":1.5,"bracket_p":0.25,"bracket_w":4,"fixscrew_p":0.5,"fixscrew_w":2,"modscrew_p":0.3,"modscrew_w":1,"magnet_p":7.2,"magnet_w":14,"preglue_p":1.2,"preglue_w":0.5,"fullglue_p":4,"fullglue_w":2,"ribbon_p":8,"ribbon_w":10,"dcwire_p":8,"dcwire_w":19,"transwire_p":12,"transwire_w":70,"back_p":45,"back_w":207,"screw_p":0.5,"screw_w":1.15,"sealglue_p":0.1,"sealglue_w":0.1,"t01":0.33,"t04":1,"t02":1.01,"t05":0.5,"t06":0.5,"t07":0.233,"t10":5.867,"t11":0.2,"t12":0.2,"t16":5.5,"t17":1.5,"t19":0.25,"t20":0.1,"t_pack":0},"tiers":{"1":60,"2":44.5,"3":40,"4":34.5,"5":27,"6":18.2,"7":13.3}};
+
 // ══ 角色與密碼 ══
 var MGR_PWD = 'usled2026'; // ← 可改密碼
 var isMgr = false;
@@ -373,12 +376,14 @@ window.onload = function(){
       toast('✅ 設定載入完成');
     })
     .catch(function(){
-      // 次要：嘗試 localStorage（本機參數編輯器共享）
+      // 嘗試 localStorage
       try{
         var raw=localStorage.getItem('usled_cfg_v49');
-        if(raw){buildFromSnap(JSON.parse(raw));toast('✅ 已從本機設定載入');}
-        else{buildDefault();toast('⚠ 請點右上角⚙載入設定檔');}
-      }catch(e){buildDefault();}
+        if(raw){buildFromSnap(JSON.parse(raw));toast('✅ 已從本機設定載入');return;}
+      }catch(e){}
+      // 最終：使用內建預設設定
+      buildFromJson(BUILTIN_CFG);
+      toast('✅ 使用內建設定');
     });
 };
 
@@ -646,6 +651,7 @@ function loadJson(input){
     try{
       var cfg=JSON.parse(e.target.result);
       buildFromJson(cfg);
+      try{localStorage.setItem('usled_quote_cfg',JSON.stringify(cfg));}catch(e){}
       var st=document.getElementById('cfgStatus');
       st.style.display='';
       st.innerHTML='<span class="status-chip status-ok">✅ 載入成功：'+file.name+'</span>';
