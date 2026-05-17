@@ -365,12 +365,21 @@ var PWR_SPEC={HAM:'明瑋5V60A/AC110V',HAT:'創聯5V40A/AC110V',HBM:'明瑋5V60A
 window.onload = function(){
   var d=new Date();
   document.getElementById('c_date').value=d.toISOString().slice(0,10);
-  // 從 localStorage 讀取設定（參數編輯器共享）
-  try{
-    var raw=localStorage.getItem('usled_cfg_v49');
-    if(raw){buildFromSnap(JSON.parse(raw));toast('✅ 已從參數編輯器載入設定');}
-    else{buildDefault();toast('⚠ 請載入 usled_config.json');}
-  }catch(e){buildDefault();}
+  // 優先：自動讀取同目錄的 usled_config.json
+  fetch('./usled_config.json?_='+Date.now())
+    .then(function(res){if(!res.ok)throw new Error('no file');return res.json();})
+    .then(function(cfg){
+      buildFromJson(cfg);
+      toast('✅ 設定載入完成');
+    })
+    .catch(function(){
+      // 次要：嘗試 localStorage（本機參數編輯器共享）
+      try{
+        var raw=localStorage.getItem('usled_cfg_v49');
+        if(raw){buildFromSnap(JSON.parse(raw));toast('✅ 已從本機設定載入');}
+        else{buildDefault();toast('⚠ 請點右上角⚙載入設定檔');}
+      }catch(e){buildDefault();}
+    });
 };
 
 // ── 從localStorage snap建立 ──
