@@ -148,7 +148,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 /* ══ 報價單（白色列印版）══ */
 .quote-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:520px;margin:0 auto}
 .quote-scale-container{width:100%;overflow:hidden;border-radius:12px}
-.quote-scale-inner{transform-origin:top left;width:520px}
+.quote-scale-inner{transform-origin:top left;width:520px;max-width:100%}
 .qs{background:#fff;color:#1A2236;font-family:'PingFang TC','Microsoft JhengHei',sans-serif;font-size:9.5px}
 .qs-hd{background:#1A3A6B;display:flex;align-items:center;gap:10px;padding:10px 14px}
 .qs-hd-logo{background:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:900;color:#1A3A6B;letter-spacing:-.5px}
@@ -623,15 +623,24 @@ function goPage(n){
   if(n===4){
     try{buildQuote();}catch(e){console.error('buildQuote error:',e);document.getElementById('quoteSheet').innerHTML='<div style="padding:30px;color:red;text-align:center">⚠ 請先選擇模組與框型再進入預覽</div>';}
     document.getElementById('bbar').style.display='none';
-    // 自動縮放報價單到手機寬度
+    // 只在手機才縮放（桌機直接正常顯示）
     setTimeout(function(){
       var inner=document.getElementById('quoteInner');
       var container=document.getElementById('quoteContainer');
       if(inner&&container){
-        var scale=container.offsetWidth/520;
-        inner.style.transform='scale('+scale+')';
-        inner.style.transformOrigin='top left';
-        container.style.height=(inner.offsetHeight*scale)+'px';
+        var cw=container.offsetWidth;
+        if(cw < 530){
+          // 手機：等比縮放到容器寬度
+          var scale=cw/520;
+          inner.style.transform='scale('+scale+')';
+          inner.style.transformOrigin='top left';
+          container.style.height=(inner.scrollHeight*scale+20)+'px';
+        } else {
+          // 桌機：不縮放，讓 max-width:520px 自然置中
+          inner.style.transform='none';
+          inner.style.width='100%';
+          container.style.height='auto';
+        }
       }
     },50);
   }
