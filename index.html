@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v5.0</title>
+<title>USLED 快速報價 v5.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.0</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.1</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1286,14 +1286,17 @@ function archiveQuote(){
   saveHistory(list);
   // 若有 Ragic 設定，立即嘗試同步
   if(getRagicCfg().url){
-    pushToRagic(rec).then(function(){
+    pushToRagic(rec).then(function(result){
       var l=loadHistory();
       var i=l.findIndex(function(x){return x.id===rec.id;});
-      if(i>=0){l[i].syncStatus='synced';saveHistory(l);}
-    }).catch(function(){
+      if(i>=0){l[i].syncStatus='synced';l[i].ragicId=result.ragicId||'';saveHistory(l);}
+      // 提示有幾個欄位對應到
+      if(result.savedFields>0){toast('☁ 已同步到 Ragic ('+result.savedFields+' 個欄位)');}
+    }).catch(function(err){
       var l=loadHistory();
       var i=l.findIndex(function(x){return x.id===rec.id;});
-      if(i>=0){l[i].syncStatus='pending';saveHistory(l);}
+      if(i>=0){l[i].syncStatus='pending';l[i].lastError=err.message||String(err);saveHistory(l);}
+      toast('⚠ 暫存本機（Ragic 同步失敗）');
     });
   }
 }
@@ -1340,6 +1343,7 @@ function renderHistory(){
           '<span class="history-sync-icon '+statusKey+'">'+statusTxt+'</span>'+
         '</div>'+
       '</div>'+
+      (r.lastError?'<div style="font-size:11px;color:var(--red);background:#FEF2F2;padding:6px 8px;border-radius:6px;margin-top:6px;word-break:break-all">⚠ '+r.lastError.slice(0,140)+'</div>':'')+
       '<div class="history-actions">'+
         '<button class="history-act-btn" data-act="reload" data-id="'+r.id+'">📥 重新調出</button>'+
         '<button class="history-act-btn" data-act="sync" data-id="'+r.id+'">☁ 同步</button>'+
@@ -1392,14 +1396,20 @@ function syncOne(id){
   var r=list.find(function(x){return x.id===id;});
   if(!r)return;
   toast('☁ 同步中...');
-  pushToRagic(r).then(function(){
+  pushToRagic(r).then(function(result){
     var l=loadHistory();
     var i=l.findIndex(function(x){return x.id===id;});
-    if(i>=0){l[i].syncStatus='synced';saveHistory(l);}
+    if(i>=0){l[i].syncStatus='synced';l[i].ragicId=result.ragicId||'';l[i].lastError='';saveHistory(l);}
     renderHistory();
-    toast('✅ 已上傳到 Ragic');
+    if(result.savedFields>0){toast('✅ 已上傳到 Ragic（存了 '+result.savedFields+' 個欄位）');}
+    else{toast('⚠ Ragic 回應 OK 但沒有欄位被儲存，請檢查欄位名稱是否一致');}
   }).catch(function(err){
-    toast('❌ 同步失敗：'+(err.message||err));
+    var msg=err.message||String(err);
+    var l=loadHistory();
+    var i=l.findIndex(function(x){return x.id===id;});
+    if(i>=0){l[i].lastError=msg;saveHistory(l);}
+    renderHistory();
+    toast('❌ 同步失敗：'+msg.slice(0,60));
   });
 }
 
@@ -1486,28 +1496,67 @@ function saveRagicCfg(){
   toast('✅ Ragic 設定已儲存');
 }
 
+// 將使用者輸入的網址正規化，回傳乾淨的 base URL（去掉 query / 結尾斜線）
+function normalizeRagicUrl(raw){
+  if(!raw)return '';
+  var u=raw.trim();
+  var qi=u.indexOf('?'); if(qi>=0)u=u.substring(0,qi);
+  while(u.endsWith('/'))u=u.slice(0,-1);
+  return u;
+}
+// 組出完整 API URL：base + ?api + 視需要附加 params
+function buildRagicUrl(base,extra){
+  var q='?api&v=3';   // v=3 是 Ragic 較新的 API 版本，回傳結構較完整
+  if(extra)q+='&'+extra;
+  return base+q;
+}
+
 function testRagicCfg(){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key){document.getElementById('ragicStatus').innerHTML='<span class="status-chip status-err">⚠ 請先填入網址與 API Key</span>';return;}
   document.getElementById('ragicStatus').innerHTML='<span class="status-chip">⏳ 測試中...</span>';
-  // Ragic API GET 測試（取第一筆）
-  fetch(cfg.url+'?api&limit=1',{
+  var base=normalizeRagicUrl(cfg.url);
+  // GET 測試（取第一筆）
+  fetch(buildRagicUrl(base,'limit=1'),{
     headers:{'Authorization':'Basic '+btoa('APIKey:'+cfg.key)}
   }).then(function(r){
-    if(r.ok)document.getElementById('ragicStatus').innerHTML='<span class="status-chip status-ok">✅ 連線成功</span>';
-    else document.getElementById('ragicStatus').innerHTML='<span class="status-chip status-err">❌ HTTP '+r.status+'</span>';
+    return r.text().then(function(txt){
+      var st=document.getElementById('ragicStatus');
+      if(r.ok){
+        // 嘗試解析回傳，看欄位定義
+        var fieldHint='';
+        try{
+          var obj=JSON.parse(txt);
+          // Ragic GET 回傳是 {"0":{...fields...}, ...}
+          var firstKey=Object.keys(obj)[0];
+          if(firstKey&&obj[firstKey]){
+            var fields=Object.keys(obj[firstKey]).filter(function(k){return !k.startsWith('_');});
+            fieldHint='<div style="font-size:11px;margin-top:6px;color:var(--sub)">表單欄位：'+fields.slice(0,8).join('、')+(fields.length>8?'…等 '+fields.length+' 個':'')+'</div>';
+          }else{
+            fieldHint='<div style="font-size:11px;margin-top:6px;color:var(--sub)">表單目前沒有資料（這是正常的）</div>';
+          }
+        }catch(e){}
+        st.innerHTML='<span class="status-chip status-ok">✅ 連線成功</span>'+fieldHint;
+      }
+      else{
+        st.innerHTML='<span class="status-chip status-err">❌ HTTP '+r.status+'</span>'+
+          '<div style="font-size:11px;margin-top:6px;color:var(--red);word-break:break-all">'+txt.slice(0,200)+'</div>';
+      }
+    });
   }).catch(function(e){
-    document.getElementById('ragicStatus').innerHTML='<span class="status-chip status-err">❌ '+e.message+'</span>';
+    document.getElementById('ragicStatus').innerHTML='<span class="status-chip status-err">❌ '+e.message+'</span>'+
+      '<div style="font-size:11px;margin-top:6px;color:var(--sub)">通常是 CORS 或網路問題。請確認 Ragic 後台已開啟 API 與跨網域請求。</div>';
   });
 }
 
 function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
-  // Ragic POST：用 FormData，欄位 key 用 1000001、1000002 等（需使用者在 Ragic 設定後對應）
-  // 為了通用，這裡用 JSON-style payload，把欄位名直接以中文/英文傳送，使用者可在 Ragic 用 fieldName 對應
+  var base=normalizeRagicUrl(cfg.url);
+  // 重點：mapFieldNames=true 讓 Ragic 用「欄位名稱」對應而非數字 ID
+  var url=buildRagicUrl(base,'mapFieldNames=true');
   var fd=new FormData();
-  fd.append('客戶名稱',rec.customer);
+  fd.append('客戶名稱',rec.customer||'');
   fd.append('聯絡電話',rec.phone||'');
   fd.append('報價日期',rec.quoteDate||'');
   fd.append('模組',rec.mid||'');
@@ -1528,13 +1577,30 @@ function pushToRagic(rec){
   fd.append('成本',rec.matCost||0);
   fd.append('本機ID',rec.id);
   fd.append('建立時間',rec.createdAt||'');
-  return fetch(cfg.url+'?api',{
+  return fetch(url,{
     method:'POST',
     headers:{'Authorization':'Basic '+btoa('APIKey:'+cfg.key)},
     body:fd
   }).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    return r.json();
+    return r.text().then(function(txt){
+      if(!r.ok){
+        var msg='HTTP '+r.status;
+        try{var obj=JSON.parse(txt);if(obj.msg)msg=obj.msg;else if(obj.status)msg=obj.status;}catch(e){msg=msg+' '+txt.slice(0,120);}
+        throw new Error(msg);
+      }
+      // 解析回傳，確認真的有寫到資料
+      var result={raw:txt,savedFields:0,ragicId:''};
+      try{
+        var obj=JSON.parse(txt);
+        result.ragicId=obj.ragicId||obj.recordId||'';
+        if(obj.status&&obj.status!=='SUCCESS')throw new Error(obj.msg||obj.status);
+        // 看實際存進去幾個欄位
+        if(obj.record){
+          result.savedFields=Object.keys(obj.record).filter(function(k){return !k.startsWith('_')&&obj.record[k]!=='';}).length;
+        }
+      }catch(e){if(e.message)throw e;}
+      return result;
+    });
   });
 }
 
