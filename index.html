@@ -147,8 +147,8 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 
 /* ══ 報價單（白色列印版）══ */
 .quote-wrap{border:1px solid var(--border);border-radius:12px;overflow:hidden;max-width:520px;margin:0 auto}
-.quote-scale-container{width:100%;overflow:hidden;border-radius:12px}
-.quote-scale-inner{transform-origin:top left;width:520px;max-width:100%}
+.quote-scale-container{width:100%;max-width:560px;margin:0 auto;overflow:hidden;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08)}
+.quote-scale-inner{transform-origin:top left;width:520px}
 .qs{background:#fff;color:#1A2236;font-family:'PingFang TC','Microsoft JhengHei',sans-serif;font-size:9.5px}
 .qs-hd{background:#1A3A6B;display:flex;align-items:center;gap:10px;padding:10px 14px}
 .qs-hd-logo{background:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:900;color:#1A3A6B;letter-spacing:-.5px}
@@ -274,7 +274,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 </div>
 
 <!-- ══ Page 4: 預覽 ══ -->
-<div id="pg4" class="page">
+<div id="pg4" class="page" style="max-width:620px;margin:0 auto">
   <div class="quote-scale-container" id="quoteContainer">
     <div class="quote-scale-inner" id="quoteInner">
       <div id="quoteSheet"></div>
@@ -636,10 +636,12 @@ function goPage(n){
           inner.style.transformOrigin='top left';
           container.style.height=(inner.scrollHeight*scale+20)+'px';
         } else {
-          // 桌機：不縮放，讓 max-width:520px 自然置中
-          inner.style.transform='none';
-          inner.style.width='100%';
-          container.style.height='auto';
+          // 桌機：等比縮放到容器寬度（容器最大560px）
+          var scale=cw/520;
+          if(scale>1) scale=1; // 超過520px不放大
+          inner.style.transform='scale('+scale+')';
+          inner.style.transformOrigin='top left';
+          container.style.height=(inner.scrollHeight*scale+20)+'px';
         }
       }
     },50);
