@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v5.6</title>
+<title>USLED 快速報價 v5.7</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.6</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.7</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1530,7 +1530,7 @@ function testRagicCfg(){
   // GET 測試（取第一筆）
   var tk=encodeURIComponent(cfg.key);
   fetch(buildRagicUrl(base,'limit=1&mapFieldNames=true&APIKey='+tk+'&apikey='+tk+'&APIkey='+tk),{
-    headers:{'Authorization':'Basic '+btoa(':'+cfg.key)}
+    headers:{'Authorization':'Basic '+btoa(cfg.key+':')}
   }).then(function(r){
     return r.text().then(function(txt){
       var st=document.getElementById('ragicStatus');
@@ -1561,7 +1561,7 @@ function testRagicCfg(){
   });
 }
 
-// ══ Ragic 欄位 ID 對應表（v5.6：改用欄位 ID 直接 POST，繞過 mapName）══
+// ══ Ragic 欄位 ID 對應表（v5.7：改用欄位 ID 直接 POST，繞過 mapName）══
 // 如果未來改 Ragic 表單，重新編號需要在這裡更新
 var RAGIC_FIELD_IDS = {
   customer:  '1002827',   // 客戶名稱
@@ -1621,7 +1621,7 @@ function pushToRagic(rec){
   return fetch(url,{
     method:'POST',
     headers:{
-      'Authorization':'Basic '+btoa(':'+cfg.key),
+      'Authorization':'Basic '+btoa(cfg.key+':'),
       'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'
     },
     body:fd.toString()
