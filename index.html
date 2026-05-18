@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v5.8</title>
+<title>USLED 快速報價 v5.9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.8</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v5.9</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1524,65 +1524,65 @@ function buildRagicUrl(base,extra){
 
 function testRagicCfg(){
   var cfg=getRagicCfg();
-  if(!cfg.url||!cfg.key){document.getElementById('ragicStatus').innerHTML='<span class="status-chip status-err">⚠ 請先填入網址與 API Key</span>';return;}
-  document.getElementById('ragicStatus').innerHTML='<span class="status-chip">⏳ 測試中...</span>';
+  var st=document.getElementById('ragicStatus');
+  if(!cfg.url||!cfg.key){st.innerHTML='<span class="status-chip status-err">⚠ 請先填入網址與 API Key</span>';return;}
+  st.innerHTML='<span class="status-chip">⏳ 測試 7 種認證方式中...</span>';
   var base=normalizeRagicUrl(cfg.url);
-  // GET 測試（取第一筆）
-  var tk=encodeURIComponent(cfg.key);
-  fetch(buildRagicUrl(base,'limit=1&mapFieldNames=true&APIKey='+tk+'&apikey='+tk+'&APIkey='+tk),{
-    headers:{'Authorization':'Basic '+btoa(cfg.key+':')}
-  }).then(function(r){
-    return r.text().then(function(txt){
-      var st=document.getElementById('ragicStatus');
-      // 永遠顯示原始回應前 500 字（debug 用）
-      var rawBox='<div style="font-size:10px;margin-top:8px;padding:8px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:200px;overflow:auto"><div style="color:#94A3B8;margin-bottom:4px">📡 Ragic 原始回應：</div>'+(txt||'(空白)').slice(0,500).replace(/</g,'&lt;')+'</div>';
-      if(r.ok){
-        var fieldHint='';
+  var k=cfg.key, ke=encodeURIComponent(k);
+
+  // 7 種認證方式組合
+  var methods=[
+    {name:'A. ?api=KEY (在 api= 後直接接 key)', url:base+'?api='+ke+'&limit=1&mapFieldNames=true', headers:{}},
+    {name:'B. ?api&APIKey=KEY (URL param)', url:base+'?api&APIKey='+ke+'&limit=1&mapFieldNames=true', headers:{}},
+    {name:'C. ?api&apikey=KEY (lowercase)', url:base+'?api&apikey='+ke+'&limit=1&mapFieldNames=true', headers:{}},
+    {name:'D. Header: Basic base64(KEY:)', url:base+'?api&limit=1&mapFieldNames=true', headers:{'Authorization':'Basic '+btoa(k+':')}},
+    {name:'E. Header: Basic base64(:KEY)', url:base+'?api&limit=1&mapFieldNames=true', headers:{'Authorization':'Basic '+btoa(':'+k)}},
+    {name:'F. Header: Basic KEY (raw)', url:base+'?api&limit=1&mapFieldNames=true', headers:{'Authorization':'Basic '+k}},
+    {name:'G. Header: API-Key: KEY', url:base+'?api&limit=1&mapFieldNames=true', headers:{'API-Key':k}}
+  ];
+
+  var results=[];
+  function runNext(i){
+    if(i>=methods.length){
+      // 全部跑完
+      var ok=results.filter(function(r){return r.auth;});
+      var summary='<div style="font-size:13px;font-weight:700;margin-bottom:8px">📊 測試結果：'+ok.length+' / '+methods.length+' 通過認證</div>';
+      var html='';
+      results.forEach(function(r){
+        var icon=r.error?'⚠️':r.auth?'✅':'❌';
+        var color=r.error?'#F59E0B':r.auth?'#10B981':'#EF4444';
+        html+='<div style="font-size:11px;padding:6px;margin-bottom:4px;border-radius:6px;background:#1A2236;color:#fff;border-left:3px solid '+color+'">';
+        html+='<div style="font-weight:700;color:'+color+'">'+icon+' '+r.name+'</div>';
+        html+='<div style="color:#94A3B8;margin-top:2px;word-break:break-all">'+r.msg+'</div>';
+        html+='</div>';
+      });
+      st.innerHTML=summary+html;
+      return;
+    }
+    var m=methods[i];
+    fetch(m.url,{headers:m.headers}).then(function(r){
+      return r.text().then(function(txt){
+        var auth=false, msg='HTTP '+r.status+' ';
         try{
           var obj=JSON.parse(txt);
-          var firstKey=Object.keys(obj)[0];
-          if(firstKey&&obj[firstKey]){
-            var fields=Object.keys(obj[firstKey]).filter(function(k){return !k.startsWith('_');});
-            fieldHint='<div style="font-size:11px;margin-top:6px;color:var(--sub)">表單欄位：'+fields.slice(0,8).join('、')+(fields.length>8?'…等 '+fields.length+' 個':'')+'</div>';
-          }
-        }catch(e){}
-        st.innerHTML='<span class="status-chip status-ok">✅ 連線成功 HTTP '+r.status+'</span>'+fieldHint+rawBox;
-      }
-      else{
-        st.innerHTML='<span class="status-chip status-err">❌ HTTP '+r.status+'</span>'+rawBox;
-      }
+          if(obj.msg && obj.msg.indexOf('guest')>=0){msg+='被當訪客';auth=false;}
+          else if(obj.status==='ERROR'){msg+=obj.msg||'錯誤';auth=false;}
+          else {msg+='OK，'+txt.length+' bytes';auth=true;}
+        }catch(e){
+          msg+='不是 JSON：'+txt.slice(0,80);
+          auth=txt.length>0 && txt.indexOf('guest')<0;
+        }
+        results.push({name:m.name,auth:auth,msg:msg});
+        runNext(i+1);
+      });
+    }).catch(function(e){
+      results.push({name:m.name,auth:false,error:true,msg:'Fetch 失敗：'+e.message});
+      runNext(i+1);
     });
-  }).catch(function(e){
-    document.getElementById('ragicStatus').innerHTML='<span class="status-chip status-err">❌ '+e.message+'</span>'+
-      '<div style="font-size:11px;margin-top:6px;color:var(--sub)">通常是 CORS 或網路問題。請確認 Ragic 後台已開啟 API 與跨網域請求。</div>';
-  });
+  }
+  runNext(0);
 }
 
-// ══ Ragic 欄位 ID 對應表（v5.8：改用欄位 ID 直接 POST，繞過 mapName）══
-// 如果未來改 Ragic 表單，重新編號需要在這裡更新
-var RAGIC_FIELD_IDS = {
-  customer:  '1002827',   // 客戶名稱
-  phone:     '1002828',   // 聯絡電話
-  quoteDate: '1002826',   // 報價日期
-  mod:       '1002829',   // 模組
-  frm:       '1002830',   // 鋁框
-  pwr:       '1002831',   // 電源器
-  ctrl:      '1002832',   // 控制卡
-  cols:      '1002833',   // 字寬
-  rows:      '1002834',   // 字高
-  dual:      '1002835',   // 單雙面
-  qty:       '1002836',   // 數量
-  tier:      '1002837',   // 報價等級
-  unitPrice: '1002838',   // 單價
-  totalPrice:'1002839',   // 總價
-  dispH:     '1002840',   // 面積H
-  dispW:     '1002841',   // 面積W
-  totalW:    '1002842',   // 功率W
-  totalKg:   '1002843',   // 重量kg
-  matCost:   '1002844',   // 成本
-  localId:   '1002845',   // 本機ID
-  createdAt: '1002846'    // 建立時間
-};
 
 function pushToRagic(rec){
   var cfg=getRagicCfg();
