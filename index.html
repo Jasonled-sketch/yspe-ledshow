@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v6.4</title>
+<title>USLED 快速報價 v6.5</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v6.4</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v6.5</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1350,13 +1350,14 @@ function archiveQuote(){
     pushToRagic(rec).then(function(result){
       var l=loadHistory();
       var i=l.findIndex(function(x){return x.id===rec.id;});
-      if(i>=0){l[i].syncStatus='synced';l[i].ragicId=result.ragicId||'';saveHistory(l);}
-      // 提示有幾個欄位對應到
+      if(i>=0){l[i].syncStatus='synced';l[i].ragicId=result.ragicId||'';l[i].lastDiag=result.diag||'';saveHistory(l);}
+      renderHistory();
       if(result.savedFields>0){toast('☁ 已同步到 Ragic ('+result.savedFields+' 個欄位)');}
     }).catch(function(err){
       var l=loadHistory();
       var i=l.findIndex(function(x){return x.id===rec.id;});
-      if(i>=0){l[i].syncStatus='pending';l[i].lastError=err.message||String(err);saveHistory(l);}
+      if(i>=0){l[i].syncStatus='pending';l[i].lastError=err.message||String(err);l[i].lastDiag=err.diag||'';saveHistory(l);}
+      renderHistory();
       toast('⚠ 暫存本機（Ragic 同步失敗）');
     });
   }
@@ -1405,6 +1406,7 @@ function renderHistory(){
         '</div>'+
       '</div>'+
       (r.lastError?'<div style="font-size:11px;color:var(--red);background:#FEF2F2;padding:6px 8px;border-radius:6px;margin-top:6px;word-break:break-all">⚠ '+r.lastError.slice(0,140)+'</div>':'')+
+      (r.lastDiag?'<details style="margin-top:6px"><summary style="font-size:11px;color:var(--sub);cursor:pointer">🔍 同步診斷資訊</summary><pre style="font-size:10px;color:#A7F3D0;background:#1A2236;padding:8px;border-radius:6px;margin-top:4px;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow:auto">'+r.lastDiag+'</pre></details>':'')+
       '<div class="history-actions">'+
         '<button class="history-act-btn" data-act="reload" data-id="'+r.id+'">📥 重新調出</button>'+
         '<button class="history-act-btn" data-act="sync" data-id="'+r.id+'">☁ 同步</button>'+
@@ -1625,7 +1627,7 @@ function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
   var base=normalizeRagicUrl(cfg.url);
-  // ★ v6.4：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
+  // ★ v6.5：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
   // 來源：Michael Liu 2026/5/19 信件確認 curl -F + -H "Authorization:Basic {APIKey}"
   var url=buildRagicUrl(base,'');
   var F=RAGIC_FIELD_IDS;
@@ -1657,28 +1659,27 @@ function pushToRagic(rec){
     method:'POST',
     headers:{
       'Authorization':'Basic '+cfg.key
-      // 注意：不要設 Content-Type！瀏覽器會自動為 FormData 設定 multipart/form-data; boundary=...
+      // 不設 Content-Type！瀏覽器會自動為 FormData 設定 multipart/form-data; boundary=...
     },
     body:fd
   }).then(function(r){
     return r.text().then(function(txt){
+      // 把完整診斷資訊塞進結果，給 UI 顯示
+      var diag='URL: '+url+'\nHTTP: '+r.status+'\n回應: '+txt.slice(0,400);
       if(!r.ok){
         var msg='HTTP '+r.status;
         try{var obj=JSON.parse(txt);if(obj.msg)msg=obj.msg;else if(obj.status)msg=obj.status;}catch(e){msg=msg+' '+txt.slice(0,120);}
-        throw new Error(msg);
+        var err=new Error(msg); err.diag=diag; throw err;
       }
-      // 解析回傳，確認真的有寫到資料
-      var result={raw:txt,savedFields:0,ragicId:''};
+      var result={raw:txt,savedFields:0,ragicId:'',diag:diag};
       try{
         var obj=JSON.parse(txt);
         result.ragicId=obj.ragicId||obj.recordId||obj._ragicId||'';
-        if(obj.status&&obj.status!=='SUCCESS')throw new Error(obj.msg||obj.status);
-        // 支援多種 Ragic 回應格式：record, data, 或直接展開的欄位
+        if(obj.status&&obj.status!=='SUCCESS'){var e2=new Error(obj.msg||obj.status); e2.diag=diag; throw e2;}
         var fieldSrc=obj.record||obj.data||obj.fields||null;
         if(fieldSrc){
           result.savedFields=Object.keys(fieldSrc).filter(function(k){return !k.startsWith('_')&&fieldSrc[k]!==''&&fieldSrc[k]!=null;}).length;
         }else{
-          // 沒有 record 結構但 SUCCESS：直接看 obj 上有沒有非系統欄位
           result.savedFields=Object.keys(obj).filter(function(k){return !k.startsWith('_')&&k!=='status'&&k!=='ragicId'&&k!=='msg'&&obj[k]!==''&&typeof obj[k]!=='object';}).length;
         }
       }catch(e){if(e.message)throw e;}
