@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v6.8</title>
+<title>USLED 快速報價 v6.9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v6.8</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v6.9</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1645,6 +1645,39 @@ function testRagicPost(){
   var actionUrl=base+'?api&APIKey='+encodeURIComponent(cfg.key);
   var F=RAGIC_FIELD_IDS;
 
+  // === v6.9：先用 corsproxy 試 fetch（可看回應），失敗才用 form submit ===
+  var proxyUrl='https://corsproxy.io/?'+encodeURIComponent(base+'?api');
+  var testFd=new FormData();
+  testFd.append(F.customer,'🧪測試POST_'+Date.now());
+  testFd.append(F.mod,'P10C');
+  testFd.append(F.frm,'R');
+  testFd.append(F.qty,'1');
+  testFd.append(F.unitPrice,'999');
+  testFd.append(F.totalPrice,'999');
+  fetch(proxyUrl,{method:'POST',headers:{'Authorization':'Basic '+cfg.key},body:testFd})
+    .then(function(r){return r.text().then(function(txt){return {ok:r.ok,status:r.status,txt:txt};});})
+    .then(function(res){
+      var rawBox='<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">';
+      rawBox+='<div style="color:#FBBF24">📤 透過 corsproxy.io 代理</div>';
+      rawBox+='URL: '+proxyUrl.slice(0,80)+'...';
+      rawBox+='<div style="color:#FBBF24;margin-top:8px">📥 HTTP '+res.status+'</div>';
+      rawBox+='<div style="color:#FBBF24;margin-top:4px">回應：</div>'+(res.txt||'(空白)').slice(0,500).replace(/</g,'&lt;');
+      rawBox+='</div>';
+      var ok=res.ok && res.txt.indexOf('guest')<0 && res.txt.indexOf('ERROR')<0;
+      if(ok){
+        st.innerHTML='<span class="status-chip status-ok">✅ POST 成功！透過 corsproxy.io</span>'+rawBox;
+        toast('✅ 成功！去 Ragic 確認資料');
+      }else{
+        st.innerHTML='<span class="status-chip status-err">❌ 代理也失敗</span>'+rawBox+
+          '<div style="font-size:11px;margin-top:6px;color:var(--sub)">需要走 Cloudflare Worker 方案</div>';
+      }
+    })
+    .catch(function(e){
+      st.innerHTML='<span class="status-chip status-err">❌ corsproxy.io 失敗：'+e.message+'</span>'+
+        '<div style="font-size:11px;margin-top:6px">corsproxy.io 可能暫時掛了，請走 Cloudflare Worker 方案</div>';
+    });
+  return; // 不執行下面的 form submit 部分
+
   // 移除舊的 iframe
   var oldIf=document.getElementById('ragicSinkIf'); if(oldIf)oldIf.remove();
   // 建立隱藏 iframe 接收回應（避免頁面跳走）
@@ -1698,7 +1731,7 @@ function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
   var base=normalizeRagicUrl(cfg.url);
-  // ★ v6.8：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
+  // ★ v6.9：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
   // 來源：Michael Liu 2026/5/19 信件確認 curl -F + -H "Authorization:Basic {APIKey}"
   var url=buildRagicUrl(base,'');
   var F=RAGIC_FIELD_IDS;
@@ -1726,7 +1759,7 @@ function pushToRagic(rec){
   fd.append(F.createdAt, rec.createdAt||'');
   if(F.workHr&&F.workHr.indexOf('TBD')<0) fd.append(F.workHr, (rec.workHr||0).toFixed(2));
   if(F.kpi&&F.kpi.indexOf('TBD')<0)       fd.append(F.kpi,    (rec.kpi||0).toFixed(1));
-  // v6.8：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight 卡住）
+  // v6.9：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight 卡住）
   var urlWithKey=url+'&APIKey='+encodeURIComponent(cfg.key);
   return fetch(urlWithKey,{
     method:'POST',
