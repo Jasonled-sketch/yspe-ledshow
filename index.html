@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v6.7</title>
+<title>USLED 快速報價 v6.8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v6.7</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v6.8</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -1640,76 +1640,65 @@ function testRagicPost(){
   var cfg=getRagicCfg();
   var st=document.getElementById('ragicStatus');
   if(!cfg.url||!cfg.key){st.innerHTML='<span class="status-chip status-err">⚠ 請先填入網址與 API Key</span>';return;}
-  st.innerHTML='<span class="status-chip">⏳ 測試 POST 寫入中...</span>';
+  st.innerHTML='<span class="status-chip">⏳ 用 HTML form 提交中...</span>';
   var base=normalizeRagicUrl(cfg.url);
-  var url=buildRagicUrl(base,'');
+  var actionUrl=base+'?api&APIKey='+encodeURIComponent(cfg.key);
   var F=RAGIC_FIELD_IDS;
-  var fd=new FormData();
-  fd.append(F.customer,  '🧪測試POST_'+Date.now());
-  fd.append(F.phone,     '0900000000');
-  fd.append(F.quoteDate, new Date().toISOString().slice(0,10));
-  fd.append(F.mod,       'P10C');
-  fd.append(F.frm,       'R');
-  fd.append(F.qty,       '1');
-  fd.append(F.tier,      '測試');
-  fd.append(F.unitPrice, '999');
-  fd.append(F.totalPrice,'999');
-  // v6.7：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight）
-  var urlWithKey=url+'&APIKey='+encodeURIComponent(cfg.key);
-  var ctrl=new AbortController();
-  var to=setTimeout(function(){ctrl.abort();},15000);
-  fetch(urlWithKey,{
-    method:'POST',
-    body:fd,
-    signal:ctrl.signal
-  }).then(function(r){
-    clearTimeout(to);
-    return r;
-  }).then(function(r){
-    return r.text().then(function(txt){
-      var summary;
-      var isErr=!r.ok;
-      var isGuest=txt.indexOf('guest')>=0;
-      if(!isErr&&!isGuest){
-        summary='<span class="status-chip status-ok">✅ POST 成功！HTTP '+r.status+'</span>';
-      }else if(isGuest){
-        summary='<span class="status-chip status-err">❌ 被當訪客（認證失敗）</span>';
-      }else{
-        summary='<span class="status-chip status-err">❌ HTTP '+r.status+'</span>';
-      }
-      var rawBox='<div style="text-align:left;font-size:10px;margin-top:8px;padding:10px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">';
-      rawBox+='<div style="color:#FBBF24;margin-bottom:4px;font-weight:700">📤 送出 URL：</div>'+url;
-      rawBox+='<div style="color:#FBBF24;margin:8px 0 4px;font-weight:700">📤 送出 Header：</div>Authorization: Basic '+cfg.key.slice(0,8)+'...(隱藏)';
-      rawBox+='<div style="color:#FBBF24;margin:8px 0 4px;font-weight:700">📤 送出 Body（multipart 部分欄位）：</div>客戶名稱、模組、報價日期等 9 個欄位（FormData）';
-      rawBox+='<div style="color:#FBBF24;margin:8px 0 4px;font-weight:700">📥 HTTP 狀態：</div>'+r.status+' '+r.statusText;
-      rawBox+='<div style="color:#FBBF24;margin:8px 0 4px;font-weight:700">📥 Ragic 回應：</div>'+(txt||'(空白)').slice(0,800).replace(/</g,'&lt;');
-      rawBox+='</div>';
-      st.innerHTML=summary+rawBox;
-      if(!isErr&&!isGuest)toast('✅ POST 寫入成功！去 Ragic 確認資料');
-      else toast('❌ POST 失敗，看下面紅框內容');
-    });
-  }).catch(function(e){
-    clearTimeout(to);
-    var msg=e.message||String(e);
-    if(e.name==='AbortError') msg='超過 15 秒沒回應（可能 CORS preflight 卡住）';
-    st.innerHTML='<span class="status-chip status-err">❌ Fetch 失敗：'+msg+'</span>'+
-      '<div style="font-size:11px;margin-top:6px;color:var(--sub);text-align:left;background:#FEF2F2;padding:8px;border-radius:6px">'+
-      '<strong>可能原因：</strong><br>'+
-      '1. 瀏覽器 CORS preflight 被擋（OPTIONS 沒通過）<br>'+
-      '2. file:// 直接打 Ragic 被瀏覽器擋（請改用 GitHub Pages 開）<br>'+
-      '3. Ragic 端網路問題<br>'+
-      '<br><strong>除錯資訊：</strong><br>'+
-      'URL: '+url+'<br>'+
-      '錯誤: '+e.name+' - '+(e.message||'(無訊息)')+
+
+  // 移除舊的 iframe
+  var oldIf=document.getElementById('ragicSinkIf'); if(oldIf)oldIf.remove();
+  // 建立隱藏 iframe 接收回應（避免頁面跳走）
+  var ifr=document.createElement('iframe');
+  ifr.id='ragicSinkIf'; ifr.name='ragicSinkIf';
+  ifr.style.cssText='position:absolute;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(ifr);
+
+  // 建立 form
+  var form=document.createElement('form');
+  form.method='POST'; form.action=actionUrl; form.enctype='multipart/form-data'; form.target='ragicSinkIf';
+  form.style.display='none';
+  function addField(name,value){var i=document.createElement('input');i.type='hidden';i.name=name;i.value=value||'';form.appendChild(i);}
+  addField(F.customer, '🧪測試POST_'+Date.now());
+  addField(F.phone,    '0900000000');
+  addField(F.quoteDate, new Date().toISOString().slice(0,10));
+  addField(F.mod, 'P10C');
+  addField(F.frm, 'R');
+  addField(F.qty, '1');
+  addField(F.tier, '測試');
+  addField(F.unitPrice, '999');
+  addField(F.totalPrice, '999');
+  document.body.appendChild(form);
+
+  // 監聽 iframe load 事件
+  var done=false;
+  ifr.onload=function(){
+    if(done)return; done=true;
+    var bodyText='(無法讀取，跨網域)';
+    try{ bodyText=ifr.contentDocument.body.innerText.slice(0,500); }catch(e){}
+    st.innerHTML='<span class="status-chip status-ok">✅ Form 提交完成</span>'+
+      '<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">'+
+      '<div style="color:#FBBF24">📤 送出 URL：</div>'+actionUrl.slice(0,80)+'...'+
+      '<div style="color:#FBBF24;margin-top:8px">📥 回應（可能因跨網域看不到）：</div>'+bodyText.replace(/</g,'&lt;')+
+      '<div style="color:#FBBF24;margin-top:8px">⬇ 下一步：去 Ragic 列表頁刷新</div>'+
+      '看有沒有新進一筆 🧪測試POST_xxx 的記錄。<br>'+
+      '若有 → 成功！form submit 可行！<br>'+
+      '若無 → 改用 Cloudflare Worker 代理（後端方案）'+
       '</div>';
-  });
+    toast('✅ Form 已提交，請去 Ragic 確認');
+  };
+
+  // 8 秒後沒收到 onload 就放棄
+  setTimeout(function(){if(!done){done=true;st.innerHTML='<span class="status-chip status-err">⚠ 8 秒沒回應</span><div style="font-size:11px;margin-top:6px">仍可能寫入成功，請去 Ragic 看看</div>';}},8000);
+
+  form.submit();
 }
+
 
 function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
   var base=normalizeRagicUrl(cfg.url);
-  // ★ v6.7：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
+  // ★ v6.8：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
   // 來源：Michael Liu 2026/5/19 信件確認 curl -F + -H "Authorization:Basic {APIKey}"
   var url=buildRagicUrl(base,'');
   var F=RAGIC_FIELD_IDS;
@@ -1737,7 +1726,7 @@ function pushToRagic(rec){
   fd.append(F.createdAt, rec.createdAt||'');
   if(F.workHr&&F.workHr.indexOf('TBD')<0) fd.append(F.workHr, (rec.workHr||0).toFixed(2));
   if(F.kpi&&F.kpi.indexOf('TBD')<0)       fd.append(F.kpi,    (rec.kpi||0).toFixed(1));
-  // v6.7：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight 卡住）
+  // v6.8：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight 卡住）
   var urlWithKey=url+'&APIKey='+encodeURIComponent(cfg.key);
   return fetch(urlWithKey,{
     method:'POST',
