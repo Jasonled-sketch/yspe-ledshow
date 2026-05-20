@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v6.9</title>
+<title>USLED 快速報價 v7.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v6.9</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v7.1</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -541,11 +541,11 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="frow">
         <label>Ragic 表單網址</label>
         <input type="text" id="ragic_url" placeholder="https://ap10.ragic.com/Fan28/quotes/1" autocomplete="off">
-        <div class="hint">完整的表單 API 路徑</div>
+        <div class="hint">可以是 Ragic 直連，或 Apps Script / Cloudflare Worker 代理網址</div>
       </div>
       <div class="frow">
         <label>API Key</label>
-        <input type="password" id="ragic_key" placeholder="貼上 Ragic 帳號的 API key" autocomplete="off">
+        <input type="password" id="ragic_key" placeholder="若用 Cloudflare Worker 可隨便填" autocomplete="off">
         <div class="hint">僅儲存於本機，不會上傳</div>
       </div>
       <button class="lock-btn" onclick="saveRagicCfg()" style="background:var(--accent)">儲存設定</button>
@@ -1580,23 +1580,27 @@ function normalizeRagicUrl(raw){
   var u=raw.trim();
   var qi=u.indexOf('?'); if(qi>=0)u=u.substring(0,qi);
   while(u.endsWith('/'))u=u.slice(0,-1);
-  var m=u.match(/^(https?:\/\/[^\/]+)(\/.*)$/);
-  if(m){
-    var host=m[1], path=m[2];
-    var parts=path.split('/').filter(function(x){return x.length;});
-    if(parts.length>=4 && /^\d+$/.test(parts[parts.length-1])){
-      parts.pop();
+  // 只對 Ragic URL 做 /N 移除（Worker URL 保持原樣）
+  if(u.indexOf('ragic.com')>=0){
+    var m=u.match(/^(https?:\/\/[^\/]+)(\/.*)$/);
+    if(m){
+      var host=m[1], path=m[2];
+      var parts=path.split('/').filter(function(x){return x.length;});
+      if(parts.length>=4 && /^\d+$/.test(parts[parts.length-1])){
+        parts.pop();
+      }
+      u=host+'/'+parts.join('/');
     }
-    u=host+'/'+parts.join('/');
   }
   return u;
 }
-// 組出完整 API URL：base + ?api + 視需要附加 params
-// 註：移除 v=3（測試證明會干擾 URL 參數認證）
+// 組出完整 API URL
+// 如果是 Ragic URL 加 ?api，如果是 Worker URL 就保持原樣
 function buildRagicUrl(base,extra){
-  var q='?api';
-  if(extra)q+='&'+extra;
-  return base+q;
+  var isRagic = base.indexOf('ragic.com') >= 0;
+  var q = isRagic ? '?api' : '';
+  if(extra) q += (q?'&':'?') + extra;
+  return base + q;
 }
 
 function testRagicCfg(){
@@ -1645,16 +1649,15 @@ function testRagicPost(){
   var actionUrl=base+'?api&APIKey='+encodeURIComponent(cfg.key);
   var F=RAGIC_FIELD_IDS;
 
-  // === v6.9：先用 corsproxy 試 fetch（可看回應），失敗才用 form submit ===
-  var proxyUrl='https://corsproxy.io/?'+encodeURIComponent(base+'?api');
-  var testFd=new FormData();
+  // === v7.1：直接 POST 到 Apps Script URL (cfg.url) ===
+  var testFd=new URLSearchParams();
   testFd.append(F.customer,'🧪測試POST_'+Date.now());
   testFd.append(F.mod,'P10C');
   testFd.append(F.frm,'R');
   testFd.append(F.qty,'1');
   testFd.append(F.unitPrice,'999');
   testFd.append(F.totalPrice,'999');
-  fetch(proxyUrl,{method:'POST',headers:{'Authorization':'Basic '+cfg.key},body:testFd})
+  fetch(cfg.url,{method:'POST',body:testFd})
     .then(function(r){return r.text().then(function(txt){return {ok:r.ok,status:r.status,txt:txt};});})
     .then(function(res){
       var rawBox='<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">';
@@ -1731,7 +1734,7 @@ function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
   var base=normalizeRagicUrl(cfg.url);
-  // ★ v6.9：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
+  // ★ v7.1：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
   // 來源：Michael Liu 2026/5/19 信件確認 curl -F + -H "Authorization:Basic {APIKey}"
   var url=buildRagicUrl(base,'');
   var F=RAGIC_FIELD_IDS;
@@ -1759,7 +1762,7 @@ function pushToRagic(rec){
   fd.append(F.createdAt, rec.createdAt||'');
   if(F.workHr&&F.workHr.indexOf('TBD')<0) fd.append(F.workHr, (rec.workHr||0).toFixed(2));
   if(F.kpi&&F.kpi.indexOf('TBD')<0)       fd.append(F.kpi,    (rec.kpi||0).toFixed(1));
-  // v6.9：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight 卡住）
+  // v7.1：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight 卡住）
   var urlWithKey=url+'&APIKey='+encodeURIComponent(cfg.key);
   return fetch(urlWithKey,{
     method:'POST',
