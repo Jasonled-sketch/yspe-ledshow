@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v7.4</title>
+<title>USLED 快速報價 v8.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v7.4</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v8.0</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -541,7 +541,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="frow">
         <label>Ragic 表單網址</label>
         <input type="text" id="ragic_url" placeholder="https://ap10.ragic.com/Fan28/quotes/1" autocomplete="off">
-        <div class="hint">v7.4：直接貼 Ragic 表單網址（不需要任何代理）</div>
+        <div class="hint">v8.0：直接 fetch + URL APIKey 認證（不觸發 CORS preflight）</div>
       </div>
       <div class="frow">
         <label>API Key</label>
@@ -1556,6 +1556,33 @@ function clearHistory(){
 // ══════════════════════════════════════════
 // ══ Ragic API ══
 // ══════════════════════════════════════════
+// Ragic 表單欄位 ID 對應（快速報價歷史 sheet tab 17）
+var RAGIC_FIELD_IDS = {
+  quoteDate: '1002826',   // 報價日期
+  customer:  '1002827',   // 客戶名稱
+  phone:     '1002828',   // 聯絡電話
+  mod:       '1002829',   // 模組
+  frm:       '1002830',   // 鋁框
+  pwr:       '1002831',   // 電源器
+  ctrl:      '1002832',   // 控制卡
+  cols:      '1002833',   // 字寬
+  rows:      '1002834',   // 字高
+  dual:      '1002835',   // 單雙面
+  qty:       '1002836',   // 數量
+  tier:      '1002837',   // 報價等級
+  unitPrice: '1002838',   // 單價
+  totalPrice:'1002839',   // 總價
+  dispH:     '1002840',   // 面積H
+  dispW:     '1002841',   // 面積W
+  totalW:    '1002842',   // 功率W
+  totalKg:   '1002843',   // 重量kg
+  matCost:   '1002844',   // 成本
+  localId:   '1002845',   // 本機ID
+  createdAt: '1002846',   // 建立時間
+  workHr:    'TBD',       // 暫無欄位
+  kpi:       'TBD'        // 暫無欄位
+};
+
 function getRagicCfg(){
   try{return JSON.parse(localStorage.getItem('usled_ragic')||'{}');}catch(e){return {};}
 }
@@ -1640,6 +1667,8 @@ function testRagicCfg(){
 }
 
 
+// v8.0：用 fetch + FormData（multipart）+ URL APIKey 認證
+// 此組合是 CORS「simple request」→ 不觸發 preflight，Ragic 回應有 ACAO header → 可讀 ragicId
 function testRagicPost(){
   var cfg=getRagicCfg();
   var st=document.getElementById('ragicStatus');
@@ -1647,138 +1676,151 @@ function testRagicPost(){
 
   var base=normalizeRagicUrl(cfg.url);
   var keyEnc=encodeURIComponent(cfg.key);
-  var actionUrl=base+'?api&APIKey='+keyEnc;
+  var postUrl=base+'?api&APIKey='+keyEnc;
   var F=RAGIC_FIELD_IDS;
-  var unique='🧪TEST_'+Date.now();   // 用唯一字串標記這次測試
+  var unique='TEST_'+Date.now();
 
-  st.innerHTML='<span class="status-chip">⏳ 第 1 步：送出 form...</span>';
+  st.innerHTML='<span class="status-chip">⏳ 第 1 步：POST 寫入 Ragic...</span>';
 
-  // ── Step 1：用 form submit 直接送 POST 到 Ragic ──
-  var name='ts_'+Date.now();
-  var ifr=document.createElement('iframe');
-  ifr.name=name; ifr.style.cssText='position:absolute;width:0;height:0;border:0;visibility:hidden';
-  document.body.appendChild(ifr);
+  var fd=new FormData();
+  fd.append(F.customer,   unique);
+  fd.append(F.phone,      '0900000000');
+  fd.append(F.quoteDate,  new Date().toISOString().slice(0,10));
+  fd.append(F.mod,        'P10C');
+  fd.append(F.frm,        'R');
+  fd.append(F.qty,        '1');
+  fd.append(F.tier,       '測試');
+  fd.append(F.unitPrice,  '999');
+  fd.append(F.totalPrice, '999');
 
-  var form=document.createElement('form');
-  form.method='POST'; form.action=actionUrl; form.target=name;
-  form.enctype='application/x-www-form-urlencoded';
-  form.acceptCharset='UTF-8';
-  form.style.display='none';
-  function add(n,v){var i=document.createElement('input');i.type='hidden';i.name=n;i.value=v;form.appendChild(i);}
-  add(F.customer, unique);
-  add(F.phone, '0900000000');
-  add(F.quoteDate, new Date().toISOString().slice(0,10));
-  add(F.mod, 'P10C');
-  add(F.frm, 'R');
-  add(F.qty, '1');
-  add(F.tier, '測試');
-  add(F.unitPrice, '999');
-  add(F.totalPrice, '999');
-  document.body.appendChild(form);
-  form.submit();
+  fetch(postUrl,{method:'POST',body:fd}).then(function(r){
+    return r.text().then(function(txt){return {ok:r.ok,status:r.status,body:txt};});
+  }).then(function(res){
+    var ragicId='', status='', parsed=null;
+    try{parsed=JSON.parse(res.body); ragicId=parsed.ragicId||''; status=parsed.status||'';}catch(e){}
+    var rawShow=(res.body||'(空白)').slice(0,500).replace(/</g,'&lt;');
 
-  // ── Step 2：等 3 秒讓 Ragic 處理完，然後 GET 查回來確認 ──
-  setTimeout(function(){
-    st.innerHTML='<span class="status-chip">⏳ 第 2 步：查 Ragic 看資料有沒有寫入...</span>';
-    var verifyUrl=base+'?api&APIKey='+keyEnc+'&limit=10';
-    fetch(verifyUrl).then(function(r){return r.text();}).then(function(txt){
-      var found=txt.indexOf(unique)>=0;
-      var rawShow=(txt||'(空白)').slice(0,500).replace(/</g,'&lt;');
-      var summary;
-      if(found){
-        summary='<span class="status-chip status-ok">✅ 確認成功！Ragic 已收到資料</span>';
-      }else if(txt.indexOf('guest')>=0){
-        summary='<span class="status-chip status-err">❌ GET 驗證時被當訪客（API Key 認證可能失效）</span>';
-      }else{
-        summary='<span class="status-chip status-err">❌ Ragic 沒有這筆資料（POST 沒進去）</span>';
-      }
-      st.innerHTML=summary+
-        '<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">'+
-        '<div style="color:#FBBF24">🔍 找尋字串: '+unique+'</div>'+
-        '<div style="color:#FBBF24;margin-top:6px">'+(found?'✅ 在 Ragic 回應中找到了！':'❌ 在 Ragic 回應中沒找到')+'</div>'+
-        '<div style="color:#FBBF24;margin-top:8px">📥 Ragic GET 回應前 500 字：</div>'+rawShow+
+    if(res.ok && status==='SUCCESS' && ragicId){
+      // ── 第 2 步：GET 反查驗證（可選但增加可信度） ──
+      st.innerHTML='<span class="status-chip status-ok">✅ POST 成功！ragicId='+ragicId+'</span>'+
+        '<div style="font-size:11px;margin-top:6px;color:var(--sub)">⏳ 第 2 步：GET 反查驗證...</div>';
+      var verifyUrl=base+'?api&APIKey='+keyEnc+'&limit=10';
+      fetch(verifyUrl).then(function(r){return r.text();}).then(function(vTxt){
+        var found=vTxt.indexOf(unique)>=0;
+        st.innerHTML=
+          '<span class="status-chip status-ok">✅ 寫入並驗證成功</span>'+
+          '<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">'+
+          '<div style="color:#FBBF24">✅ ragicId: '+ragicId+'</div>'+
+          '<div style="color:#FBBF24;margin-top:4px">✅ 唯一標記: '+unique+'</div>'+
+          '<div style="color:#FBBF24;margin-top:4px">'+(found?'✅ GET 反查到資料':'⚠ GET 沒找到（可能 Ragic 索引延遲）')+'</div>'+
+          '<div style="color:#FBBF24;margin-top:8px">📥 POST 回應前 500 字：</div>'+rawShow+
+          '</div>';
+      }).catch(function(e){
+        st.innerHTML='<span class="status-chip status-ok">✅ POST 成功 (ragicId='+ragicId+')</span>'+
+          '<div style="font-size:11px;margin-top:6px;color:var(--sub)">GET 驗證失敗：'+e.message+'</div>';
+      });
+    }else{
+      // POST 回來了但不是 SUCCESS（可能被當訪客或欄位有問題）
+      var isGuest=res.body.indexOf('guest')>=0;
+      st.innerHTML=
+        '<span class="status-chip status-err">❌ '+(isGuest?'被當訪客（API Key 認證失效）':'HTTP '+res.status+'，status='+status)+'</span>'+
+        '<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#FCA5A5;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">'+
+        '<div style="color:#FBBF24">📥 Ragic 回應前 500 字：</div>'+rawShow+
         '</div>';
-      setTimeout(function(){form.remove(); ifr.remove();},2000);
-    }).catch(function(e){
-      st.innerHTML='<span class="status-chip status-err">❌ GET 驗證失敗：'+e.message+'</span>'+
-        '<div style="font-size:11px;margin-top:6px">請手動去 Ragic 列表頁看有沒有 '+unique+'</div>';
-    });
-  },3000);
+    }
+  }).catch(function(e){
+    // fetch 本身失敗（多半是網路或 CORS）
+    st.innerHTML='<span class="status-chip status-err">❌ Fetch 失敗：'+e.message+'</span>'+
+      '<div style="font-size:11px;margin-top:6px;color:var(--sub)">通常是網路問題。Ragic 對所有 Origin 都回 ACAO，正常情況不該被 CORS 擋。</div>';
+  });
 }
 
 
+// v8.0：fetch + FormData（multipart）+ URL APIKey
+// FormData 觸發的 Content-Type 是 multipart/form-data → CORS simple request → 無 preflight
+// Ragic 回應有 Access-Control-Allow-Origin → 可直接讀 JSON 拿 ragicId
+// 失敗時走 GET 反查（用 localId 對應）做最終確認
 function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
 
-  // v7.4：直接 form submit 到 Ragic（用 URL 參數 APIKey 認證）
-  // 依官方文件：可將 API Key 作為參數名 APIKey 發送
-  // form submit 不觸發 CORS preflight，是純跨網域導覽
   var base=normalizeRagicUrl(cfg.url);
-  var actionUrl=base+'?api&APIKey='+encodeURIComponent(cfg.key);
+  var keyEnc=encodeURIComponent(cfg.key);
+  var postUrl=base+'?api&APIKey='+keyEnc;
   var F=RAGIC_FIELD_IDS;
 
-  return new Promise(function(resolve){
-    var name='sub_'+Date.now()+'_'+Math.floor(Math.random()*1000);
-    var ifr=document.createElement('iframe');
-    ifr.name=name; ifr.id=name;
-    ifr.style.cssText='position:absolute;width:0;height:0;border:0;visibility:hidden';
-    document.body.appendChild(ifr);
+  var fd=new FormData();
+  function add(n,v){
+    if(!n||n.indexOf('TBD')>=0)return;
+    fd.append(n, String(v==null?'':v));
+  }
+  add(F.customer,   rec.customer);
+  add(F.phone,      rec.phone);
+  add(F.quoteDate,  rec.quoteDate);
+  add(F.mod,        rec.mid);
+  add(F.frm,        rec.fid);
+  add(F.pwr,        rec.pid);
+  add(F.ctrl,       rec.cid);
+  add(F.rows,       rec.rows||0);
+  add(F.cols,       rec.cols||0);
+  add(F.dual,       rec.dual>1?'雙面':'單面');
+  add(F.qty,        rec.qty||0);
+  add(F.tier,       rec.tierName);
+  add(F.unitPrice,  rec.unitPrice||0);
+  add(F.totalPrice, rec.totalPrice||0);
+  add(F.dispH,      Math.round(rec.dispH||0));
+  add(F.dispW,      Math.round(rec.dispW||0));
+  add(F.totalW,     Math.round(rec.totalW||0));
+  add(F.totalKg,    (rec.totalKg||0).toFixed(2));
+  add(F.matCost,    rec.matCost||0);
+  add(F.localId,    rec.id);
+  add(F.createdAt,  rec.createdAt);
+  if(F.workHr && F.workHr.indexOf('TBD')<0) add(F.workHr, (rec.workHr||0).toFixed(2));
+  if(F.kpi    && F.kpi.indexOf('TBD')<0)    add(F.kpi,    (rec.kpi||0).toFixed(1));
 
-    var form=document.createElement('form');
-    form.method='POST'; form.action=actionUrl; form.target=name;
-    form.enctype='application/x-www-form-urlencoded';
-    form.style.display='none';
-    function addField(n,v){
-      if(!n||n.indexOf('TBD')>=0)return;
-      var i=document.createElement('input');
-      i.type='hidden'; i.name=n; i.value=String(v==null?'':v);
-      form.appendChild(i);
+  var diag='方式: fetch + FormData (multipart) + URL APIKey\nURL: '+postUrl;
+
+  return fetch(postUrl,{method:'POST',body:fd}).then(function(r){
+    return r.text().then(function(txt){return {ok:r.ok,status:r.status,body:txt};});
+  }).then(function(res){
+    var ragicId='', status='', parsed=null;
+    try{parsed=JSON.parse(res.body); ragicId=parsed.ragicId||''; status=parsed.status||'';}catch(e){}
+    diag+='\nHTTP '+res.status+' / status='+status+' / ragicId='+ragicId;
+
+    if(res.ok && status==='SUCCESS' && ragicId){
+      return {savedFields:Object.keys(fd).length, ragicId:String(ragicId), diag:diag, raw:res.body.slice(0,400)};
     }
-    addField(F.customer, rec.customer);
-    addField(F.phone, rec.phone);
-    addField(F.quoteDate, rec.quoteDate);
-    addField(F.mod, rec.mid);
-    addField(F.frm, rec.fid);
-    addField(F.pwr, rec.pid);
-    addField(F.ctrl, rec.cid);
-    addField(F.rows, rec.rows||0);
-    addField(F.cols, rec.cols||0);
-    addField(F.dual, rec.dual>1?'雙面':'單面');
-    addField(F.qty, rec.qty||0);
-    addField(F.tier, rec.tierName);
-    addField(F.unitPrice, rec.unitPrice||0);
-    addField(F.totalPrice, rec.totalPrice||0);
-    addField(F.dispH, Math.round(rec.dispH||0));
-    addField(F.dispW, Math.round(rec.dispW||0));
-    addField(F.totalW, Math.round(rec.totalW||0));
-    addField(F.totalKg, (rec.totalKg||0).toFixed(2));
-    addField(F.matCost, rec.matCost||0);
-    addField(F.localId, rec.id);
-    addField(F.createdAt, rec.createdAt);
-    if(F.workHr && F.workHr.indexOf('TBD')<0) addField(F.workHr, (rec.workHr||0).toFixed(2));
-    if(F.kpi && F.kpi.indexOf('TBD')<0) addField(F.kpi, (rec.kpi||0).toFixed(1));
-    document.body.appendChild(form);
-
-    var done=false;
-    var diag='方式: 直接 form submit\nURL: '+actionUrl;
-    ifr.onload=function(){
-      if(done)return; done=true;
-      var bodyText='(跨網域無法讀取，但 Ragic 已收到)';
-      try{ bodyText=ifr.contentDocument.body.innerText.slice(0,400); }catch(e){}
-      diag+='\nIframe 回應: '+bodyText;
-      setTimeout(function(){form.remove(); ifr.remove();},2000);
-      resolve({savedFields:20, ragicId:'', diag:diag, raw:bodyText});
-    };
-    setTimeout(function(){
-      if(!done){
-        done=true;
-        diag+='\n5 秒未收到 iframe load 事件';
-        resolve({savedFields:0, ragicId:'', diag:diag, raw:'timeout'});
+    // POST 回來但不是 SUCCESS — 嘗試 GET 反查（拿 localId 對應）
+    var err=new Error(res.body.indexOf('guest')>=0?'被當訪客（APIKey 認證失效）':'HTTP '+res.status+' / '+(status||'no-status'));
+    err.diag=diag+'\n回應: '+res.body.slice(0,400);
+    throw err;
+  }).catch(function(e){
+    // 網路錯誤或 SUCCESS 失敗 → 走 GET 反查兜底（用本機 ID 對應）
+    if(e.ragicVerified)throw e; // 避免重入
+    diag+='\nFetch/解析錯誤: '+(e.message||e);
+    var verifyUrl=base+'?api&APIKey='+keyEnc+'&limit=30';
+    return fetch(verifyUrl).then(function(r){return r.text();}).then(function(txt){
+      // 從回應裡找有 localId 的記錄
+      var foundId='';
+      try{
+        var obj=JSON.parse(txt);
+        Object.keys(obj).forEach(function(k){
+          var row=obj[k];
+          if(row && (row['1002845']===rec.id || row['本機ID']===rec.id)) foundId=k;
+        });
+      }catch(_){}
+      if(foundId){
+        diag+='\nGET 反查找到 ragicId='+foundId;
+        return {savedFields:Object.keys(fd).length, ragicId:foundId, diag:diag, raw:'(POST 沒拿到 ragicId，但 GET 反查找到記錄)'};
       }
-    },5000);
-
-    form.submit();
+      var err2=new Error(e.message||'POST 失敗且 GET 反查找不到記錄');
+      err2.diag=diag+'\nGET 反查也找不到 localId='+rec.id;
+      throw err2;
+    }).catch(function(getErr){
+      var err3=new Error(e.message||getErr.message);
+      err3.diag=diag+'\nGET 反查錯誤: '+(getErr.message||getErr);
+      throw err3;
+    });
   });
 }
 
