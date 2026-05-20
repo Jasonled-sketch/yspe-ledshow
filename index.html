@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.2</title>
+<title>USLED 快速報價 v9.3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.2</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.3</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -369,6 +369,19 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 
 <!-- ══ Page 2: 產品 ══ -->
 <div id="pg2" class="page">
+  <!-- v9.3：完整型號一次填入 -->
+  <div class="card" style="background:linear-gradient(135deg,#EEF4FF,#F0FDF9);border:1.5px solid #C7D9F9">
+    <div class="sec-label" style="color:#1A3A6B">⚡ 完整型號快速建表</div>
+    <div class="frow" style="margin-bottom:6px">
+      <input id="fullModelInput" type="text" placeholder="例: M4C0208-XLA  (Enter 套用)"
+             autocomplete="off" autocapitalize="characters" spellcheck="false"
+             style="text-transform:uppercase;font-family:monospace;font-size:14px"
+             onkeydown="if(event.key==='Enter'){event.preventDefault();applyFullModel();}">
+      <div class="hint" id="fullModelHint">輸入「模組+字高2位+字寬2位+鋁框+電源前綴」如 M4C0208-XLA、P10C1124-RHA</div>
+    </div>
+    <button class="lock-btn" type="button" onclick="applyFullModel()" style="background:var(--accent);color:#fff">🚀 解析並套用</button>
+  </div>
+
   <div class="card">
     <div class="sec-label">選擇產品規格</div>
 
@@ -1000,6 +1013,130 @@ function selectPickerItem(id){
   closePicker();
   if(type==='mod')onMod();
   else calc();
+}
+
+// ══════════════════════════════════════════
+// ══ v9.3：完整型號解析 / 套用 ══
+// ══════════════════════════════════════════
+// 解析格式：[模組][字高2位][字寬2位][-][鋁框1字][電源前綴]
+// 例：M4C0208-XLA → M04C / 字高2 / 字寬8 / 鋁框X / 電源 LA*
+//     P10C1124-RHA → P10C / 字高11 / 字寬24 / 鋁框R / 電源 HA*
+//     M04C0208XLA  → 同上（- 可省略）
+function parseFullModelCode(input){
+  var raw=(input||'').trim().toUpperCase().replace(/\s+/g,'');
+  if(!raw) return {error:'請輸入型號'};
+
+  // 找最長匹配的模組 ID（允許 leading-zero 容錯：M4C ↔ M04C）
+  var best=null, bestLen=0;
+  MODS.forEach(function(m){
+    var mid=m.id.toUpperCase();
+    if(raw.indexOf(mid)===0 && mid.length>bestLen){
+      best={mod:m, len:mid.length};
+      bestLen=mid.length;
+    }
+    var midNorm=mid.replace(/0(\d)/g,'$1');
+    if(midNorm!==mid && raw.indexOf(midNorm)===0 && midNorm.length>bestLen){
+      best={mod:m, len:midNorm.length};
+      bestLen=midNorm.length;
+    }
+  });
+  if(!best) return {error:'找不到對應模組「'+raw.slice(0,4)+'」'};
+
+  var rest=raw.slice(best.len);
+  // 字高 + 字寬（各 2 位數）
+  var rows=null, cols=null;
+  var m4=rest.match(/^(\d{2})(\d{2})/);
+  if(m4){
+    rows=parseInt(m4[1],10);
+    cols=parseInt(m4[2],10);
+    rest=rest.slice(4);
+  }
+  // 可選 "-"
+  if(rest.charAt(0)==='-') rest=rest.slice(1);
+  // 鋁框（1 字）
+  var frm=null;
+  if(rest.length>0){
+    var fc=rest.charAt(0);
+    var f=FRMS.find(function(x){return x.id.toUpperCase()===fc;});
+    if(f){frm=f.id; rest=rest.slice(1);}
+  }
+  // 電源前綴（剩餘字串）
+  var pwrPrefix=rest;
+  var pwrCandidates=[];
+  if(pwrPrefix){
+    pwrCandidates=PWRS.filter(function(p){return p.id.toUpperCase().indexOf(pwrPrefix)===0;});
+  }
+
+  return {
+    mod:best.mod, rows:rows, cols:cols, frm:frm,
+    pwrPrefix:pwrPrefix, pwrCandidates:pwrCandidates
+  };
+}
+
+function applyFullModel(){
+  var raw=document.getElementById('fullModelInput').value;
+  var hint=document.getElementById('fullModelHint');
+  var p=parseFullModelCode(raw);
+  if(p.error){
+    hint.innerHTML='<span style="color:var(--red)">❌ '+p.error+'</span>';
+    return;
+  }
+
+  // 套模組
+  SEL.mod=p.mod.id;
+  pushRecent('mod', p.mod.id);
+  updatePickBtn('mod');
+  onMod();  // 觸發字高字寬倍數提示
+
+  // 套字高 / 字寬
+  if(p.rows!=null) document.getElementById('p_rows').value=p.rows;
+  if(p.cols!=null) document.getElementById('p_cols').value=p.cols;
+
+  // 套鋁框
+  if(p.frm){
+    SEL.frm=p.frm;
+    pushRecent('frm', p.frm);
+    updatePickBtn('frm');
+  }
+
+  // 套電源：唯一候選自動填，多候選依歷史優先
+  var pwrMsg='';
+  if(p.pwrCandidates.length===1){
+    SEL.pwr=p.pwrCandidates[0].id;
+    pushRecent('pwr', p.pwrCandidates[0].id);
+    updatePickBtn('pwr');
+    pwrMsg='電源「'+p.pwrCandidates[0].id+'」';
+  }else if(p.pwrCandidates.length>1){
+    // 從 usled_recent_pwr 找最常用的
+    var recents=[];
+    try{recents=JSON.parse(localStorage.getItem('usled_recent_pwr')||'[]');}catch(e){}
+    var preferred=null;
+    for(var i=0;i<recents.length && !preferred;i++){
+      preferred=p.pwrCandidates.find(function(c){return c.id===recents[i];});
+    }
+    if(preferred){
+      SEL.pwr=preferred.id;
+      pushRecent('pwr', preferred.id);
+      updatePickBtn('pwr');
+      pwrMsg='電源建議「'+preferred.id+'」（候選 '+p.pwrCandidates.map(function(c){return c.id;}).join('/')+'）';
+    }else{
+      pwrMsg='電源候選 '+p.pwrCandidates.map(function(c){return c.id;}).join('/')+'（請手動選）';
+      // 開 picker 並用 prefix 預過濾
+      setTimeout(function(){
+        openPicker('pwr');
+        var sb=document.getElementById('pickerSearch');
+        if(sb){sb.value=p.pwrPrefix; renderPickerList();}
+      }, 300);
+    }
+  }else if(p.pwrPrefix){
+    pwrMsg='電源前綴「'+p.pwrPrefix+'」沒對應型號';
+  }
+
+  calc();
+  hint.innerHTML='<span style="color:var(--green)">✅ 已套用：'+p.mod.id+
+    (p.rows!=null?' 字高'+p.rows:'')+(p.cols!=null?' 字寬'+p.cols:'')+
+    (p.frm?' 鋁框'+p.frm:'')+(pwrMsg?' '+pwrMsg:'')+'</span>';
+  toast('🚀 型號已套用');
 }
 
 function updatePickBtn(type){
