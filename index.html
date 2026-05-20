@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.1</title>
+<title>USLED 快速報價 v9.2</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.1</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.2</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -575,15 +575,19 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div style="font-size:12px;color:var(--sub);margin-bottom:12px;line-height:1.6">
         填入 Ragic 後，歷史報價會自動同步到您的雲端資料庫。
       </div>
-      <div class="frow">
-        <label>Ragic 表單網址</label>
-        <input type="text" id="ragic_url" placeholder="https://ap10.ragic.com/Fan28/quotes/1" autocomplete="off">
-        <div class="hint">v9.0：直接 fetch + URL APIKey 認證（不觸發 CORS preflight）</div>
+      <div id="workerModeNotice" style="display:none;background:#ECFDF5;border:1.5px solid #10B981;border-radius:10px;padding:10px 12px;font-size:12px;color:#065F46;margin-bottom:10px">
+        🛡 <strong>v9.2 已啟用 Cloudflare Worker 代理模式</strong>：API Key 已鎖在後端，業務員只要 Google 登入即可使用，<strong>本頁的網址與 API Key 不需填寫</strong>。<br>
+        <span style="font-size:11px;opacity:.85">下方欄位僅供管理員 fallback 測試（Worker 故障時可暫時改回直連 Ragic）。</span>
       </div>
       <div class="frow">
-        <label>API Key</label>
-        <input type="password" id="ragic_key" placeholder="若用 Cloudflare Worker 可隨便填" autocomplete="off">
-        <div class="hint">僅儲存於本機，不會上傳</div>
+        <label>Ragic 表單網址 <span style="font-weight:400;color:var(--sub);font-size:11px">(fallback)</span></label>
+        <input type="text" id="ragic_url" placeholder="https://ap10.ragic.com/Fan28/quotes/1" autocomplete="off">
+        <div class="hint">v9.2：預設走 Worker 代理；填這裡會切回直連 Ragic 模式</div>
+      </div>
+      <div class="frow">
+        <label>API Key <span style="font-weight:400;color:var(--sub);font-size:11px">(fallback)</span></label>
+        <input type="password" id="ragic_key" placeholder="走 Worker 模式不用填" autocomplete="off">
+        <div class="hint">僅儲存於本機，不會上傳；Worker 模式下不會用到</div>
       </div>
       <button class="lock-btn" onclick="saveRagicCfg()" style="background:var(--accent)">儲存設定</button>
       <button class="lock-btn" onclick="testRagicCfg()" style="background:var(--bg);color:var(--accent);border:1.5px solid var(--accent);margin-top:8px">🔌 測試連線 (GET)</button>
@@ -624,6 +628,10 @@ var MGR_PWD = '1314';
 // ══ Google Sign-In 白名單 ══
 // 部署前請把第 1 個值改成你的 Google Cloud OAuth Client ID
 var GOOGLE_CLIENT_ID = '948080912487-922lldt7pmi8qp26nfcij206apkd5f1v.apps.googleusercontent.com';
+// v9.2：Cloudflare Worker 代理 URL（設定後，所有寫入/讀取走 Worker，前端不再需要持有 Ragic API Key）
+// 把 RAGIC API KEY 鎖在 Worker secret 內，業務員登入 Google 後即可直接使用，無 key 外洩疑慮
+// 若需暫時關閉走代理，把此常數設為空字串即可（自動退回直連 Ragic + APIKey 模式）
+var WORKER_URL = 'https://usled-ragic-proxy.yspe-led.workers.dev/';
 var ROLE_WHITELIST = {
   // 管理員（看得到成本、所有報價等級）
   'covernself@gmail.com': 'mgr',
@@ -1307,7 +1315,12 @@ function applyRole(){
 }
 
 // ══ Settings ══
-function openSettings(){document.getElementById('settingsSheet').classList.add('show');}
+function openSettings(){
+  document.getElementById('settingsSheet').classList.add('show');
+  // v9.2：顯示 Worker 模式提示（若已配置）
+  var notice=document.getElementById('workerModeNotice');
+  if(notice) notice.style.display = WORKER_URL ? '' : 'none';
+}
 function closeSettings(){document.getElementById('settingsSheet').classList.remove('show');}
 function switchSetTab(n){
   for(var i=1;i<=3;i++){
@@ -1479,8 +1492,8 @@ function archiveQuote(){
   var list=loadHistory();
   list.unshift(rec);
   saveHistory(list);
-  // 若有 Ragic 設定，立即嘗試同步
-  if(getRagicCfg().url){
+  // 若有 Ragic 設定或 Worker 模式可用，立即嘗試同步
+  if(getApiRoute().mode){
     pushToRagic(rec).then(function(result){
       var l=loadHistory();
       var i=l.findIndex(function(x){return x.id===rec.id;});
@@ -1587,8 +1600,8 @@ function delQuote(id){
 }
 
 function syncOne(id){
-  var cfg=getRagicCfg();
-  if(!cfg.url||!cfg.key){toast('⚠ 請先到設定填入 Ragic 資訊');openSettings();switchSetTab(2);return;}
+  var route=getApiRoute();
+  if(!route.mode){toast('⚠ '+route.reason);openSettings();switchSetTab(2);return;}
   var list=loadHistory();
   var r=list.find(function(x){return x.id===id;});
   if(!r)return;
@@ -1611,8 +1624,8 @@ function syncOne(id){
 }
 
 function syncAllPending(){
-  var cfg=getRagicCfg();
-  if(!cfg.url||!cfg.key){toast('⚠ 請先到設定填入 Ragic 資訊');openSettings();switchSetTab(2);return;}
+  var route=getApiRoute();
+  if(!route.mode){toast('⚠ '+route.reason);openSettings();switchSetTab(2);return;}
   var list=loadHistory();
   var pending=list.filter(function(r){return r.syncStatus!=='synced';});
   if(pending.length===0){toast('全部已同步');return;}
@@ -1764,15 +1777,47 @@ function buildRagicUrl(base,extra){
   return base + q;
 }
 
+// ══ v9.2：API 路由 helper ══
+// 決定走 Cloudflare Worker（推薦）還是直連 Ragic：
+//  - 若 WORKER_URL 有設定且使用者已登入 Google → 走 Worker（前端不需 API Key）
+//  - 否則退回直連 Ragic + URL APIKey（需要設定面板填 Ragic 網址 + Key）
+// 回傳：{mode:'worker'|'direct'|null, postUrl, buildGetUrl(params), headers, reason}
+function getApiRoute(){
+  if(WORKER_URL && currentUser && currentUser.idToken){
+    // 檢查 token 過期
+    if(currentUser.tokenExp && currentUser.tokenExp < Date.now()){
+      return {mode:null, reason:'登入已過期，請重新登入 Google'};
+    }
+    var base = WORKER_URL.replace(/\/$/,'');
+    return {
+      mode:'worker',
+      postUrl: base + '/',
+      buildGetUrl: function(extra){ return base + '/' + (extra ? '?'+extra : ''); },
+      headers: {'X-Google-Token': currentUser.idToken},
+      reason: '透過 Worker 代理（API Key 在後端）'
+    };
+  }
+  var cfg = getRagicCfg();
+  if(cfg.url && cfg.key){
+    var ragBase = normalizeRagicUrl(cfg.url);
+    var ke = encodeURIComponent(cfg.key);
+    return {
+      mode:'direct',
+      postUrl: ragBase + '?api&APIKey=' + ke,
+      buildGetUrl: function(extra){ return ragBase + '?api&APIKey=' + ke + (extra ? '&'+extra : ''); },
+      headers: {},
+      reason: '直連 Ragic（API Key 存本機）'
+    };
+  }
+  return {mode:null, reason: WORKER_URL ? '請先 Google 登入' : '請先填 Ragic 網址與 API Key'};
+}
+
 function testRagicCfg(){
-  var cfg=getRagicCfg();
   var st=document.getElementById('ragicStatus');
-  if(!cfg.url||!cfg.key){st.innerHTML='<span class="status-chip status-err">⚠ 請先填入網址與 API Key</span>';return;}
-  st.innerHTML='<span class="status-chip">⏳ 測試中...</span>';
-  var base=normalizeRagicUrl(cfg.url);
-  var ke=encodeURIComponent(cfg.key);
-  // 用 URL 參數 APIKey=KEY（不需 Authorization header，不觸發 CORS preflight）
-  fetch(buildRagicUrl(base,'APIKey='+ke+'&limit=1&mapFieldNames=true')).then(function(r){
+  var route=getApiRoute();
+  if(!route.mode){st.innerHTML='<span class="status-chip status-err">⚠ '+route.reason+'</span>';return;}
+  st.innerHTML='<span class="status-chip">⏳ 測試中... ('+route.reason+')</span>';
+  fetch(route.buildGetUrl('limit=1&mapFieldNames=true'), {headers: route.headers}).then(function(r){
     return r.text().then(function(txt){
       var rawBox='<div style="font-size:10px;margin-top:8px;padding:8px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:200px;overflow:auto"><div style="color:#94A3B8;margin-bottom:4px">📡 Ragic 原始回應：</div>'+(txt||'(空白)').slice(0,400).replace(/</g,'&lt;')+'</div>';
       if(r.ok){
@@ -1802,19 +1847,16 @@ function testRagicCfg(){
 
 
 // v9.0：用 fetch + FormData（multipart）+ URL APIKey 認證
-// 此組合是 CORS「simple request」→ 不觸發 preflight，Ragic 回應有 ACAO header → 可讀 ragicId
+// v9.2：可走 Worker 代理（API Key 不外洩）
 function testRagicPost(){
-  var cfg=getRagicCfg();
   var st=document.getElementById('ragicStatus');
-  if(!cfg.url||!cfg.key){st.innerHTML='<span class="status-chip status-err">⚠ 請先填入網址與 API Key</span>';return;}
+  var route=getApiRoute();
+  if(!route.mode){st.innerHTML='<span class="status-chip status-err">⚠ '+route.reason+'</span>';return;}
 
-  var base=normalizeRagicUrl(cfg.url);
-  var keyEnc=encodeURIComponent(cfg.key);
-  var postUrl=base+'?api&APIKey='+keyEnc;
   var F=RAGIC_FIELD_IDS;
   var unique='TEST_'+Date.now();
 
-  st.innerHTML='<span class="status-chip">⏳ 第 1 步：POST 寫入 Ragic...</span>';
+  st.innerHTML='<span class="status-chip">⏳ 第 1 步：POST 寫入 Ragic... ('+route.reason+')</span>';
 
   var fd=new FormData();
   fd.append(F.customer,   unique);
@@ -1827,7 +1869,7 @@ function testRagicPost(){
   fd.append(F.unitPrice,  '999');
   fd.append(F.totalPrice, '999');
 
-  fetch(postUrl,{method:'POST',body:fd}).then(function(r){
+  fetch(route.postUrl,{method:'POST',headers:route.headers,body:fd}).then(function(r){
     return r.text().then(function(txt){return {ok:r.ok,status:r.status,body:txt};});
   }).then(function(res){
     var ragicId='', status='', parsed=null;
@@ -1838,8 +1880,8 @@ function testRagicPost(){
       // ── 第 2 步：GET 反查驗證（可選但增加可信度） ──
       st.innerHTML='<span class="status-chip status-ok">✅ POST 成功！ragicId='+ragicId+'</span>'+
         '<div style="font-size:11px;margin-top:6px;color:var(--sub)">⏳ 第 2 步：GET 反查驗證...</div>';
-      var verifyUrl=base+'?api&APIKey='+keyEnc+'&limit=10';
-      fetch(verifyUrl).then(function(r){return r.text();}).then(function(vTxt){
+      var verifyUrl=route.buildGetUrl('limit=10');
+      fetch(verifyUrl,{headers:route.headers}).then(function(r){return r.text();}).then(function(vTxt){
         var found=vTxt.indexOf(unique)>=0;
         st.innerHTML=
           '<span class="status-chip status-ok">✅ 寫入並驗證成功</span>'+
@@ -1874,13 +1916,12 @@ function testRagicPost(){
 // FormData 觸發的 Content-Type 是 multipart/form-data → CORS simple request → 無 preflight
 // Ragic 回應有 Access-Control-Allow-Origin → 可直接讀 JSON 拿 ragicId
 // 失敗時走 GET 反查（用 localId 對應）做最終確認
+// v9.2：可走 Worker 代理（API Key 藏在後端）
 function pushToRagic(rec){
-  var cfg=getRagicCfg();
-  if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
+  var route=getApiRoute();
+  if(!route.mode)return Promise.reject(new Error(route.reason||'未設定'));
 
-  var base=normalizeRagicUrl(cfg.url);
-  var keyEnc=encodeURIComponent(cfg.key);
-  var postUrl=base+'?api&APIKey='+keyEnc;
+  var postUrl=route.postUrl;
   var F=RAGIC_FIELD_IDS;
 
   var fd=new FormData();
@@ -1913,9 +1954,9 @@ function pushToRagic(rec){
   if(F.kpi    && F.kpi.indexOf('TBD')<0)    add(F.kpi,    (rec.kpi||0).toFixed(1));
   if(F.matDetail && F.matDetail.indexOf('TBD')<0) add(F.matDetail, rec.matDetail||'');
 
-  var diag='方式: fetch + FormData (multipart) + URL APIKey\nURL: '+postUrl;
+  var diag='方式: '+route.mode+' / '+route.reason+'\nURL: '+postUrl;
 
-  return fetch(postUrl,{method:'POST',body:fd}).then(function(r){
+  return fetch(postUrl,{method:'POST',headers:route.headers,body:fd}).then(function(r){
     return r.text().then(function(txt){return {ok:r.ok,status:r.status,body:txt};});
   }).then(function(res){
     var ragicId='', status='', parsed=null;
@@ -1926,15 +1967,20 @@ function pushToRagic(rec){
       return {savedFields:Object.keys(fd).length, ragicId:String(ragicId), diag:diag, raw:res.body.slice(0,400)};
     }
     // POST 回來但不是 SUCCESS — 嘗試 GET 反查（拿 localId 對應）
-    var err=new Error(res.body.indexOf('guest')>=0?'被當訪客（APIKey 認證失效）':'HTTP '+res.status+' / '+(status||'no-status'));
+    var msg;
+    if(res.status===401) msg='Google 登入過期，請重新登入';
+    else if(res.status===403) msg='帳號未授權（Worker 白名單擋）';
+    else if(res.body.indexOf('guest')>=0) msg='被當訪客（APIKey 認證失效）';
+    else msg='HTTP '+res.status+' / '+(status||'no-status');
+    var err=new Error(msg);
     err.diag=diag+'\n回應: '+res.body.slice(0,400);
     throw err;
   }).catch(function(e){
     // 網路錯誤或 SUCCESS 失敗 → 走 GET 反查兜底（用本機 ID 對應）
     if(e.ragicVerified)throw e; // 避免重入
     diag+='\nFetch/解析錯誤: '+(e.message||e);
-    var verifyUrl=base+'?api&APIKey='+keyEnc+'&limit=30';
-    return fetch(verifyUrl).then(function(r){return r.text();}).then(function(txt){
+    var verifyUrl=route.buildGetUrl('limit=30');
+    return fetch(verifyUrl,{headers:route.headers}).then(function(r){return r.text();}).then(function(txt){
       // 從回應裡找有 localId 的記錄
       var foundId='';
       try{
@@ -2007,7 +2053,12 @@ function handleGoogleSignIn(response){
       alert('帳號 '+email+' 未經授權，請聯絡管理員加入白名單');
       return;
     }
-    currentUser={email:email,name:payload.name,picture:payload.picture,role:role};
+    // v9.2：保存原始 JWT (idToken) 給 Worker 驗證用；tokenExp 用來偵測過期
+    currentUser={
+      email:email, name:payload.name, picture:payload.picture, role:role,
+      idToken: response.credential,
+      tokenExp: (payload.exp||0) * 1000
+    };
     localStorage.setItem('usled_user',JSON.stringify(currentUser));
     isMgr=(role==='mgr');
     applyRole();
@@ -2021,6 +2072,11 @@ function loadSavedUser(){
   try{
     var u=JSON.parse(localStorage.getItem('usled_user')||'null');
     if(u && ROLE_WHITELIST[u.email]===u.role){
+      // v9.2：若 token 過期，靜默清掉強制重新登入（避免 Worker 401）
+      if(WORKER_URL && u.tokenExp && u.tokenExp < Date.now()){
+        localStorage.removeItem('usled_user');
+        return false;
+      }
       currentUser=u;
       isMgr=(u.role==='mgr');
       applyRole();
