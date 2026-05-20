@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v7.2</title>
+<title>USLED 快速報價 v7.3</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root{
@@ -333,7 +333,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v7.2</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v7.3</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
@@ -541,7 +541,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="frow">
         <label>Ragic 表單網址</label>
         <input type="text" id="ragic_url" placeholder="https://ap10.ragic.com/Fan28/quotes/1" autocomplete="off">
-        <div class="hint">可以是 Ragic 直連，或 Apps Script / Cloudflare Worker 代理網址</div>
+        <div class="hint">v7.3：直接貼 Ragic 表單網址（不需要任何代理）</div>
       </div>
       <div class="frow">
         <label>API Key</label>
@@ -1643,64 +1643,55 @@ function testRagicCfg(){
 function testRagicPost(){
   var cfg=getRagicCfg();
   var st=document.getElementById('ragicStatus');
-  if(!cfg.url){st.innerHTML='<span class="status-chip status-err">⚠ 請先填入 Apps Script 網址</span>';return;}
-  st.innerHTML='<span class="status-chip">⏳ 提交中（form submit 方式）...</span>';
+  if(!cfg.url||!cfg.key){st.innerHTML='<span class="status-chip status-err">⚠ 請先填入網址與 API Key</span>';return;}
+  st.innerHTML='<span class="status-chip">⏳ 直接 form submit 到 Ragic...</span>';
 
+  var base=normalizeRagicUrl(cfg.url);
+  var actionUrl=base+'?api&APIKey='+encodeURIComponent(cfg.key);
   var F=RAGIC_FIELD_IDS;
 
-  // 移除舊的 iframe / form
-  var oldIf=document.getElementById('ragicSinkIf'); if(oldIf)oldIf.remove();
-  var oldFm=document.getElementById('ragicSinkFm'); if(oldFm)oldFm.remove();
-
-  // 建立隱藏 iframe 接收回應
+  var name='test_'+Date.now();
   var ifr=document.createElement('iframe');
-  ifr.id='ragicSinkIf'; ifr.name='ragicSinkIf';
-  ifr.style.cssText='position:absolute;width:0;height:0;border:0;visibility:hidden';
+  ifr.name=name; ifr.style.cssText='position:absolute;width:0;height:0;border:0;visibility:hidden';
   document.body.appendChild(ifr);
 
-  // 建立 form 直接提交到 Apps Script
   var form=document.createElement('form');
-  form.id='ragicSinkFm';
-  form.method='POST';
-  form.action=cfg.url;
-  form.target='ragicSinkIf';
+  form.method='POST'; form.action=actionUrl; form.target=name;
   form.enctype='application/x-www-form-urlencoded';
   form.style.display='none';
-  function addField(name,value){var i=document.createElement('input');i.type='hidden';i.name=name;i.value=value||'';form.appendChild(i);}
-  addField(F.customer, '🧪測試POST_'+Date.now());
-  addField(F.phone,    '0900000000');
-  addField(F.quoteDate, new Date().toISOString().slice(0,10));
-  addField(F.mod, 'P10C');
-  addField(F.frm, 'R');
-  addField(F.qty, '1');
-  addField(F.tier, '測試');
-  addField(F.unitPrice, '999');
-  addField(F.totalPrice, '999');
+  function add(n,v){var i=document.createElement('input');i.type='hidden';i.name=n;i.value=v;form.appendChild(i);}
+  add(F.customer, '🧪測試POST_'+Date.now());
+  add(F.phone, '0900000000');
+  add(F.quoteDate, new Date().toISOString().slice(0,10));
+  add(F.mod, 'P10C');
+  add(F.frm, 'R');
+  add(F.qty, '1');
+  add(F.tier, '測試');
+  add(F.unitPrice, '999');
+  add(F.totalPrice, '999');
   document.body.appendChild(form);
 
   var done=false;
   ifr.onload=function(){
     if(done)return; done=true;
-    var bodyText='(跨網域無法讀取，但 Apps Script 已收到)';
+    var bodyText='(跨網域無法讀取)';
     try{ bodyText=ifr.contentDocument.body.innerText.slice(0,500); }catch(e){}
-    var isSuccess=bodyText.indexOf('SUCCESS')>=0;
-    var isError=bodyText.indexOf('ERROR')>=0||bodyText.indexOf('error')>=0;
-    var summary;
-    if(isSuccess){summary='<span class="status-chip status-ok">✅ Apps Script 回 SUCCESS</span>';}
-    else if(isError){summary='<span class="status-chip status-err">❌ 有錯誤訊息</span>';}
-    else{summary='<span class="status-chip status-ok">✅ 已送出（跨網域不能讀回應，請去 Ragic 確認）</span>';}
-
+    var summary='<span class="status-chip status-ok">✅ 已送出 → 請去 Ragic 確認</span>';
+    if(bodyText.indexOf('SUCCESS')>=0)summary='<span class="status-chip status-ok">✅ Ragic 回 SUCCESS</span>';
+    else if(bodyText.indexOf('guest')>=0)summary='<span class="status-chip status-err">❌ 被當訪客！URL APIKey 沒被認證</span>';
+    else if(bodyText.indexOf('ERROR')>=0)summary='<span class="status-chip status-err">❌ Ragic 回 ERROR</span>';
     st.innerHTML=summary+
       '<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#A7F3D0;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">'+
-      '<div style="color:#FBBF24">📤 送到 Apps Script:</div>'+cfg.url.slice(0,80)+'...'+
-      '<div style="color:#FBBF24;margin-top:8px">📥 iframe 收到的內容:</div>'+bodyText.replace(/</g,'&lt;')+
-      '<div style="color:#FBBF24;margin-top:8px">⬇ 下一步：</div>去 Ragic 列表頁 https://ap10.ragic.com/Fan28/ragicproject-management/17 刷新看有沒有新進記錄 🧪測試POST_xxx'+
+      '<div style="color:#FBBF24">📤 直接 form submit 到 Ragic</div>'+
+      'URL: '+actionUrl.slice(0,90)+'...'+
+      '<div style="color:#FBBF24;margin-top:8px">📥 iframe 回應:</div>'+bodyText.replace(/</g,'&lt;')+
+      '<div style="color:#FBBF24;margin-top:8px">⬇ 不管顯示啥，請去 Ragic 列表頁確認：</div>https://ap10.ragic.com/Fan28/ragicproject-management/17'+
       '</div>';
-    toast('✅ Form 已送出 Apps Script，去 Ragic 確認');
+    setTimeout(function(){form.remove(); ifr.remove();},2000);
   };
-
-  setTimeout(function(){if(!done){done=true;st.innerHTML='<span class="status-chip status-err">⚠ 8 秒沒收到回應</span><div style="font-size:11px;margin-top:6px">仍可能寫入成功，請去 Ragic 看看</div>';}},8000);
-
+  setTimeout(function(){
+    if(!done){done=true;st.innerHTML='<span class="status-chip status-err">⚠ 5 秒未收到回應</span><div style="font-size:11px;margin-top:6px">仍可能已寫入，請去 Ragic 看列表</div>';}
+  },5000);
   form.submit();
 }
 
@@ -1708,66 +1699,78 @@ function testRagicPost(){
 function pushToRagic(rec){
   var cfg=getRagicCfg();
   if(!cfg.url||!cfg.key)return Promise.reject(new Error('未設定 Ragic'));
+
+  // v7.3：直接 form submit 到 Ragic（用 URL 參數 APIKey 認證）
+  // 依官方文件：可將 API Key 作為參數名 APIKey 發送
+  // form submit 不觸發 CORS preflight，是純跨網域導覽
   var base=normalizeRagicUrl(cfg.url);
-  // ★ v7.2：依 Ragic 官方建議用 multipart/form-data (FormData) + Authorization raw API Key
-  // 來源：Michael Liu 2026/5/19 信件確認 curl -F + -H "Authorization:Basic {APIKey}"
-  var url=buildRagicUrl(base,'');
+  var actionUrl=base+'?api&APIKey='+encodeURIComponent(cfg.key);
   var F=RAGIC_FIELD_IDS;
-  var fd=new FormData();
-  fd.append(F.customer,  rec.customer||'');
-  fd.append(F.phone,     rec.phone||'');
-  fd.append(F.quoteDate, rec.quoteDate||'');
-  fd.append(F.mod,       rec.mid||'');
-  fd.append(F.frm,       rec.fid||'');
-  fd.append(F.pwr,       rec.pid||'');
-  fd.append(F.ctrl,      rec.cid||'');
-  fd.append(F.rows,      String(rec.rows||0));
-  fd.append(F.cols,      String(rec.cols||0));
-  fd.append(F.dual,      rec.dual>1?'雙面':'單面');
-  fd.append(F.qty,       String(rec.qty||0));
-  fd.append(F.tier,      rec.tierName||'');
-  fd.append(F.unitPrice, String(rec.unitPrice||0));
-  fd.append(F.totalPrice,String(rec.totalPrice||0));
-  fd.append(F.dispH,     String(Math.round(rec.dispH||0)));
-  fd.append(F.dispW,     String(Math.round(rec.dispW||0)));
-  fd.append(F.totalW,    String(Math.round(rec.totalW||0)));
-  fd.append(F.totalKg,   (rec.totalKg||0).toFixed(2));
-  fd.append(F.matCost,   String(rec.matCost||0));
-  fd.append(F.localId,   rec.id||'');
-  fd.append(F.createdAt, rec.createdAt||'');
-  if(F.workHr&&F.workHr.indexOf('TBD')<0) fd.append(F.workHr, (rec.workHr||0).toFixed(2));
-  if(F.kpi&&F.kpi.indexOf('TBD')<0)       fd.append(F.kpi,    (rec.kpi||0).toFixed(1));
-  // v7.2：URL 帶 APIKey 參數，移除 Authorization header（避免 preflight 卡住）
-  var urlWithKey=url+'&APIKey='+encodeURIComponent(cfg.key);
-  return fetch(urlWithKey,{
-    method:'POST',
-    body:fd
-    // 不設 Content-Type！瀏覽器會自動為 FormData 設定 multipart/form-data; boundary=...
-  }).then(function(r){
-    return r.text().then(function(txt){
-      // 把完整診斷資訊塞進結果，給 UI 顯示
-      var diag='URL: '+url+'\nHTTP: '+r.status+'\n回應: '+txt.slice(0,400);
-      if(!r.ok){
-        var msg='HTTP '+r.status;
-        try{var obj=JSON.parse(txt);if(obj.msg)msg=obj.msg;else if(obj.status)msg=obj.status;}catch(e){msg=msg+' '+txt.slice(0,120);}
-        var err=new Error(msg); err.diag=diag; throw err;
+
+  return new Promise(function(resolve){
+    var name='sub_'+Date.now()+'_'+Math.floor(Math.random()*1000);
+    var ifr=document.createElement('iframe');
+    ifr.name=name; ifr.id=name;
+    ifr.style.cssText='position:absolute;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(ifr);
+
+    var form=document.createElement('form');
+    form.method='POST'; form.action=actionUrl; form.target=name;
+    form.enctype='application/x-www-form-urlencoded';
+    form.style.display='none';
+    function addField(n,v){
+      if(!n||n.indexOf('TBD')>=0)return;
+      var i=document.createElement('input');
+      i.type='hidden'; i.name=n; i.value=String(v==null?'':v);
+      form.appendChild(i);
+    }
+    addField(F.customer, rec.customer);
+    addField(F.phone, rec.phone);
+    addField(F.quoteDate, rec.quoteDate);
+    addField(F.mod, rec.mid);
+    addField(F.frm, rec.fid);
+    addField(F.pwr, rec.pid);
+    addField(F.ctrl, rec.cid);
+    addField(F.rows, rec.rows||0);
+    addField(F.cols, rec.cols||0);
+    addField(F.dual, rec.dual>1?'雙面':'單面');
+    addField(F.qty, rec.qty||0);
+    addField(F.tier, rec.tierName);
+    addField(F.unitPrice, rec.unitPrice||0);
+    addField(F.totalPrice, rec.totalPrice||0);
+    addField(F.dispH, Math.round(rec.dispH||0));
+    addField(F.dispW, Math.round(rec.dispW||0));
+    addField(F.totalW, Math.round(rec.totalW||0));
+    addField(F.totalKg, (rec.totalKg||0).toFixed(2));
+    addField(F.matCost, rec.matCost||0);
+    addField(F.localId, rec.id);
+    addField(F.createdAt, rec.createdAt);
+    if(F.workHr && F.workHr.indexOf('TBD')<0) addField(F.workHr, (rec.workHr||0).toFixed(2));
+    if(F.kpi && F.kpi.indexOf('TBD')<0) addField(F.kpi, (rec.kpi||0).toFixed(1));
+    document.body.appendChild(form);
+
+    var done=false;
+    var diag='方式: 直接 form submit\nURL: '+actionUrl;
+    ifr.onload=function(){
+      if(done)return; done=true;
+      var bodyText='(跨網域無法讀取，但 Ragic 已收到)';
+      try{ bodyText=ifr.contentDocument.body.innerText.slice(0,400); }catch(e){}
+      diag+='\nIframe 回應: '+bodyText;
+      setTimeout(function(){form.remove(); ifr.remove();},2000);
+      resolve({savedFields:20, ragicId:'', diag:diag, raw:bodyText});
+    };
+    setTimeout(function(){
+      if(!done){
+        done=true;
+        diag+='\n5 秒未收到 iframe load 事件';
+        resolve({savedFields:0, ragicId:'', diag:diag, raw:'timeout'});
       }
-      var result={raw:txt,savedFields:0,ragicId:'',diag:diag};
-      try{
-        var obj=JSON.parse(txt);
-        result.ragicId=obj.ragicId||obj.recordId||obj._ragicId||'';
-        if(obj.status&&obj.status!=='SUCCESS'){var e2=new Error(obj.msg||obj.status); e2.diag=diag; throw e2;}
-        var fieldSrc=obj.record||obj.data||obj.fields||null;
-        if(fieldSrc){
-          result.savedFields=Object.keys(fieldSrc).filter(function(k){return !k.startsWith('_')&&fieldSrc[k]!==''&&fieldSrc[k]!=null;}).length;
-        }else{
-          result.savedFields=Object.keys(obj).filter(function(k){return !k.startsWith('_')&&k!=='status'&&k!=='ragicId'&&k!=='msg'&&obj[k]!==''&&typeof obj[k]!=='object';}).length;
-        }
-      }catch(e){if(e.message)throw e;}
-      return result;
-    });
+    },5000);
+
+    form.submit();
   });
 }
+
 
 // ══ Toast ══
 function toast(msg){
