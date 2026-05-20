@@ -6,8 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v8.0</title>
+<title>USLED 快速報價 v9.0</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root{
   --bg:#F0F4F8;--card:#FFFFFF;--border:#DDE3ED;
@@ -333,10 +334,11 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v8.0</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.0</div></div>
   </div>
   <div class="bar-right">
-    <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">業務 ▾</div>
+    <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
+    <div id="userDisplay" style="display:none;font-size:10px;color:rgba(255,255,255,.85);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     <div class="cfg-icon" onclick="openSettings()" title="設定">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </div>
@@ -347,6 +349,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 <div class="tabs">
   <div class="tab on" id="tab1" onclick="goPage(1)"><span class="tab-icon">📋</span>客戶</div>
   <div class="tab" id="tab2" onclick="goPage(2)"><span class="tab-icon">📺</span>產品</div>
+  <div class="tab" id="tab_cost" onclick="goPage('cost')" style="display:none"><span class="tab-icon">📊</span>成本</div>
   <div class="tab" id="tab3" onclick="goPage(3)"><span class="tab-icon">💰</span>報價</div>
   <div class="tab" id="tab4" onclick="goPage(4)"><span class="tab-icon">📄</span>預覽</div>
   <div class="tab" id="tab5" onclick="goPage(5)"><span class="tab-icon">📚</span>歷史</div>
@@ -435,6 +438,40 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="spec-cell"><div class="spec-val" id="r_pwrn">—</div><div class="spec-lab">電源器</div></div>
     </div>
     <div class="spec-warn" id="r_err" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ══ Page 成本: 管理者專屬成本明細 ══ -->
+<div id="pg_cost" class="page">
+  <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+    <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#1A3A6B,#2563EB);color:#fff;padding:12px;border-radius:10px">
+      <div style="font-size:11px;opacity:.8">材料小計</div>
+      <div id="cost_mat" style="font-size:22px;font-weight:900;margin-top:4px">$0</div>
+    </div>
+    <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#1D9E75,#10B981);color:#fff;padding:12px;border-radius:10px">
+      <div style="font-size:11px;opacity:.8">工時小計</div>
+      <div id="cost_work" style="font-size:22px;font-weight:900;margin-top:4px">$0</div>
+      <div id="cost_work_min" style="font-size:10px;opacity:.85;margin-top:2px">0 分</div>
+    </div>
+    <div style="flex:1;min-width:140px;background:linear-gradient(135deg,#F59E0B,#EA580C);color:#fff;padding:12px;border-radius:10px">
+      <div style="font-size:11px;opacity:.8">合計總成本</div>
+      <div id="cost_total" style="font-size:22px;font-weight:900;margin-top:4px">$0</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">📦 材料明細</div>
+    <div id="materialDetail"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">⏱ 工時明細</div>
+    <div id="worktimeDetail"></div>
+  </div>
+
+  <div class="card">
+    <div class="sec-label">🎯 積分點</div>
+    <div id="kpiDetail" style="padding:8px;font-size:13px"></div>
   </div>
 </div>
 
@@ -541,7 +578,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="frow">
         <label>Ragic 表單網址</label>
         <input type="text" id="ragic_url" placeholder="https://ap10.ragic.com/Fan28/quotes/1" autocomplete="off">
-        <div class="hint">v8.0：直接 fetch + URL APIKey 認證（不觸發 CORS preflight）</div>
+        <div class="hint">v9.0：直接 fetch + URL APIKey 認證（不觸發 CORS preflight）</div>
       </div>
       <div class="frow">
         <label>API Key</label>
@@ -583,6 +620,17 @@ var BUILTIN_CFG = {"_version":"4.9","_exported":"2026-05-17 03:47","base":{"rate
 
 // ══ 角色與密碼 ══
 var MGR_PWD = '1314';
+
+// ══ Google Sign-In 白名單 ══
+// 部署前請把第 1 個值改成你的 Google Cloud OAuth Client ID
+var GOOGLE_CLIENT_ID = '948080912487-922lldt7pmi8qp26nfcij206apkd5f1v.apps.googleusercontent.com';
+var ROLE_WHITELIST = {
+  // 管理員（看得到成本、所有報價等級）
+  'covernself@gmail.com': 'mgr',
+  // 業務員（只看 3 個報價等級，看不到成本）
+  'usled.tw@gmail.com': 'sales'
+};
+var currentUser = null;  // {email, name, role, picture}
 var isMgr = false;
 var curPage = 1;
 var selTier = 0;
@@ -679,6 +727,9 @@ var CTRL_META={
 // ══ 初始化 ══
 // ══════════════════════════════════════════
 window.onload = function(){
+  initGoogleSignIn();
+  loadSavedUser();
+
   var d=new Date();
   document.getElementById('c_date').value=d.toISOString().slice(0,10);
   fetch('./usled_config.json?_='+Date.now())
@@ -1129,23 +1180,40 @@ function updateTiers(){
 // ══ 頁面切換 ══
 // ══════════════════════════════════════════
 function goPage(n){
+  // 成本分頁：管理者才能進
+  if(n==='cost'){
+    if(!isMgr){toast('需要管理者權限');return;}
+    curPage='cost';
+    ['1','2','cost','3','4','5'].forEach(function(pn){
+      var pg=document.getElementById(pn==='cost'?'pg_cost':'pg'+pn);
+      var tb=document.getElementById(pn==='cost'?'tab_cost':'tab'+pn);
+      if(pg)pg.classList.toggle('on',pn==='cost');
+      if(tb)tb.classList.toggle('on',pn==='cost');
+    });
+    document.getElementById('bbar').style.display='none';
+    renderCostPage();
+    return;
+  }
   if(n===5){
-    // 進歷史頁
     curPage=n;
-    for(var i=1;i<=5;i++){
-      document.getElementById('pg'+i).classList.toggle('on',i===n);
-      document.getElementById('tab'+i).classList.toggle('on',i===n);
-    }
+    ['1','2','cost','3','4','5'].forEach(function(pn){
+      var pg=document.getElementById(pn==='cost'?'pg_cost':'pg'+pn);
+      var tb=document.getElementById(pn==='cost'?'tab_cost':'tab'+pn);
+      if(pg)pg.classList.toggle('on',String(pn)===String(n));
+      if(tb)tb.classList.toggle('on',String(pn)===String(n));
+    });
     document.getElementById('bbar').style.display='none';
     renderHistory();
     return;
   }
   if(n>1&&n<5&&MODS.length===0){toast('請先載入設定檔');return;}
   curPage=n;
-  for(var i=1;i<=5;i++){
-    document.getElementById('pg'+i).classList.toggle('on',i===n);
-    document.getElementById('tab'+i).classList.toggle('on',i===n);
-  }
+  ['1','2','cost','3','4','5'].forEach(function(pn){
+    var pg=document.getElementById(pn==='cost'?'pg_cost':'pg'+pn);
+    var tb=document.getElementById(pn==='cost'?'tab_cost':'tab'+pn);
+    if(pg)pg.classList.toggle('on',String(pn)===String(n));
+    if(tb)tb.classList.toggle('on',String(pn)===String(n));
+  });
   document.getElementById('prevBtn').style.display=n>1&&n<5?'':'none';
   if(n===4){
     try{buildQuote();}catch(e){console.error('buildQuote error:',e);document.getElementById('quoteSheet').innerHTML='<div style="padding:30px;color:red;text-align:center">⚠ 請先選擇模組與框型再進入預覽</div>';}
@@ -1157,20 +1225,57 @@ function next(){if(curPage<4)goPage(curPage+1);}
 function prev(){if(curPage>1)goPage(curPage-1);}
 
 // ══ 角色切換 ══
-function toggleRole(){
-  if(isMgr){isMgr=false;applyRole();}
-  else{document.getElementById('lockPwd').value='';document.getElementById('lockErr').textContent='';document.getElementById('lockOverlay').classList.add('show');}
+function toggleRole(){ showLoginDialog(); }
+
+function showLoginDialog(){
+  if(GOOGLE_CLIENT_ID.indexOf('YOUR_GOOGLE')===0){
+    // 沒設定 Google → 退回密碼登入
+    document.getElementById('lockPwd').value='';
+    document.getElementById('lockErr').textContent='';
+    document.getElementById('lockOverlay').classList.add('show');
+  }else{
+    showGoogleSignIn();
+  }
 }
 function doLogin(){
   var pwd=document.getElementById('lockPwd').value;
-  if(pwd===MGR_PWD){isMgr=true;document.getElementById('lockOverlay').classList.remove('show');applyRole();toast('🔑 管理者模式已開啟');}
-  else{document.getElementById('lockErr').textContent='密碼錯誤，請重試';}
+  if(pwd===MGR_PWD){
+    currentUser={email:'admin@local',name:'管理者',role:'mgr',picture:null};
+    localStorage.setItem('usled_user',JSON.stringify(currentUser));
+    isMgr=true;
+    document.getElementById('lockOverlay').classList.remove('show');
+    applyRole();
+    toast('🔑 管理者模式（密碼登入）');
+  }else{
+    document.getElementById('lockErr').textContent='密碼錯誤，請重試';
+  }
 }
 function closeLock(){document.getElementById('lockOverlay').classList.remove('show');}
 function applyRole(){
   var b=document.getElementById('roleBadge'),mg=document.getElementById('mgrBanner');
-  if(isMgr){b.textContent='管理者 ✓';b.className='role-badge mgr';mg.classList.add('show');}
-  else{b.textContent='業務 ▾';b.className='role-badge sales';mg.classList.remove('show');}
+  var disp=document.getElementById('userDisplay');
+  var costTab=document.getElementById('tab_cost');
+
+  if(currentUser){
+    var displayName=currentUser.name.length>4?currentUser.name.slice(0,4)+'…':currentUser.name;
+    if(isMgr){
+      b.textContent=displayName+' 管理 ✓';
+      b.className='role-badge mgr';
+      mg.classList.add('show');
+    }else{
+      b.textContent=displayName+' 業務';
+      b.className='role-badge sales';
+      mg.classList.remove('show');
+    }
+    b.onclick=function(){if(confirm('要登出嗎？')) googleSignOut();};
+  }else{
+    b.textContent='登入 ▾';
+    b.className='role-badge sales';
+    mg.classList.remove('show');
+    b.onclick=function(){showLoginDialog();};
+  }
+
+  if(costTab) costTab.style.display=isMgr?'':'none';
   updateTiers();
 }
 
@@ -1338,6 +1443,7 @@ function archiveQuote(){
     dispH:r.dispH, dispW:r.dispW, fh:r.fh, fw:r.fw,
     totalW:r.totalW, totalKg:r.totalKg,
     workMin:r.workMin, workHr:r.workHr, kpi:r.kpi,
+    matSub:r.matSub, workCost:r.workCost, totalCost:r.totalCost, matDetail:r.matDetail,
     tierName:r.tierName, tierIdx:selTier,
     unitPrice:r.unitPrice, totalPrice:r.totalPrice,
     matCost:Math.round(r.matCost||0),
@@ -1579,8 +1685,9 @@ var RAGIC_FIELD_IDS = {
   matCost:   '1002844',   // 成本
   localId:   '1002845',   // 本機ID
   createdAt: '1002846',   // 建立時間
-  workHr:    'TBD',       // 暫無欄位
-  kpi:       'TBD'        // 暫無欄位
+  workHr:    '1002848',   // 工時(hr)
+  kpi:       '1002849',   // 積分點
+  matDetail: '1002850'    // 材料細批（完整成本明細文字）
 };
 
 function getRagicCfg(){
@@ -1667,7 +1774,7 @@ function testRagicCfg(){
 }
 
 
-// v8.0：用 fetch + FormData（multipart）+ URL APIKey 認證
+// v9.0：用 fetch + FormData（multipart）+ URL APIKey 認證
 // 此組合是 CORS「simple request」→ 不觸發 preflight，Ragic 回應有 ACAO header → 可讀 ragicId
 function testRagicPost(){
   var cfg=getRagicCfg();
@@ -1736,7 +1843,7 @@ function testRagicPost(){
 }
 
 
-// v8.0：fetch + FormData（multipart）+ URL APIKey
+// v9.0：fetch + FormData（multipart）+ URL APIKey
 // FormData 觸發的 Content-Type 是 multipart/form-data → CORS simple request → 無 preflight
 // Ragic 回應有 Access-Control-Allow-Origin → 可直接讀 JSON 拿 ragicId
 // 失敗時走 GET 反查（用 localId 對應）做最終確認
@@ -1777,6 +1884,7 @@ function pushToRagic(rec){
   add(F.createdAt,  rec.createdAt);
   if(F.workHr && F.workHr.indexOf('TBD')<0) add(F.workHr, (rec.workHr||0).toFixed(2));
   if(F.kpi    && F.kpi.indexOf('TBD')<0)    add(F.kpi,    (rec.kpi||0).toFixed(1));
+  if(F.matDetail && F.matDetail.indexOf('TBD')<0) add(F.matDetail, rec.matDetail||'');
 
   var diag='方式: fetch + FormData (multipart) + URL APIKey\nURL: '+postUrl;
 
@@ -1824,6 +1932,264 @@ function pushToRagic(rec){
   });
 }
 
+
+// ══════════════════════════════════════════
+// ══ Google Sign-In 登入機制 ══
+// ══════════════════════════════════════════
+function initGoogleSignIn(){
+  if(GOOGLE_CLIENT_ID.indexOf('YOUR_GOOGLE')===0){
+    console.log('[GSI] 尚未設定 Google Client ID，跳過 Sign-In 初始化');
+    return;
+  }
+  function tryInit(){
+    if(typeof google==='undefined'||!google.accounts){setTimeout(tryInit,500);return;}
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleSignIn,
+      auto_select: false,
+      cancel_on_tap_outside: false
+    });
+  }
+  tryInit();
+}
+
+function showGoogleSignIn(){
+  if(GOOGLE_CLIENT_ID.indexOf('YOUR_GOOGLE')===0){
+    toast('⚠ 尚未設定 Google Client ID');
+    return;
+  }
+  if(typeof google==='undefined'||!google.accounts){toast('Google 載入中...');return;}
+  google.accounts.id.prompt(function(notification){
+    if(notification.isNotDisplayed()||notification.isSkippedMoment()){
+      // 顯示彈出視窗失敗，改用直接登入
+      var btn=document.createElement('div');
+      document.body.appendChild(btn);
+      google.accounts.id.renderButton(btn,{theme:'filled_blue',size:'large'});
+      btn.style.cssText='position:fixed;top:60px;right:20px;z-index:9999;background:#fff;padding:10px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+      setTimeout(function(){btn.remove();},30000);
+    }
+  });
+}
+
+function handleGoogleSignIn(response){
+  try{
+    var payload=JSON.parse(atob(response.credential.split('.')[1]));
+    var email=(payload.email||'').toLowerCase();
+    var role=ROLE_WHITELIST[email];
+    if(!role){
+      alert('帳號 '+email+' 未經授權，請聯絡管理員加入白名單');
+      return;
+    }
+    currentUser={email:email,name:payload.name,picture:payload.picture,role:role};
+    localStorage.setItem('usled_user',JSON.stringify(currentUser));
+    isMgr=(role==='mgr');
+    applyRole();
+    toast('👋 歡迎 '+payload.name+' ('+role+')');
+  }catch(e){
+    alert('Google 登入失敗：'+e.message);
+  }
+}
+
+function loadSavedUser(){
+  try{
+    var u=JSON.parse(localStorage.getItem('usled_user')||'null');
+    if(u && ROLE_WHITELIST[u.email]===u.role){
+      currentUser=u;
+      isMgr=(u.role==='mgr');
+      applyRole();
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+
+function googleSignOut(){
+  if(typeof google!=='undefined'&&google.accounts) google.accounts.id.disableAutoSelect();
+  currentUser=null;
+  isMgr=false;
+  localStorage.removeItem('usled_user');
+  applyRole();
+  toast('👋 已登出');
+}
+
+// ══════════════════════════════════════════
+// ══ 成本明細頁渲染 ══
+// ══════════════════════════════════════════
+function renderCostPage(){
+  var r=RESULT;
+  if(!r.mid){
+    document.getElementById('materialDetail').innerHTML='<div style="text-align:center;color:var(--sub);padding:30px">請先在「產品」頁選擇規格</div>';
+    document.getElementById('worktimeDetail').innerHTML='';
+    document.getElementById('kpiDetail').innerHTML='';
+    document.getElementById('cost_mat').textContent='$0';
+    document.getElementById('cost_work').textContent='$0';
+    document.getElementById('cost_total').textContent='$0';
+    return;
+  }
+  var parts=BUILTIN_CFG.parts||{};
+  var base=BUILTIN_CFG.base||{};
+  var wage=base.wage||350;
+  var rate=base.rate||4.7;
+
+  // ── 材料明細計算 ──
+  var mats=[];
+  // 模組
+  mats.push({n:'模組 '+r.mid, q:r.D+' 片', u:r.m.twd, sub:r.D*r.m.twd, cat:'模組'});
+  // 電源器
+  if(r.p) mats.push({n:'電源器 '+r.pid, q:r.pwrN+' 顆', u:r.p.price, sub:r.pwrN*r.p.price, cat:'電源'});
+  // 控制卡
+  if(r.ct) mats.push({n:'控制卡 '+r.cid, q:'1', u:r.ct.price, sub:r.ct.price, cat:'電子'});
+  // 框料（戶外/室內框）
+  if(r.f && r.f.price){
+    var perimCm=(r.fh+r.fw)*2;
+    mats.push({n:'框料 '+r.fid, q:perimCm.toFixed(0)+' cm', u:r.f.price, sub:r.f.price*perimCm, cat:'框'});
+  }
+  // 框角（4 個）
+  if(r.f && r.f.corner){
+    mats.push({n:'框角 '+r.fid, q:'4 個', u:r.f.corner, sub:r.f.corner*4, cat:'框'});
+  }
+  // 背板（戶外/室內框需要）
+  if(r.f && r.f.grp!=='none' && r.cai){
+    var backP=parts.back_p||45;
+    mats.push({n:'背板', q:r.cai.toFixed(2)+' 才', u:backP, sub:r.cai*backP, cat:'結構'});
+  }
+  // 各類附件
+  function addPart(name, partKey, qty, cat){
+    var p=parts[partKey+'_p'];
+    if(p && qty>0) mats.push({n:name, q:qty.toFixed(1), u:p, sub:p*qty, cat:cat||'附件'});
+  }
+  // 角螺絲
+  if(r.f && r.f.grp==='outdoor') addPart('框角螺絲(自攻)','cornscrew', 8*r.qty, '附件');
+  if(r.f && r.f.grp==='indoor') addPart('框角螺絲(自攻)','cornscrew', 4*r.qty, '附件');
+  // 排水孔塞（戶外）
+  if(r.f && r.f.grp==='outdoor'){
+    var drains = Math.max(3, 3 + Math.floor(Math.max(r.dispH,r.dispW)/60));
+    addPart('排水孔塞','drain', drains*r.qty, '附件');
+  }
+  // 滑軌（室內）
+  if(r.f && r.f.grp==='indoor') addPart('滑軌','rail', 4*r.qty, '附件');
+  // 固定 B 門型鐵 / 固定 A 玻纖板
+  if(r.f && r.f.grp==='outdoor') addPart('固定 B-門型鐵','bracket', (r.mCols+1)*(r.dispH+3)*r.qty, '附件');
+  if(r.f && r.f.grp==='indoor') addPart('固定 A-玻纖板','glass', (r.mCols+1)*(r.dispH+3)*r.qty, '附件');
+  // 磁鐵（戶外，每片一組）
+  if(r.f && r.f.grp==='outdoor') addPart('磁鐵 (1組4顆)','magnet', r.D*r.qty/4, '附件');
+  // 膠化
+  addPart('膠化-前點膠','preglue', r.D*r.qty, '膠化');
+  if(r.f && r.f.grp==='outdoor') addPart('膠化-後滿膠','fullglue', r.D*r.qty, '膠化');
+  // 封板膠（背板周長）
+  if(r.cai>0){
+    var backH = r.dispH + (BACK_OFFSET[r.fid]||0);
+    var backW = r.dispW + (BACK_OFFSET[r.fid]||0);
+    addPart('膠化-封板','sealglue', (backH+backW)*2*r.qty, '膠化');
+  }
+  // 排線/DC線/控制線
+  addPart('排線','ribbon', r.D*r.qty, '線材');
+  addPart('DC 電源線','dcwire', r.pwrN*r.qty, '線材');
+  addPart('控制線','transwire', r.qty, '線材');
+  // 背板螺絲
+  if(r.cai>0){
+    var backH2 = r.dispH + (BACK_OFFSET[r.fid]||0);
+    var backW2 = r.dispW + (BACK_OFFSET[r.fid]||0);
+    var screwQty = Math.ceil((backH2+backW2)*2/20) * r.qty;
+    addPart('背板螺絲','screw', screwQty, '結構');
+  }
+
+  // ── 工時明細計算 ──
+  var works=[];
+  works.push({n:'01. 前置作業',         u:'台', q:r.qty, t:parts.t01||0.33});
+  works.push({n:'04. 組鋁框彎角',       u:'台', q:r.qty, t:parts.t04||1});
+  works.push({n:'02. 模組拼接打膠',     u:'片', q:r.D,   t:parts.t02||1.01});
+  works.push({n:'05. 模組上架',         u:'片', q:r.D,   t:parts.t05||0.5});
+  works.push({n:'07. 電線固定黏片',     u:'片', q:r.D,   t:parts.t07||0.233});
+  works.push({n:'10+13+14. 電源器全程', u:'顆', q:r.pwrN,t:parts.t10||5.867});
+  works.push({n:'11. 上排線',           u:'條', q:r.D,   t:parts.t11||0.2});
+  works.push({n:'12. 上 DC 電源線',     u:'條', q:r.D,   t:parts.t12||0.2});
+  works.push({n:'15+16. 控制+送電',     u:'台', q:r.qty, t:parts.t16||5.5});
+  works.push({n:'17. 貼標拍照',         u:'顆', q:r.pwrN,t:parts.t17||1.5});
+  if(r.cai>0) works.push({n:'19. 上背板', u:'才', q:r.cai, t:parts.t19||0.25});
+  works.push({n:'包裝',                 u:'台', q:r.qty, t:parts.t_pack||0});
+
+  // 計算小計
+  var matSub=0;
+  mats.forEach(function(m){matSub+=m.sub;});
+  var workMin=0;
+  works.forEach(function(w){w.sub=w.q*w.t; workMin+=w.sub;});
+  var workCost = workMin/60 * wage;
+  var total = matSub + workCost;
+
+  // ── 渲染 ──
+  document.getElementById('cost_mat').textContent='$'+Math.round(matSub).toLocaleString();
+  document.getElementById('cost_work').textContent='$'+Math.round(workCost).toLocaleString();
+  document.getElementById('cost_work_min').textContent=workMin.toFixed(1)+' 分 ('+(workMin/60).toFixed(2)+' hr)';
+  document.getElementById('cost_total').textContent='$'+Math.round(total).toLocaleString();
+
+  // 材料表格
+  var matHtml='<table style="width:100%;font-size:12px;border-collapse:collapse">';
+  matHtml+='<tr style="background:#F0F4F8"><th style="text-align:left;padding:6px">項目</th><th style="text-align:right;padding:6px">數量</th><th style="text-align:right;padding:6px">單價</th><th style="text-align:right;padding:6px">小計</th></tr>';
+  var curCat=null;
+  mats.forEach(function(m){
+    if(m.cat!==curCat){
+      curCat=m.cat;
+      matHtml+='<tr style="background:#FAFBFC"><td colspan="4" style="padding:4px 6px;font-size:10px;color:var(--sub);font-weight:700">'+curCat+'</td></tr>';
+    }
+    matHtml+='<tr style="border-bottom:1px solid var(--border)">';
+    matHtml+='<td style="padding:6px">'+m.n+'</td>';
+    matHtml+='<td style="text-align:right;padding:6px;color:var(--sub)">'+m.q+'</td>';
+    matHtml+='<td style="text-align:right;padding:6px;color:var(--sub)">$'+(typeof m.u==='number'?m.u.toFixed(2):m.u)+'</td>';
+    matHtml+='<td style="text-align:right;padding:6px;font-weight:700">$'+Math.round(m.sub).toLocaleString()+'</td>';
+    matHtml+='</tr>';
+  });
+  matHtml+='<tr style="background:#EEF4FF;font-weight:800"><td colspan="3" style="padding:8px;text-align:right">材料小計</td><td style="text-align:right;padding:8px;color:var(--accent)">$'+Math.round(matSub).toLocaleString()+'</td></tr>';
+  matHtml+='</table>';
+  document.getElementById('materialDetail').innerHTML=matHtml;
+
+  // 工時表格
+  var workHtml='<table style="width:100%;font-size:12px;border-collapse:collapse">';
+  workHtml+='<tr style="background:#F0F4F8"><th style="text-align:left;padding:6px">工序</th><th style="text-align:right;padding:6px">數量</th><th style="text-align:right;padding:6px">分/單位</th><th style="text-align:right;padding:6px">小計分鐘</th></tr>';
+  works.forEach(function(w){
+    workHtml+='<tr style="border-bottom:1px solid var(--border)">';
+    workHtml+='<td style="padding:6px">'+w.n+'</td>';
+    workHtml+='<td style="text-align:right;padding:6px;color:var(--sub)">'+(typeof w.q==='number'?w.q.toFixed(2):w.q)+' '+w.u+'</td>';
+    workHtml+='<td style="text-align:right;padding:6px;color:var(--sub)">'+w.t+'</td>';
+    workHtml+='<td style="text-align:right;padding:6px;font-weight:700">'+w.sub.toFixed(2)+'</td>';
+    workHtml+='</tr>';
+  });
+  workHtml+='<tr style="background:#EEF4FF;font-weight:800"><td colspan="3" style="padding:8px;text-align:right">工時小計</td><td style="text-align:right;padding:8px;color:var(--accent)">'+workMin.toFixed(1)+' 分</td></tr>';
+  workHtml+='<tr style="background:#F0FDF4;font-weight:800"><td colspan="3" style="padding:8px;text-align:right">工時成本 (時薪 $'+wage+')</td><td style="text-align:right;padding:8px;color:var(--green)">$'+Math.round(workCost).toLocaleString()+'</td></tr>';
+  workHtml+='</table>';
+  document.getElementById('worktimeDetail').innerHTML=workHtml;
+
+  // 積分點
+  var kpiHtml='<div>本筆積分：<strong style="color:var(--brand2);font-size:18px">'+(r.kpi||0).toFixed(1)+'</strong> 分</div>';
+  kpiHtml+='<div style="font-size:11px;color:var(--sub);margin-top:6px">計算規則：';
+  if(r.fid==='O') kpiHtml+='無框 = 3.5 + D 片數';
+  else if(['X','I','S'].indexOf(r.fid)>=0) kpiHtml+='室內框 = 4.5 + D 片數';
+  else if(['R','P','N','J','A'].indexOf(r.fid)>=0){
+    var longSide = Math.max(r.fh, r.fw);
+    if(longSide<=112) kpiHtml+='戶外短邊≤112cm = 5.5 + D×2';
+    else kpiHtml+='戶外長邊>112cm = (含框面積÷'+(base.scDiv||450)+') + D×2';
+  }
+  kpiHtml+='，再 × 數量</div>';
+  document.getElementById('kpiDetail').innerHTML=kpiHtml;
+
+  // 把材料明細格式化成文字（給 Ragic 材料細批欄位用）
+  var detailText='【材料明細】\n';
+  mats.forEach(function(m){
+    detailText+=m.n+' × '+m.q+' × $'+(typeof m.u==='number'?m.u.toFixed(2):m.u)+' = $'+Math.round(m.sub)+'\n';
+  });
+  detailText+='材料小計 $'+Math.round(matSub)+'\n\n【工時明細】\n';
+  works.forEach(function(w){
+    detailText+=w.n+' '+(typeof w.q==='number'?w.q.toFixed(1):w.q)+' '+w.u+' × '+w.t+' = '+w.sub.toFixed(1)+' 分\n';
+  });
+  detailText+='工時小計 '+workMin.toFixed(1)+' 分 (工時成本 $'+Math.round(workCost)+')\n';
+  detailText+='\n合計 $'+Math.round(total);
+
+  // 把計算結果存到 RESULT 給 sync 用
+  RESULT.matSub=matSub;
+  RESULT.workCost=workCost;
+  RESULT.totalCost=total;
+  RESULT.matDetail=detailText;
+}
 
 // ══ Toast ══
 function toast(msg){
