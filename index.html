@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.3</title>
+<title>USLED 快速報價 v9.3.1</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.3</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.3.1</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -2035,10 +2035,17 @@ function testRagicPost(){
     }else{
       // POST 回來了但不是 SUCCESS（可能被當訪客或欄位有問題）
       var isGuest=res.body.indexOf('guest')>=0;
+      var errMsg;
+      if(res.status===401) errMsg='Google 登入過期，請重新登入';
+      else if(res.status===403) errMsg='帳號未授權（Worker 白名單擋）';
+      else if(isGuest && route.mode==='worker') errMsg='Worker 內 API Key 無效（請管理員重設 secret）';
+      else if(isGuest) errMsg='被當訪客（API Key 認證失效）';
+      else errMsg='HTTP '+res.status+'，status='+status;
       st.innerHTML=
-        '<span class="status-chip status-err">❌ '+(isGuest?'被當訪客（API Key 認證失效）':'HTTP '+res.status+'，status='+status)+'</span>'+
+        '<span class="status-chip status-err">❌ '+errMsg+'</span>'+
+        '<div style="font-size:10px;color:var(--sub);margin-top:4px">模式：'+route.mode+' / '+route.reason+'</div>'+
         '<div style="text-align:left;font-size:11px;margin-top:8px;padding:10px;background:#1A2236;color:#FCA5A5;border-radius:6px;font-family:monospace;word-break:break-all;max-height:300px;overflow:auto">'+
-        '<div style="color:#FBBF24">📥 Ragic 回應前 500 字：</div>'+rawShow+
+        '<div style="color:#FBBF24">📥 回應前 500 字：</div>'+rawShow+
         '</div>';
     }
   }).catch(function(e){
@@ -2209,8 +2216,9 @@ function loadSavedUser(){
   try{
     var u=JSON.parse(localStorage.getItem('usled_user')||'null');
     if(u && ROLE_WHITELIST[u.email]===u.role){
-      // v9.2：若 token 過期，靜默清掉強制重新登入（避免 Worker 401）
-      if(WORKER_URL && u.tokenExp && u.tokenExp < Date.now()){
+      // v9.2/v9.3：Worker 模式下若沒有 idToken 或 token 過期，靜默清掉強制重新登入
+      // （這會處理「v9.0/v9.1 舊登入記憶」+「Google token 過期」兩種情況）
+      if(WORKER_URL && (!u.idToken || (u.tokenExp && u.tokenExp < Date.now()))){
         localStorage.removeItem('usled_user');
         return false;
       }
