@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.4</title>
+<title>USLED 快速報價 v9.5</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.4</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.5</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -2098,9 +2098,10 @@ function pushToRagic(rec){
   add(F.tier,       rec.tierName);
   add(F.unitPrice,  rec.unitPrice||0);
   add(F.totalPrice, rec.totalPrice||0);
-  // v9.4：面積保留小數點 1 位（跟報價單顯示一致），結尾加 cm 單位
-  add(F.dispH,      (rec.dispH||0).toFixed(1)+' cm');
-  add(F.dispW,      (rec.dispW||0).toFixed(1)+' cm');
+  // v9.5：面積保留 1 位小數送純數字（Ragic 欄位種類「數值」會拒絕非數字字串如「13.0 cm」）
+  // cm 單位由 Ragic 欄位名稱顯示（建議改成「面積H (cm)」「面積W (cm)」）
+  add(F.dispH,      (rec.dispH||0).toFixed(1));
+  add(F.dispW,      (rec.dispW||0).toFixed(1));
   add(F.totalW,     Math.round(rec.totalW||0));
   add(F.totalKg,    (rec.totalKg||0).toFixed(2));
   add(F.matCost,    rec.matCost||0);
