@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.5</title>
+<title>USLED 快速報價 v9.6</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.5</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.6</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -1226,7 +1226,8 @@ function calc(){
   document.getElementById('r_chars').textContent=rows*cols*dual+'字';
   document.getElementById('r_area').textContent=dispH.toFixed(1)+'×'+dispW.toFixed(1);
   document.getElementById('r_frame').textContent=(fEdge?fh.toFixed(1)+'×'+fw.toFixed(1):dispH.toFixed(1)+'×'+dispW.toFixed(1));
-  document.getElementById('r_watt').textContent=totalW.toFixed(0)+'W';
+  // v9.6：顯示「公告平均功率」= 峰值 × 0.3（peak 仍用於電源器數量計算）
+  document.getElementById('r_watt').textContent=(totalW*0.3).toFixed(0)+'W';
   document.getElementById('r_wgt').textContent=totalKg.toFixed(2)+'kg';
   var ptH=rows*16,ptW=cols*16,ptTotal=ptH*ptW;
   document.getElementById('r_pwrn').textContent=pwrN>0?(pid+'×'+pwrN):'—';
@@ -1528,7 +1529,7 @@ function buildQuote(){
           '使用電壓：'+((pid&&(pid.startsWith('HBM')||pid.startsWith('HBT')))?'AC 220V':'AC 110V')+' (面對機子右下側出線)<br>'+
           '結構外框：'+((r.f&&r.f.grp!=='none')?'抗鏽加厚型雙層鋁合金':'輕型塑膠背板')+'<br>'+
           '傳輸方式：手機APP傳輸'+(cid&&cid.startsWith('HD')?'(屏掌控)':cid&&cid.startsWith('RHX')?'(RHX)':'')+'<br>'+
-          '平均功率：'+(r.totalW?Math.round(r.totalW*0.33):'-')+' W/hr(參考)<br>'+
+          '平均功率：'+(r.totalW?Math.round(r.totalW*0.3):'-')+' W/hr(參考)<br>'+
           '防水程度：'+(r.m&&r.m.water.includes('戶外')?'全戶外防雨':'室內防潮')+'<br>'+
           '機體重量：約'+(r.totalKg?(r.totalKg.toFixed(2)):'-')+'kg±5%'+
         '</div>'+
@@ -2102,7 +2103,7 @@ function pushToRagic(rec){
   // cm 單位由 Ragic 欄位名稱顯示（建議改成「面積H (cm)」「面積W (cm)」）
   add(F.dispH,      (rec.dispH||0).toFixed(1));
   add(F.dispW,      (rec.dispW||0).toFixed(1));
-  add(F.totalW,     Math.round(rec.totalW||0));
+  add(F.totalW,     Math.round((rec.totalW||0)*0.3));  // v9.6：送公告平均功率（峰值 × 0.3）
   add(F.totalKg,    (rec.totalKg||0).toFixed(2));
   add(F.matCost,    rec.matCost||0);
   // v9.4：本機ID 改送建單人 email（Worker 模式下會優先用 currentUser.email；fallback 才送原本機 ID）
