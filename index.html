@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.7</title>
+<title>USLED 快速報價 v9.8</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.7</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.8</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -1324,15 +1324,16 @@ function updateTiers(){
         '<div class="cost-row"><span>毛利率</span><strong>'+profitPct.toFixed(1)+'%</strong></div>'+
         '<div class="profit-bar"><div class="profit-fill" style="width:'+Math.min(Math.max(profitPct,0),100)+'%"></div></div>'+
       '</div>':'';
-    // v9.7：自訂毛利率 tier 顯示可編輯的 % 輸入框
+    // v9.7：自訂毛利率 tier 顯示可編輯的 % 輸入框（v9.8：改 onchange + 整數，避免輸入時跳脫）
     var nameHtml;
     if(t.editable){
-      var marginPct=(t.margin*100).toFixed(1);
+      var marginPct=Math.round(t.margin*100);
       nameHtml='<div class="tier-name">'+t.name+
         ' <input type="number" class="custom-margin-input" data-tier-i="'+i+'" '+
-          'value="'+marginPct+'" min="1" max="95" step="0.1" '+
-          'style="width:64px;font-size:14px;padding:2px 6px;border:1.5px solid var(--accent);border-radius:5px;text-align:center;margin-left:6px" '+
-          'onclick="event.stopPropagation()" onfocus="event.stopPropagation()">'+
+          'value="'+marginPct+'" min="1" max="95" step="1" '+
+          'style="width:60px;font-size:14px;padding:2px 6px;border:1.5px solid var(--accent);border-radius:5px;text-align:center;margin-left:6px" '+
+          'onclick="event.stopPropagation()" onfocus="event.stopPropagation()" '+
+          'onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+
         '<span style="font-size:12px;color:var(--sub);margin-left:2px">%</span>'+
         '</div>';
     }else{
@@ -1358,23 +1359,19 @@ function updateTiers(){
       RESULT.tierName=TIERS[selTier].name;
       updateTiers();
     };
-    // 自訂毛利率的輸入框 — 即時更新 margin、存 localStorage、重新計算
+    // v9.8：自訂毛利率輸入框改用 onchange（送出/blur/Enter 時才重算）
+    // v9.7 用 oninput 每打一個鍵就 rebuild DOM + select 全選，導致打 2 位數就跳脫無法輸入
     if(t.editable){
       var input=div.querySelector('.custom-margin-input');
       if(input){
-        input.oninput=function(){
-          var v=parseFloat(this.value);
+        input.onchange=function(){
+          var v=parseInt(this.value, 10);
           if(isNaN(v)||v<1)v=1;
           if(v>95)v=95;
+          this.value=v;  // 修正欄位顯示
           TIERS[i].margin=v/100;
           try{localStorage.setItem('usled_custom_margin', String(v/100));}catch(e){}
-          // 若目前選的就是這個 tier，重算 RESULT 後同步刷新所有卡（讓其他卡的數字也即時更新成本/毛利欄）
           updateTiers();
-          // 重新聚焦讓使用者可繼續輸入（updateTiers 重繪會丟失焦點）
-          setTimeout(function(){
-            var newInput=document.querySelector('.custom-margin-input[data-tier-i="'+i+'"]');
-            if(newInput){newInput.focus(); newInput.select();}
-          },0);
         };
       }
     }
@@ -2309,52 +2306,86 @@ function computeFullCostBreakdown(r){
   var base=BUILTIN_CFG.base||{};
   var sp=base.sp||22;  // 積分 → 委外工資 ($/分)
 
-  // ── 材料明細 ──
+  // v9.8：材料明細加入規格註解，並按「框 → 結構 → 模組 → 電源 → 電子 → 附件 → 膠化 → 線材」排序
+  // 計算前置：背板尺寸 (cm)、附件每件長度 (cm)
+  var backH = r.cai>0 ? (r.dispH + (BACK_OFFSET[r.fid]||0)) : 0;
+  var backW = r.cai>0 ? (r.dispW + (BACK_OFFSET[r.fid]||0)) : 0;
+  var bracketLenCm = r.dispH + 3;  // 門型鐵/玻纖板每件長度（cm）
+  var bracketPerMachine = r.mCols + 1;  // 每台幾件
   var mats=[];
-  mats.push({n:'模組 '+r.mid, q:r.D+' 片', u:r.m.twd, sub:r.D*r.m.twd, cat:'模組'});
-  if(r.p) mats.push({n:'電源器 '+r.pid, q:r.pwrN+' 顆', u:r.p.price, sub:r.pwrN*r.p.price, cat:'電源'});
-  if(r.ct) mats.push({n:'控制卡 '+r.cid, q:'1', u:r.ct.price, sub:r.ct.price, cat:'電子'});
+
+  // 1. 框（最上面）
   if(r.f && r.f.price){
     var perimCm=(r.fh+r.fw)*2;
-    mats.push({n:'框料 '+r.fid, q:perimCm.toFixed(1)+' cm', u:r.f.price, sub:r.f.price*perimCm, cat:'框'});
+    var fLabel='框料 '+r.fid+(r.f.model?' ('+r.f.model+')':'');
+    mats.push({n:fLabel, q:perimCm.toFixed(1)+' cm', u:r.f.price, sub:r.f.price*perimCm, cat:'框'});
   }
   if(r.f && r.f.corner){
-    mats.push({n:'框角 '+r.fid, q:'4 個', u:r.f.corner, sub:r.f.corner*4, cat:'框'});
+    var fcLabel='框角 '+r.fid+(r.f.model?' ('+r.f.model+')':'');
+    mats.push({n:fcLabel, q:'4 個', u:r.f.corner, sub:r.f.corner*4, cat:'框'});
   }
+
+  // 2. 結構（背板）
   if(r.f && r.f.grp!=='none' && r.cai){
     var backP=parts.back_p||45;
-    mats.push({n:'背板', q:r.cai.toFixed(2)+' 才', u:backP, sub:r.cai*backP, cat:'結構'});
+    var backLabel='背板 ('+Math.round(backH*10)+'×'+Math.round(backW*10)+'mm)';
+    mats.push({n:backLabel, q:r.cai.toFixed(2)+' 才', u:backP, sub:r.cai*backP, cat:'結構'});
   }
+
+  // 3. 模組
+  var modLabel='模組 '+r.mid+' ('+Math.round(r.m.ml*10)+'×'+Math.round(r.m.mh*10)+'mm)';
+  mats.push({n:modLabel, q:r.D+' 片', u:r.m.twd, sub:r.D*r.m.twd, cat:'模組'});
+
+  // 4. 電源
+  if(r.p){
+    var pLabel='電源器 '+r.pid+' ('+(r.p.watt||0)+'W)';
+    mats.push({n:pLabel, q:r.pwrN+' 顆', u:r.p.price, sub:r.pwrN*r.p.price, cat:'電源'});
+  }
+
+  // 5. 電子（控制卡）
+  if(r.ct){
+    mats.push({n:'控制卡 '+r.cid, q:'1', u:r.ct.price, sub:r.ct.price, cat:'電子'});
+  }
+
   function addPart(name, partKey, qty, cat){
     var p=parts[partKey+'_p'];
     if(p && qty>0) mats.push({n:name, q:qty.toFixed(1), u:p, sub:p*qty, cat:cat||'附件'});
   }
-  if(r.f && r.f.grp==='outdoor') addPart('框角螺絲(自攻)','cornscrew', 8*r.qty, '附件');
-  if(r.f && r.f.grp==='indoor') addPart('框角螺絲(自攻)','cornscrew', 4*r.qty, '附件');
+
+  // 6. 附件（含固定件，前面加長度標註）
   if(r.f && r.f.grp==='outdoor'){
+    addPart('框角螺絲 (自攻)','cornscrew', 8*r.qty, '附件');
     var drains = Math.max(3, 3 + Math.floor(Math.max(r.dispH,r.dispW)/60));
     addPart('排水孔塞','drain', drains*r.qty, '附件');
+    addPart('固定 B-門型鐵 (長度 '+bracketLenCm.toFixed(1)+' cm)','bracket', bracketPerMachine*bracketLenCm*r.qty, '附件');
+    addPart('磁鐵 (1組4顆)','magnet', r.D*r.qty/4, '附件');
   }
-  if(r.f && r.f.grp==='indoor') addPart('滑軌','rail', 4*r.qty, '附件');
-  if(r.f && r.f.grp==='outdoor') addPart('固定 B-門型鐵','bracket', (r.mCols+1)*(r.dispH+3)*r.qty, '附件');
-  if(r.f && r.f.grp==='indoor') addPart('固定 A-玻纖板','glass', (r.mCols+1)*(r.dispH+3)*r.qty, '附件');
-  if(r.f && r.f.grp==='outdoor') addPart('磁鐵 (1組4顆)','magnet', r.D*r.qty/4, '附件');
+  if(r.f && r.f.grp==='indoor'){
+    addPart('框角螺絲 (自攻)','cornscrew', 4*r.qty, '附件');
+    addPart('滑軌','rail', 4*r.qty, '附件');
+    addPart('固定 A-玻纖板 (長度 '+bracketLenCm.toFixed(1)+' cm)','glass', bracketPerMachine*bracketLenCm*r.qty, '附件');
+  }
+  // 7. 膠化
   addPart('膠化-前點膠','preglue', r.D*r.qty, '膠化');
   if(r.f && r.f.grp==='outdoor') addPart('膠化-後滿膠','fullglue', r.D*r.qty, '膠化');
   if(r.cai>0){
-    var backH = r.dispH + (BACK_OFFSET[r.fid]||0);
-    var backW = r.dispW + (BACK_OFFSET[r.fid]||0);
     addPart('膠化-封板','sealglue', (backH+backW)*2*r.qty, '膠化');
   }
+  // 8. 線材
   addPart('排線','ribbon', r.D*r.qty, '線材');
   addPart('DC 電源線','dcwire', r.pwrN*r.qty, '線材');
   addPart('控制線','transwire', r.qty, '線材');
+  // 結構（背板螺絲，放回結構分組）
   if(r.cai>0){
-    var backH2 = r.dispH + (BACK_OFFSET[r.fid]||0);
-    var backW2 = r.dispW + (BACK_OFFSET[r.fid]||0);
-    var screwQty = Math.ceil((backH2+backW2)*2/20) * r.qty;
-    addPart('背板螺絲','screw', screwQty, '結構');
+    var screwQty = Math.ceil((backH+backW)*2/20) * r.qty;
+    addPart('背板螺絲 (自攻)','screw', screwQty, '結構');
   }
+
+  // 排序：框 → 結構 → 模組 → 電源 → 電子 → 附件 → 膠化 → 線材
+  var CAT_ORDER = ['框','結構','模組','電源','電子','附件','膠化','線材'];
+  mats.sort(function(a,b){
+    return CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat);
+  });
 
   // ── 工時明細 ──
   var works=[];
@@ -2453,8 +2484,14 @@ function renderCostPage(){
     workHtml+='<td style="text-align:right;padding:6px;font-weight:700">'+w.sub.toFixed(2)+'</td>';
     workHtml+='</tr>';
   });
+  // v9.8：工時小計 + 兩種工資對照（內組工資 vs 委外工資）
+  // 內組 = 員工工時 × 時薪（如果自己組裝的成本）
+  // 委外 = 積分 × $22（實際採用，會計入總成本）
+  var wage = (BUILTIN_CFG.base && BUILTIN_CFG.base.wage) || 350;
+  var inhouseCost = (workMin/60) * wage;
   workHtml+='<tr style="background:#EEF4FF;font-weight:800"><td colspan="3" style="padding:8px;text-align:right">工時小計</td><td style="text-align:right;padding:8px;color:var(--accent)">'+workMin.toFixed(1)+' 分</td></tr>';
-  workHtml+='<tr style="background:#F0FDF4;font-weight:800"><td colspan="3" style="padding:8px;text-align:right">工時成本 ('+(r.kpi||0).toFixed(1)+' 積分 × $'+sp+' 委外工資)</td><td style="text-align:right;padding:8px;color:var(--green)">$'+Math.round(workCost).toLocaleString()+'</td></tr>';
+  workHtml+='<tr style="background:#FFFBEB"><td colspan="3" style="padding:6px 8px;text-align:right;color:var(--sub);font-size:11px">內組工資（員工工時 '+(workMin/60).toFixed(2)+' hr × 時薪 $'+wage+'）<span style="font-size:10px;color:var(--sub)">　參考</span></td><td style="text-align:right;padding:6px 8px;color:var(--sub)">$'+Math.round(inhouseCost).toLocaleString()+'</td></tr>';
+  workHtml+='<tr style="background:#F0FDF4;font-weight:800"><td colspan="3" style="padding:8px;text-align:right">委外工資（積分 '+(r.kpi||0).toFixed(1)+' × $'+sp+'）<span style="font-size:10px;color:var(--green)">　← 計入成本</span></td><td style="text-align:right;padding:8px;color:var(--green)">$'+Math.round(workCost).toLocaleString()+'</td></tr>';
   workHtml+='</table>';
   document.getElementById('worktimeDetail').innerHTML=workHtml;
 
