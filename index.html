@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.3.1</title>
+<title>USLED 快速報價 v9.4</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.3.1</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.4</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -676,6 +676,8 @@ var TIERS = [
 // ══ 資料 ══
 var MODS=[], FRMS=[], PWRS=[], CTRL=[];
 var BACK_OFFSET={O:0,N:0,S:1.5,X:2.5,I:4.0,J:3.7,R:4.5,A:7.5,P:8.5};
+// v9.4：含框厚度 T（cm）— 由使用者規格決定，跟成本/重量計算無關，僅用於報價單外觀
+var FRAME_THICKNESS={R:9, P:9, N:9, J:6, I:6, X:3.8, A:8, S:3.8, O:0};
 
 // ══ 靜態 meta ══
 var MOD_META={
@@ -1522,7 +1524,7 @@ function buildQuote(){
           '解析點數：(H)'+(r.ptH||'—')+'點 * (W)'+(r.ptW||'—')+'點<br>'+
           '總顯示點：'+(r.ptTotal?r.ptTotal.toLocaleString():'—')+' pot<br>'+
           '顯示面積：(H)'+(r.dispH?(r.dispH.toFixed(1)):'-')+'cm * (W)'+(r.dispW?(r.dispW.toFixed(1)):'-')+'cm<br>'+
-          '含框尺寸：(H)'+(r.fh?(r.fh.toFixed(1)):'-')+'cm * (W)'+(r.fw?(r.fw.toFixed(1)):'-')+'cm(T)'+(r.f?(r.f.edge*2+7).toFixed(1):9)+'cm<br>'+
+          '含框尺寸：(H)'+(r.fh?(r.fh.toFixed(1)):'-')+'cm * (W)'+(r.fw?(r.fw.toFixed(1)):'-')+'cm(T)'+((FRAME_THICKNESS[r.fid]||0).toFixed(1))+'cm<br>'+
           '使用電壓：'+((pid&&(pid.startsWith('HBM')||pid.startsWith('HBT')))?'AC 220V':'AC 110V')+' (面對機子右下側出線)<br>'+
           '結構外框：'+((r.f&&r.f.grp!=='none')?'抗鏽加厚型雙層鋁合金':'輕型塑膠背板')+'<br>'+
           '傳輸方式：手機APP傳輸'+(cid&&cid.startsWith('HD')?'(屏掌控)':cid&&cid.startsWith('RHX')?'(RHX)':'')+'<br>'+
@@ -1605,12 +1607,21 @@ function saveHistory(list){
   try{localStorage.setItem('usled_quotes_history',JSON.stringify(list));}catch(e){toast('⚠ 本機儲存失敗');}
 }
 
+// v9.4：把 ISO 時間格式化成 "YYYY/MM/DD HH:MM"（本地時區）
+function formatLocalDateTime(iso){
+  var d = iso ? new Date(iso) : new Date();
+  if(isNaN(d.getTime())) return '';
+  var p = function(n){return n<10?'0'+n:''+n;};
+  return d.getFullYear()+'/'+p(d.getMonth()+1)+'/'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes());
+}
+
 function archiveQuote(){
   var r=RESULT;
   if(!r.mid)return;
   var rec={
     id:'Q'+Date.now()+Math.floor(Math.random()*100),
     createdAt:new Date().toISOString(),
+    createdBy:(currentUser&&currentUser.email)||'',  // v9.4：紀錄誰建的（送到 Ragic「本機ID」欄位）
     customer:GS('c_name')||'—',
     phone:GS('c_phone')||'',
     quoteDate:GS('c_date')||'',
@@ -2087,13 +2098,17 @@ function pushToRagic(rec){
   add(F.tier,       rec.tierName);
   add(F.unitPrice,  rec.unitPrice||0);
   add(F.totalPrice, rec.totalPrice||0);
-  add(F.dispH,      Math.round(rec.dispH||0));
-  add(F.dispW,      Math.round(rec.dispW||0));
+  // v9.4：面積保留小數點 1 位（跟報價單顯示一致），結尾加 cm 單位
+  add(F.dispH,      (rec.dispH||0).toFixed(1)+' cm');
+  add(F.dispW,      (rec.dispW||0).toFixed(1)+' cm');
   add(F.totalW,     Math.round(rec.totalW||0));
   add(F.totalKg,    (rec.totalKg||0).toFixed(2));
   add(F.matCost,    rec.matCost||0);
-  add(F.localId,    rec.id);
-  add(F.createdAt,  rec.createdAt);
+  // v9.4：本機ID 改送建單人 email（Worker 模式下會優先用 currentUser.email；fallback 才送原本機 ID）
+  var creator = rec.createdBy || (currentUser && currentUser.email) || rec.id;
+  add(F.localId,    creator);
+  // v9.4：建立時間格式化成 YYYY/MM/DD HH:MM
+  add(F.createdAt,  formatLocalDateTime(rec.createdAt));
   if(F.workHr && F.workHr.indexOf('TBD')<0) add(F.workHr, (rec.workHr||0).toFixed(2));
   if(F.kpi    && F.kpi.indexOf('TBD')<0)    add(F.kpi,    (rec.kpi||0).toFixed(1));
   if(F.matDetail && F.matDetail.indexOf('TBD')<0) add(F.matDetail, rec.matDetail||'');
