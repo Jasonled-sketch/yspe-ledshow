@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.8</title>
+<title>USLED 快速報價 v9.9</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.8</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.9</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -684,6 +684,21 @@ var MODS=[], FRMS=[], PWRS=[], CTRL=[];
 var BACK_OFFSET={O:0,N:0,S:1.5,X:2.5,I:4.0,J:3.7,R:4.5,A:7.5,P:8.5};
 // v9.4：含框厚度 T（cm）— 由使用者規格決定，跟成本/重量計算無關，僅用於報價單外觀
 var FRAME_THICKNESS={R:9, P:9, N:9, J:6, I:6, X:3.8, A:8, S:3.8, O:0};
+// v9.9：固定件每件長度偏移（mm）— 戶外用「固定 B-門型鐵」，室內用「固定 A-玻纖板」
+// 每件長度 = 模組顯示高度 (dispH cm) + 此偏移 (mm/10 cm)
+var BRACKET_OFFSET_MM = {
+  P: 30, R: 25, J: 16, A: 25, N: 25,  // 戶外框 → 固定 B-門型鐵
+  X: 16, I: 16, S: 16,                 // 室內框 → 固定 A-玻纖板
+  O: 0
+};
+// v9.9：電源器廠牌規格對照表（待擴充）。沒對應的 fallback 顯示 (XXX W)
+var PWR_META = {
+  HBM: {brand:'明瑋', spec:'5V60A', voltage:'AC 220V'}
+  // TODO: 其他電源廠牌規格待 Jason 提供
+  // HAM/HAT/HBT/HSH1/HSH2/HSM1/HSM2/HSM3/LAA0/LAA3/LAA6/LBG1/LBH1/LBH2/LBH3/LCH2
+};
+// v9.9：大型控制卡（接收卡型）— 顯示寬度每 > 256 點要加一組「接收卡 R712 + 網路線」
+var BIG_CTRL_IDS = ['HD-C16L', 'HD-A3L', 'HD-A4', 'HD-A5L'];
 
 // ══ 靜態 meta ══
 var MOD_META={
@@ -2310,7 +2325,9 @@ function computeFullCostBreakdown(r){
   // 計算前置：背板尺寸 (cm)、附件每件長度 (cm)
   var backH = r.cai>0 ? (r.dispH + (BACK_OFFSET[r.fid]||0)) : 0;
   var backW = r.cai>0 ? (r.dispW + (BACK_OFFSET[r.fid]||0)) : 0;
-  var bracketLenCm = r.dispH + 3;  // 門型鐵/玻纖板每件長度（cm）
+  // v9.9：固定件長度依框型偏移（P+30/R+25/J+16/A+25 mm 戶外；X+16/I+16 mm 室內）
+  var bracketOffsetCm = (BRACKET_OFFSET_MM[r.fid] || 30) / 10;
+  var bracketLenCm = r.dispH + bracketOffsetCm;
   var bracketPerMachine = r.mCols + 1;  // 每台幾件
   var mats=[];
 
@@ -2336,15 +2353,25 @@ function computeFullCostBreakdown(r){
   var modLabel='模組 '+r.mid+' ('+Math.round(r.m.ml*10)+'×'+Math.round(r.m.mh*10)+'mm)';
   mats.push({n:modLabel, q:r.D+' 片', u:r.m.twd, sub:r.D*r.m.twd, cat:'模組'});
 
-  // 4. 電源
+  // 4. 電子（電源器 + 控制卡 + 大型卡附屬接收卡）
   if(r.p){
-    var pLabel='電源器 '+r.pid+' ('+(r.p.watt||0)+'W)';
-    mats.push({n:pLabel, q:r.pwrN+' 顆', u:r.p.price, sub:r.pwrN*r.p.price, cat:'電源'});
+    var pMeta = PWR_META[r.pid];
+    var pDesc = pMeta
+      ? '('+pMeta.brand+' '+pMeta.spec+(pMeta.voltage?' '+pMeta.voltage:'')+')'
+      : '('+(r.p.watt||0)+'W)';
+    mats.push({n:'電源器 '+r.pid+' '+pDesc, q:r.pwrN+' 顆', u:r.p.price, sub:r.pwrN*r.p.price, cat:'電子'});
   }
-
-  // 5. 電子（控制卡）
   if(r.ct){
     mats.push({n:'控制卡 '+r.cid, q:'1', u:r.ct.price, sub:r.ct.price, cat:'電子'});
+  }
+  // v9.9：大型控制卡（C16L/A3L/A4/A5L）寬度每 > 256 點要加一組接收卡 R712 + 網路線
+  if(BIG_CTRL_IDS.indexOf(r.cid) >= 0){
+    var rxGroups = Math.max(0, Math.ceil((r.ptW||0)/256) - 1);
+    if(rxGroups > 0){
+      var totalGroups = rxGroups * r.qty;
+      mats.push({n:'接收卡 R712', q:totalGroups+' 個', u:330, sub:330*totalGroups, cat:'電子'});
+      mats.push({n:'網路線 (200cm)', q:totalGroups+' 條', u:40, sub:40*totalGroups, cat:'線材'});
+    }
   }
 
   function addPart(name, partKey, qty, cat){
@@ -2352,37 +2379,41 @@ function computeFullCostBreakdown(r){
     if(p && qty>0) mats.push({n:name, q:qty.toFixed(1), u:p, sub:p*qty, cat:cat||'附件'});
   }
 
-  // 6. 附件（含固定件，前面加長度標註）
+  // 6. 附件 + 滑軌（v9.9 滑軌獨立成一類；附件加規格標註）
   if(r.f && r.f.grp==='outdoor'){
     addPart('框角螺絲 (自攻)','cornscrew', 8*r.qty, '附件');
     var drains = Math.max(3, 3 + Math.floor(Math.max(r.dispH,r.dispW)/60));
-    addPart('排水孔塞','drain', drains*r.qty, '附件');
+    addPart('排水孔塞 (SB黑13mm)','drain', drains*r.qty, '附件');
     addPart('固定 B-門型鐵 (長度 '+bracketLenCm.toFixed(1)+' cm)','bracket', bracketPerMachine*bracketLenCm*r.qty, '附件');
-    addPart('磁鐵 (1組4顆)','magnet', r.D*r.qty/4, '附件');
+    addPart('磁鐵 (1組4顆 強磁1513)','magnet', r.D*r.qty/4, '附件');
   }
   if(r.f && r.f.grp==='indoor'){
     addPart('框角螺絲 (自攻)','cornscrew', 4*r.qty, '附件');
-    addPart('滑軌','rail', 4*r.qty, '附件');
     addPart('固定 A-玻纖板 (長度 '+bracketLenCm.toFixed(1)+' cm)','glass', bracketPerMachine*bracketLenCm*r.qty, '附件');
+    // 滑軌獨立成「滑軌」類
+    addPart('滑軌','rail', 4*r.qty, '滑軌');
   }
-  // 7. 膠化
-  addPart('膠化-前點膠','preglue', r.D*r.qty, '膠化');
-  if(r.f && r.f.grp==='outdoor') addPart('膠化-後滿膠','fullglue', r.D*r.qty, '膠化');
+  // 7. 膠化（v9.9：加 N29透明 規格）
+  addPart('膠化-前點膠 (N29透明)','preglue', r.D*r.qty, '膠化');
+  if(r.f && r.f.grp==='outdoor') addPart('膠化-後滿膠 (N29透明)','fullglue', r.D*r.qty, '膠化');
   if(r.cai>0){
-    addPart('膠化-封板','sealglue', (backH+backW)*2*r.qty, '膠化');
+    addPart('膠化-封板 (N29透明)','sealglue', (backH+backW)*2*r.qty, '膠化');
   }
-  // 8. 線材
+  // 8. 線材（v9.9：控制線加規格；新增 AC 電源線）
   addPart('排線','ribbon', r.D*r.qty, '線材');
   addPart('DC 電源線','dcwire', r.pwrN*r.qty, '線材');
-  addPart('控制線','transwire', r.qty, '線材');
+  // AC 電源線：從插座到電源器，每台 1 條（暫定 $20/條，實際待 Jason 確認）
+  mats.push({n:'AC 電源線 (1.8m)', q:r.qty+' 條', u:20, sub:20*r.qty, cat:'線材'});
+  addPart('控制線 (0.5mm*2C-25cm)','transwire', r.qty, '線材');
+
   // 結構（背板螺絲，放回結構分組）
   if(r.cai>0){
     var screwQty = Math.ceil((backH+backW)*2/20) * r.qty;
     addPart('背板螺絲 (自攻)','screw', screwQty, '結構');
   }
 
-  // 排序：框 → 結構 → 模組 → 電源 → 電子 → 附件 → 膠化 → 線材
-  var CAT_ORDER = ['框','結構','模組','電源','電子','附件','膠化','線材'];
+  // 排序（v9.9 新順序）：框 → 附件 → 滑軌 → 模組 → 電子 → 線材 → 膠化 → 結構
+  var CAT_ORDER = ['框','附件','滑軌','模組','電子','線材','膠化','結構'];
   mats.sort(function(a,b){
     return CAT_ORDER.indexOf(a.cat) - CAT_ORDER.indexOf(b.cat);
   });
