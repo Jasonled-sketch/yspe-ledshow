@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.12</title>
+<title>USLED 快速報價 v9.13</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.12</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.13</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -498,7 +498,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 <div id="pg4" class="page" style="max-width:620px">
   <!-- v9.10：預覽頁工具列 — 含「加施工」按鈕 -->
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-    <button class="btn" onclick="openInstallModal()" style="background:#ECFDF5;color:#065F46;border:1.5px solid #10B981;flex:1;min-width:140px">📐 加施工安裝</button>
+    <button class="btn" onclick="openInstallForm()" style="background:#ECFDF5;color:#065F46;border:1.5px solid #10B981;flex:1;min-width:140px">📐 加施工安裝</button>
     <button class="btn" id="btnClearInstall" onclick="clearInstall()" style="background:#FEF2F2;color:#991B1B;border:1.5px solid #EF4444;display:none">✕ 清除施工</button>
   </div>
   <div class="quote-scale-container" id="quoteContainer">
@@ -515,19 +515,92 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
   </div>
 </div>
 
-<!-- v9.11：施工安裝計算 Modal（修正 iframe size + 加另開分頁備案） -->
-<div id="installModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;padding:20px">
-  <div style="background:#181d27;border-radius:12px;width:100%;max-width:1200px;height:calc(100vh - 40px);margin:0 auto;display:flex;flex-direction:column;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#1A3A6B;color:#fff;flex-shrink:0">
-      <div style="font-weight:700;font-size:14px">📐 施工安裝計算</div>
-      <div id="installPreview" style="flex:1;text-align:center;font-size:11px;color:#A7F3D0;font-family:monospace">— 尚未試算 —</div>
-      <div style="display:flex;gap:8px">
-        <button onclick="openInstallNewTab()" title="iframe 顯示異常時用" style="padding:6px 12px;background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:5px;cursor:pointer;font-size:11px">↗ 另開分頁</button>
-        <button onclick="applyInstall()" style="padding:6px 14px;background:#10B981;color:#fff;border:0;border-radius:5px;font-weight:700;cursor:pointer">✅ 套用</button>
-        <button onclick="closeInstallModal()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:5px;cursor:pointer">關閉</button>
+<!-- v9.13：施工安裝 — 內嵌簡化表單（取代 v9.10-9.12 的 iframe 方案） -->
+<div id="installFormModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;padding:20px;overflow-y:auto">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:560px;margin:0 auto;box-shadow:0 10px 40px rgba(0,0,0,.3);overflow:hidden">
+    <!-- header -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(135deg,#10B981,#059669);color:#fff">
+      <div style="font-weight:700;font-size:15px">📐 施工安裝 — 快速試算</div>
+      <button onclick="closeInstallForm()" style="background:rgba(255,255,255,.2);border:0;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:14px">✕</button>
+    </div>
+
+    <div style="padding:16px 18px;font-size:13px;color:#1F2937">
+      <!-- 距離 + 人員 -->
+      <div class="frow"><label style="font-size:11px;font-weight:700;color:#64748B">📍 距離（單程 km）</label>
+        <input id="iv_km" type="number" min="0" value="30" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div class="frow"><label style="font-size:11px;font-weight:700;color:#64748B">👷 師傅人數</label>
+          <input id="iv_mc" type="number" min="0" max="9" value="1" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+        </div>
+        <div class="frow"><label style="font-size:11px;font-weight:700;color:#64748B">🧑‍🔧 助理人數</label>
+          <input id="iv_ac" type="number" min="0" max="9" value="1" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+        </div>
+      </div>
+
+      <div class="frow" style="margin-top:10px"><label style="font-size:11px;font-weight:700;color:#64748B">⏱ 施工工時（分鐘）<span id="iv_billable" style="float:right;color:#10B981;font-weight:600">計費 1.0 hr</span></label>
+        <input id="iv_wmin" type="number" min="0" value="60" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+      </div>
+
+      <!-- 高度 -->
+      <div class="frow" style="margin-top:14px">
+        <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:6px">📏 安裝高度</label>
+        <select id="iv_height" onchange="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px">
+          <option value="0">1.0–1.8m（無梯）— 免加價</option>
+          <option value="0" selected>1.8–3.0m（6尺梯）— 免加價</option>
+          <option value="900">3.0–3.5m（7尺梯）— +$900</option>
+          <option value="1400">3.5–3.9m（8尺梯）— +$1,400</option>
+          <option value="1900">3.9–4.3m（10尺梯）— +$1,900</option>
+          <option value="3300">4.3–4.8m（12尺梯）— +$3,300</option>
+          <option value="4300">4.8–5.3m（長拉梯）— +$4,300</option>
+        </select>
+      </div>
+
+      <!-- 急件 -->
+      <div class="frow" style="margin-top:10px">
+        <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:6px">⚡ 急件加級</label>
+        <select id="iv_urgent" onchange="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px">
+          <option value="0|0" selected>無</option>
+          <option value="1500|300">緩急（50hr 內）— $1,500 起</option>
+          <option value="3000|500">急件（30hr 內）— $3,000 起</option>
+          <option value="4500|800">警急（10hr 內）— $4,500 起</option>
+        </select>
+      </div>
+
+      <!-- 夜間 -->
+      <div class="frow" style="margin-top:10px">
+        <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:6px">🌙 夜間加級（啟用後不另收出車）</label>
+        <select id="iv_night" onchange="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px">
+          <option value="0|0" selected>無</option>
+          <option value="2500|600">晚間 18:00–21:00 — $2,500 起</option>
+          <option value="4500|800">夜間 21:00–24:00 — $4,500 起</option>
+          <option value="6500|1000">大夜 00:00–06:00 — $6,500 起</option>
+        </select>
+      </div>
+
+      <!-- 配件 -->
+      <div class="frow" style="margin-top:10px">
+        <label style="font-size:11px;font-weight:700;color:#64748B">🔩 配件總額 $（L鐵 / 角鋼 / 電纜 / 吊車...）</label>
+        <input id="iv_parts" type="number" min="0" value="0" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+      </div>
+
+      <!-- 即時試算結果 -->
+      <div style="margin-top:16px;padding:12px;background:#F0FDF4;border:1.5px solid #BBF7D0;border-radius:8px">
+        <div style="font-size:11px;color:#065F46;font-weight:700;margin-bottom:8px">📊 即時試算（一般價）</div>
+        <div id="iv_breakdown" style="font-size:12px;line-height:1.9;color:#1F2937;font-family:monospace"></div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding-top:8px;border-top:1.5px dashed #10B981">
+          <span style="font-size:12px;color:#065F46;font-weight:700">施工小計</span>
+          <span id="iv_total" style="font-size:22px;font-weight:900;color:#059669">$0</span>
+        </div>
       </div>
     </div>
-    <iframe id="installFrame" src="" style="flex:1;width:100%;height:100%;min-height:500px;border:0;background:#111318;display:block"></iframe>
+
+    <!-- footer -->
+    <div style="display:flex;gap:8px;padding:12px 18px;background:#F8FAFC;border-top:1px solid #E2E8F0">
+      <button onclick="closeInstallForm()" style="flex:1;padding:10px;background:#fff;border:1.5px solid #CBD5E1;color:#64748B;border-radius:6px;cursor:pointer;font-weight:600">取消</button>
+      <button onclick="applyInstallForm()" style="flex:2;padding:10px;background:#10B981;border:0;color:#fff;border-radius:6px;cursor:pointer;font-weight:700;font-size:14px">✅ 套用到報價</button>
+    </div>
   </div>
 </div>
 
@@ -2610,63 +2683,135 @@ function renderCostPage(){
 
 // ══ Toast ══
 // ══════════════════════════════════════════
-// ══ v9.10：施工安裝整合 ══
+// ══ v9.13：施工安裝 — 內嵌簡化表單（取代 v9.10 iframe）══
 // ══════════════════════════════════════════
-var INSTALL_PENDING = null;  // iframe 即時送來的最新計算結果（套用前暫存）
+// 從 install_v10 工具核心 5 個計算函數移植，固定用「一般價」費率（業務員報價對外用）
+// 完整工具（含工務評級 R0-R9）仍可用 /install/ 子網址獨立開啟
 
-function openInstallModal(){
+// 計費工時規則
+function billableHours(wmin){
+  if(wmin <= 10) return 0;
+  if(wmin <= 60) return 1.0;
+  return 1.0 + Math.ceil((wmin - 60) / 30) * 0.5;
+}
+
+// 主計算 — 讀表單值算出施工費明細
+function calcInstallForm(){
+  var km   = parseFloat(document.getElementById('iv_km').value)||0;
+  var mc   = parseInt(document.getElementById('iv_mc').value)||0;
+  var ac   = parseInt(document.getElementById('iv_ac').value)||0;
+  var wmin = parseInt(document.getElementById('iv_wmin').value)||0;
+  var crew = Math.max(1, mc + ac);
+
+  // ① 出車油資（一般價：1人 $21/km，每加 1 人 +$11/km）
+  var kmRate = 21 + 11 * (crew - 1);
+  var transport = km * kmRate;
+
+  // ② 基本工資（一般價：師傅 $475/hr，助理 $410/hr）
+  var billHr = billableHours(wmin);
+  var labor  = (475 * mc + 410 * ac) * billHr;
+
+  // ③ 高度加級
+  var height = parseInt(document.getElementById('iv_height').value)||0;
+
+  // ④ 急件加級 (base|per-extra-hr)
+  var ugPair = document.getElementById('iv_urgent').value.split('|');
+  var ugH1 = parseInt(ugPair[0])||0;
+  var ugH2 = parseInt(ugPair[1])||0;
+  var hrs  = Math.max(1, Math.ceil(wmin / 60));
+  var urgent = ugH1 > 0 ? ugH1 + Math.max(0, hrs - 1) * ugH2 : 0;
+
+  // ⑤ 夜間加級（啟用後含出車）
+  var ngPair = document.getElementById('iv_night').value.split('|');
+  var ngH1 = parseInt(ngPair[0])||0;
+  var ngH2 = parseInt(ngPair[1])||0;
+  var nightOn = ngH1 > 0;
+  var night = nightOn ? (transport + ngH1 + Math.max(0, hrs - 1) * ngH2) : 0;
+
+  // ⑥ 配件
+  var parts = parseFloat(document.getElementById('iv_parts').value)||0;
+
+  // 總計：夜間啟用時，出車併進夜間，獨立的 transport 不再加
+  var transportShown = nightOn ? 0 : transport;
+  var total = Math.round(transportShown + labor + height + urgent + night + parts);
+
+  // 顯示計費工時
+  document.getElementById('iv_billable').textContent = billHr === 0 ? '免工資' : '計費 '+billHr.toFixed(1)+' hr';
+
+  // 顯示明細
+  var lines = [];
+  if(transportShown > 0) lines.push('出車（'+km+'km × $'+kmRate+'/km） ……… $'+Math.round(transport).toLocaleString());
+  if(labor > 0) lines.push('工資（'+mc+'師+'+ac+'助 × '+billHr.toFixed(1)+'hr） … $'+Math.round(labor).toLocaleString());
+  if(height > 0) lines.push('高度加級 ……………………… $'+height.toLocaleString());
+  if(urgent > 0) lines.push('急件加級 ……………………… $'+urgent.toLocaleString());
+  if(night > 0)  lines.push('夜間加級（含出車） ………… $'+Math.round(night).toLocaleString());
+  if(parts > 0)  lines.push('配件費用 ……………………… $'+parts.toLocaleString());
+  if(lines.length === 0) lines.push('— 尚未輸入有效參數 —');
+  document.getElementById('iv_breakdown').innerHTML = lines.join('<br>');
+  document.getElementById('iv_total').textContent = '$'+total.toLocaleString();
+
+  // 暫存最新狀態（用於 apply）
+  window.__installFormPending = {
+    serviceFee: total,
+    summary: ['出車 '+km+'km', mc+'師+'+ac+'助', '工時 '+(wmin/60).toFixed(1)+'hr',
+              height>0?'高度加級':'', urgent>0?'急件':'', nightOn?'夜間':''].filter(Boolean).join(' / '),
+    detail: {
+      transport: Math.round(transportShown),
+      labor: Math.round(labor),
+      height: height,
+      urgent: urgent,
+      night: Math.round(night),
+      parts: parts
+    },
+    inputs: { km:km, crew:{master:mc, assistant:ac}, wmin:wmin,
+              heightRaw:document.getElementById('iv_height').value,
+              urgentRaw:document.getElementById('iv_urgent').value,
+              nightRaw: document.getElementById('iv_night').value,
+              parts:parts }
+  };
+}
+
+function openInstallForm(){
   if(!RESULT.mid){ toast('⚠ 請先選擇模組規格'); return; }
-  document.getElementById('installModal').style.display='block';
-  var ifr=document.getElementById('installFrame');
-  // 第一次開才載入，後續打開保留狀態。加 cache-bust 確保是最新版本
-  if(!ifr.src) ifr.src='install/?_t='+Date.now();
-  document.getElementById('installPreview').textContent='— 在工具中試算 —';
+  document.getElementById('installFormModal').style.display='block';
+  // 如果之前有 installation 紀錄，預載到表單
+  var ins = RESULT.installation;
+  if(ins && ins.inputs){
+    document.getElementById('iv_km').value    = ins.inputs.km || 0;
+    document.getElementById('iv_mc').value    = (ins.inputs.crew && ins.inputs.crew.master) || 0;
+    document.getElementById('iv_ac').value    = (ins.inputs.crew && ins.inputs.crew.assistant) || 0;
+    document.getElementById('iv_wmin').value  = ins.inputs.wmin || 0;
+    if(ins.inputs.heightRaw) document.getElementById('iv_height').value = ins.inputs.heightRaw;
+    if(ins.inputs.urgentRaw) document.getElementById('iv_urgent').value = ins.inputs.urgentRaw;
+    if(ins.inputs.nightRaw)  document.getElementById('iv_night').value  = ins.inputs.nightRaw;
+    document.getElementById('iv_parts').value = ins.inputs.parts || 0;
+  }
+  calcInstallForm();
 }
-function openInstallNewTab(){
-  // iframe 顯示異常時的備案：在新分頁開啟，計算完手動填回主 PWA
-  window.open('install/?_t='+Date.now(), '_blank');
-  toast('💡 在新分頁試算後，記得回來手動套用金額');
+
+function closeInstallForm(){
+  document.getElementById('installFormModal').style.display='none';
 }
-function closeInstallModal(){
-  document.getElementById('installModal').style.display='none';
-}
-function applyInstall(){
-  if(!INSTALL_PENDING){
-    toast('⚠ 請先在工具中完成試算');
+
+function applyInstallForm(){
+  if(!window.__installFormPending){
+    toast('⚠ 試算尚未完成');
     return;
   }
-  RESULT.installation = INSTALL_PENDING;
-  closeInstallModal();
+  RESULT.installation = window.__installFormPending;
+  closeInstallForm();
   document.getElementById('btnClearInstall').style.display='';
   try{ buildQuote(); }catch(e){console.error(e);}
-  toast('✅ 已加入施工 $'+INSTALL_PENDING.serviceFee.toLocaleString());
+  toast('✅ 已加入施工 $'+RESULT.installation.serviceFee.toLocaleString());
 }
+
 function clearInstall(){
   RESULT.installation = null;
-  INSTALL_PENDING = null;
+  window.__installFormPending = null;
   document.getElementById('btnClearInstall').style.display='none';
   try{ buildQuote(); }catch(e){console.error(e);}
   toast('🗑 已清除施工項目');
 }
-
-// 接收 iframe 計算結果 + 載入診斷
-window.addEventListener('message', function(event){
-  var d = event && event.data;
-  if(!d) return;
-  // v9.12 診斷：iframe 載入成功時會 post
-  if(d.type === 'USLED_INSTALL_LOADED'){
-    var prev = document.getElementById('installPreview');
-    if(prev) prev.textContent = '✅ 工具載入 ('+d.viewport[0]+'×'+d.viewport[1]+'px)　調整參數中...';
-    return;
-  }
-  if(d.type !== 'USLED_INSTALL_QUOTE') return;
-  INSTALL_PENDING = d.payload;
-  var prev = document.getElementById('installPreview');
-  if(prev){
-    prev.textContent = '$' + (d.payload.serviceFee||0).toLocaleString() +
-      (d.payload.summary ? '　|　' + d.payload.summary : '');
-  }
-});
 
 
 function toast(msg){
