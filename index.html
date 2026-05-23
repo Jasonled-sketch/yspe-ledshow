@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.14</title>
+<title>USLED 快速報價 v9.15</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.14</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.15</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -364,11 +364,15 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="frow"><label>聯絡電話</label><input id="c_phone" type="tel" placeholder="09xx-xxxxxx"></div>
       <div class="frow"><label>報價日期</label><input id="c_date" type="date"></div>
     </div>
-    <!-- v9.14：給 sheet 8 推送用的 3 個選填欄位 -->
+    <!-- v9.14：給 sheet 8 推送用的選填欄位 -->
     <div class="frow"><label>抵達地址 <span style="color:var(--sub);font-weight:400">(可選 — 施工或大型物流需要)</span></label><input id="c_address" type="text" placeholder="例：高雄市岡山區XX路X號"></div>
     <div class="g2">
       <div class="frow"><label>統編 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_taxid" type="text" placeholder="8 碼" inputmode="numeric"></div>
       <div class="frow"><label>抬頭 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_company" type="text" placeholder="開立發票公司名"></div>
+    </div>
+    <!-- v9.15：其他備註（推送到 sheet 8 的 1001191 欄位） -->
+    <div class="frow"><label>其他備註 <span style="color:var(--sub);font-weight:400">(可選 — 交期、特殊規格、客戶要求)</span></label>
+      <textarea id="c_memo" rows="2" placeholder="例：6 月初交件 / 需含安裝 / 客戶指定外觀..." style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
     </div>
   </div>
 </div>
@@ -1671,6 +1675,7 @@ function loadJson(input){
 // ══════════════════════════════════════════
 function buildQuote(){
   var r=RESULT,client=GS('c_name')||'—',phone=GS('c_phone')||'—',dateStr=GS('c_date')||'—';
+  var addressStr=GS('c_address')||'',taxIdStr=GS('c_taxid')||'',companyStr=GS('c_company')||'',memoStr=GS('c_memo')||'';
   var price=r.unitPrice||0,total=r.totalPrice||0,qty=r.qty||1;
   var mid=r.mid||'',fid=r.fid||'',pid=r.pid||'',cid=r.cid||'';
   var rows2=parseInt(r.rows)||0,cols2=parseInt(r.cols)||0;
@@ -1688,7 +1693,13 @@ function buildQuote(){
       '<div class="qs-info">'+
         '<div class="qs-cell"><span class="qs-cell-lbl">客戶名稱</span><span class="qs-cell-val">'+client+'</span></div>'+
         '<div class="qs-cell"><span class="qs-cell-lbl">連絡電話</span><span class="qs-cell-val">'+phone+'</span></div>'+
+        // v9.15：選填欄位（有填才顯示，沒填就不出現）
+        (addressStr ? '<div class="qs-cell" style="grid-column:span 2"><span class="qs-cell-lbl">抵達地址</span><span class="qs-cell-val">'+addressStr+'</span></div>' : '')+
+        (taxIdStr || companyStr ?
+          '<div class="qs-cell"><span class="qs-cell-lbl">統編</span><span class="qs-cell-val">'+(taxIdStr||'—')+'</span></div>'+
+          '<div class="qs-cell"><span class="qs-cell-lbl">抬頭</span><span class="qs-cell-val">'+(companyStr||'—')+'</span></div>' : '')+
         '<div class="qs-cell" style="grid-column:span 2"><span class="qs-cell-lbl">機型款式</span><span class="qs-cell-val">'+typeCode+'　'+(r.dual>1?'雙面':'單面')+'</span></div>'+
+        (memoStr ? '<div class="qs-cell" style="grid-column:span 2;background:#FFFBEB;border-color:#F59E0B"><span class="qs-cell-lbl" style="color:#92400E">📝 備註</span><span class="qs-cell-val" style="color:#78350F">'+memoStr+'</span></div>' : '')+
       '</div>'+
       '<div class="qs-item-hd"><span>序</span><span>規格內容</span><span>數量</span><span>單價</span><span>小計</span></div>'+
       '<div class="qs-item-row">'+
@@ -2091,13 +2102,14 @@ function pickProductCategory(r){
   return '大條屏';
 }
 
-// Sheet 8 主表欄位 ID 對應（透過 probe 確認）
+// Sheet 8 主表欄位 ID 對應（v9.15 修正 ID 互換 + 加 memo）
 var RAGIC_FIELD_IDS_SHEET8 = {
   caseDesc:    '1000763',  // 案件敘述
   quoteDate:   '1000759',  // 報價日期
   customer:    '1000645',  // 客戶名稱
   phone:       '1000646',  // 連絡電話
-  address:     '1000765',  // 抵達地址
+  address:     '1002646',  // 抵達地址 ← v9.15：原本誤標 1000765
+  deliverWay:  '1000765',  // 交貨方式 ← v9.15：原本誤標 1002646
   taxId:       '1000835',  // 統編
   companyName: '1000836',  // 抬頭
   productBrief:'1000764',  // 產品簡要
@@ -2105,7 +2117,8 @@ var RAGIC_FIELD_IDS_SHEET8 = {
   progress:    '1000833',  // 進度欄
   firstContact:'1002753',  // 首洽
   cashTotal:   '1000657',  // 現金未稅總計
-  workLevel:   '1001449'   // 工務等級
+  workLevel:   '1001449',  // 工務等級
+  memo:        '1001191'   // 其他備註 ← v9.15 新增
 };
 // Sheet 8 子表 ID + 欄位
 var RAGIC_SHEET8_SUBTABLE_PRODUCT  = '1000655';  // 產品明細
@@ -2917,6 +2930,7 @@ function buildSheet8Payload(){
   var address      = (GS('c_address')||'').trim();
   var taxId        = (GS('c_taxid')||'').trim();
   var company      = (GS('c_company')||'').trim();
+  var memo         = (GS('c_memo')||'').trim();
   var dateStr      = (GS('c_date')||'').trim();
   var dateRagic    = dateStr ? dateStr.replace(/-/g,'/') : '';   // 2026-05-23 → 2026/05/23
   var initial      = currentUser ? getUserInitial(currentUser.email) : '?';
@@ -2935,6 +2949,7 @@ function buildSheet8Payload(){
   if(address)  fd.append(F.address,     address);
   if(taxId)    fd.append(F.taxId,       taxId);
   if(company)  fd.append(F.companyName, company);
+  if(memo)     fd.append(F.memo,        memo);
   fd.append(F.productBrief, 'LED 顯示看板');
   fd.append(F.category,     category);
   fd.append(F.progress,     '✉︎已報');
