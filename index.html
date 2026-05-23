@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.11</title>
+<title>USLED 快速報價 v9.12</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.11</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.12</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -2649,10 +2649,17 @@ function clearInstall(){
   toast('🗑 已清除施工項目');
 }
 
-// 接收 iframe 計算結果
+// 接收 iframe 計算結果 + 載入診斷
 window.addEventListener('message', function(event){
   var d = event && event.data;
-  if(!d || d.type !== 'USLED_INSTALL_QUOTE') return;
+  if(!d) return;
+  // v9.12 診斷：iframe 載入成功時會 post
+  if(d.type === 'USLED_INSTALL_LOADED'){
+    var prev = document.getElementById('installPreview');
+    if(prev) prev.textContent = '✅ 工具載入 ('+d.viewport[0]+'×'+d.viewport[1]+'px)　調整參數中...';
+    return;
+  }
+  if(d.type !== 'USLED_INSTALL_QUOTE') return;
   INSTALL_PENDING = d.payload;
   var prev = document.getElementById('installPreview');
   if(prev){

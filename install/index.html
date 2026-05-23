@@ -601,6 +601,32 @@ body.t-dealer .ir.tier-normal { display: none !important; }
 </head>
 <body>
 
+<!-- v9.12 診斷 banner（iframe 內看不到工具時這條會出現） -->
+<div id="__diag" style="background:linear-gradient(90deg,#10B981,#059669);color:#fff;padding:8px 14px;font-size:12px;font-weight:700;text-align:center;font-family:sans-serif;letter-spacing:1px">
+  ✅ 工具已載入　|　<span id="__diag_iframe">獨立分頁</span>　|　<span id="__diag_viewport">—</span>
+</div>
+<script>
+(function(){
+  try {
+    var inIframe = (window.parent !== window);
+    var diag = document.getElementById('__diag');
+    var ifs = document.getElementById('__diag_iframe');
+    var vps = document.getElementById('__diag_viewport');
+    if (ifs) ifs.textContent = inIframe ? '✅ 在 iframe 內' : '獨立分頁';
+    if (vps) vps.textContent = '視窗 ' + window.innerWidth + '×' + window.innerHeight + 'px';
+    // 通知 parent 已載入
+    if (inIframe) {
+      window.parent.postMessage({type:'USLED_INSTALL_LOADED', viewport:[window.innerWidth, window.innerHeight]}, '*');
+    }
+    // 5 秒後自動隱藏 banner（不擋畫面）
+    setTimeout(function(){ if(diag) diag.style.display='none'; }, 5000);
+  } catch(e) {
+    var d = document.getElementById('__diag');
+    if (d) d.innerHTML = '❌ 載入錯誤：' + (e.message || e);
+  }
+})();
+</script>
+
 <div id="topbar">
   <div class="tright">
     <div class="tierwrap">
