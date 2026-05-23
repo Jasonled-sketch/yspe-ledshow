@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.13</title>
+<title>USLED 快速報價 v9.14</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.13</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.14</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -363,6 +363,12 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
     <div class="g2">
       <div class="frow"><label>聯絡電話</label><input id="c_phone" type="tel" placeholder="09xx-xxxxxx"></div>
       <div class="frow"><label>報價日期</label><input id="c_date" type="date"></div>
+    </div>
+    <!-- v9.14：給 sheet 8 推送用的 3 個選填欄位 -->
+    <div class="frow"><label>抵達地址 <span style="color:var(--sub);font-weight:400">(可選 — 施工或大型物流需要)</span></label><input id="c_address" type="text" placeholder="例：高雄市岡山區XX路X號"></div>
+    <div class="g2">
+      <div class="frow"><label>統編 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_taxid" type="text" placeholder="8 碼" inputmode="numeric"></div>
+      <div class="frow"><label>抬頭 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_company" type="text" placeholder="開立發票公司名"></div>
     </div>
   </div>
 </div>
@@ -500,6 +506,8 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
   <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
     <button class="btn" onclick="openInstallForm()" style="background:#ECFDF5;color:#065F46;border:1.5px solid #10B981;flex:1;min-width:140px">📐 加施工安裝</button>
     <button class="btn" id="btnClearInstall" onclick="clearInstall()" style="background:#FEF2F2;color:#991B1B;border:1.5px solid #EF4444;display:none">✕ 清除施工</button>
+    <!-- v9.14：sheet 8 推送按鈕（預設隱藏，要在設定中啟用） -->
+    <button class="btn" id="btnPushSheet8" onclick="pushSheet8Now()" style="background:#EEF4FF;color:#1A3A6B;border:1.5px solid #2563EB;flex:1;min-width:160px;display:none">☁ 推送 Ragic 報價單</button>
   </div>
   <div class="quote-scale-container" id="quoteContainer">
     <div class="quote-scale-inner" id="quoteInner">
@@ -700,6 +708,20 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <button class="lock-btn" onclick="testRagicCfg()" style="background:var(--bg);color:var(--accent);border:1.5px solid var(--accent);margin-top:8px">🔌 測試連線 (GET)</button>
       <button class="lock-btn" onclick="testRagicPost()" style="background:#FEF3C7;color:#92400E;border:1.5px solid #F59E0B;margin-top:8px">🧪 測試 POST 寫入</button>
       <div id="ragicStatus" style="margin-top:10px;font-size:12px;text-align:center"></div>
+
+      <!-- v9.14：Sheet 8 正式報價單推送（實驗功能，預設關閉）-->
+      <div style="margin-top:18px;padding:12px;background:#FFFBEB;border:1.5px solid #F59E0B;border-radius:10px">
+        <div style="font-size:12px;font-weight:700;color:#92400E;margin-bottom:8px">⚠ 實驗功能：Sheet 8 正式報價單推送</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0">
+          <input type="checkbox" id="sheet8_toggle" onchange="toggleSheet8(this.checked)" style="width:16px;height:16px;accent-color:#F59E0B">
+          <span style="font-size:13px;color:#1F2937">啟用「☁ 推送 Ragic 報價單」按鈕</span>
+        </label>
+        <div style="font-size:11px;color:#78350F;margin-top:6px;line-height:1.6">
+          開啟後預覽頁會多一個推送按鈕，可把完整報價寫入 Ragic sheet 8（正式報價單）。<br>
+          現有 sheet 17（快速報價歷史）同步流程**不變**。<br>
+          有疑問就**關閉**此功能，原本流程繼續用。
+        </div>
+      </div>
     </div>
 
     <div id="setPanel3" style="display:none">
@@ -881,6 +903,8 @@ window.onload = function(){
       buildFromJson(BUILTIN_CFG);
     });
   loadRagicCfg();
+  // v9.14：依 Sheet 8 啟用旗標決定推送按鈕顯示
+  try{ updateSheet8Button(); }catch(e){}
 };
 
 // ── 從 JSON 檔建立 ──
@@ -1608,6 +1632,9 @@ function openSettings(){
   // v9.2：顯示 Worker 模式提示（若已配置）
   var notice=document.getElementById('workerModeNotice');
   if(notice) notice.style.display = WORKER_URL ? '' : 'none';
+  // v9.14：同步切換狀態到 UI
+  var tg=document.getElementById('sheet8_toggle');
+  if(tg) tg.checked = isSheet8Enabled();
 }
 function closeSettings(){document.getElementById('settingsSheet').classList.remove('show');}
 function switchSetTab(n){
@@ -2040,6 +2067,55 @@ function clearHistory(){
 // ══════════════════════════════════════════
 // ══ Ragic API ══
 // ══════════════════════════════════════════
+// ══ v9.14：Sheet 8 整合（正式報價單）— 預設關閉，要在設定中開啟才會啟動 ══
+// 員工 email → 縮寫對照表（用於 sheet 8 的「首洽」欄位 1002753）
+var USER_INITIALS = {
+  'covernself@gmail.com': 'J',  // Jason 管理員
+  'usled.tw@gmail.com':   'T',
+  'amaze2349@gmail.com':  'W'
+};
+function getUserInitial(email){
+  return USER_INITIALS[(email||'').toLowerCase()]
+      || (email||'').charAt(0).toUpperCase()
+      || '?';
+}
+
+// 產品類別自動歸類（依含框 fh, fw 尺寸 cm）
+function pickProductCategory(r){
+  var fh = r.fh || r.dispH || 0;
+  var fw = r.fw || r.dispW || 0;
+  if (fh >= 65) return '電視牆';
+  var longSide = Math.max(fh, fw);
+  if (longSide <= 160) return '🌈小條屏';
+  if (longSide <= 400) return '中條屏';
+  return '大條屏';
+}
+
+// Sheet 8 主表欄位 ID 對應（透過 probe 確認）
+var RAGIC_FIELD_IDS_SHEET8 = {
+  caseDesc:    '1000763',  // 案件敘述
+  quoteDate:   '1000759',  // 報價日期
+  customer:    '1000645',  // 客戶名稱
+  phone:       '1000646',  // 連絡電話
+  address:     '1000765',  // 抵達地址
+  taxId:       '1000835',  // 統編
+  companyName: '1000836',  // 抬頭
+  productBrief:'1000764',  // 產品簡要
+  category:    '1002409',  // 產品類別
+  progress:    '1000833',  // 進度欄
+  firstContact:'1002753',  // 首洽
+  cashTotal:   '1000657',  // 現金未稅總計
+  workLevel:   '1001449'   // 工務等級
+};
+// Sheet 8 子表 ID + 欄位
+var RAGIC_SHEET8_SUBTABLE_PRODUCT  = '1000655';  // 產品明細
+var RAGIC_SHEET8_SUBTABLE_ADDITION = '1000681';  // 附加項目
+
+// 啟用旗標（localStorage 控制；預設關閉）
+function isSheet8Enabled(){
+  return localStorage.getItem('usled_sheet8_enabled') === '1';
+}
+
 // Ragic 表單欄位 ID 對應（快速報價歷史 sheet tab 17）
 var RAGIC_FIELD_IDS = {
   quoteDate: '1002826',   // 報價日期
@@ -2811,6 +2887,152 @@ function clearInstall(){
   document.getElementById('btnClearInstall').style.display='none';
   try{ buildQuote(); }catch(e){console.error(e);}
   toast('🗑 已清除施工項目');
+}
+
+// ══════════════════════════════════════════
+// ══ v9.14：Sheet 8 推送（實驗功能 — 預設關閉） ══
+// ══════════════════════════════════════════
+function toggleSheet8(on){
+  if(on){
+    localStorage.setItem('usled_sheet8_enabled', '1');
+    toast('✅ 已啟用 Sheet 8 推送');
+  }else{
+    localStorage.removeItem('usled_sheet8_enabled');
+    toast('🔒 已關閉 Sheet 8 推送');
+  }
+  updateSheet8Button();
+}
+function updateSheet8Button(){
+  var btn=document.getElementById('btnPushSheet8');
+  if(btn) btn.style.display = isSheet8Enabled() ? '' : 'none';
+}
+
+// 把 PWA 報價內容轉成 sheet 8 的 FormData payload
+function buildSheet8Payload(){
+  var r=RESULT;
+  if(!r.mid) return null;
+  var F=RAGIC_FIELD_IDS_SHEET8;
+  var customerName = (GS('c_name')||'').trim() || '—';
+  var phone        = (GS('c_phone')||'').trim();
+  var address      = (GS('c_address')||'').trim();
+  var taxId        = (GS('c_taxid')||'').trim();
+  var company      = (GS('c_company')||'').trim();
+  var dateStr      = (GS('c_date')||'').trim();
+  var dateRagic    = dateStr ? dateStr.replace(/-/g,'/') : '';   // 2026-05-23 → 2026/05/23
+  var initial      = currentUser ? getUserInitial(currentUser.email) : '?';
+  var category     = pickProductCategory(r);
+  var typeCode     = (r.mid||'') +
+                     (r.rows<10?'0':'')+(r.rows||0) +
+                     (r.cols<10?'0':'')+(r.cols||0) +
+                     (r.fid?'-'+r.fid:'') + (r.pid||'');
+
+  var fd=new FormData();
+  // 主表
+  fd.append(F.caseDesc,     (dateRagic||'未填日期')+'-'+customerName+'-'+(r.m && r.m.water?r.m.water:'LED')+'顯示');
+  if(dateRagic) fd.append(F.quoteDate, dateRagic);
+  fd.append(F.customer,     customerName);
+  if(phone)    fd.append(F.phone,       phone);
+  if(address)  fd.append(F.address,     address);
+  if(taxId)    fd.append(F.taxId,       taxId);
+  if(company)  fd.append(F.companyName, company);
+  fd.append(F.productBrief, 'LED 顯示看板');
+  fd.append(F.category,     category);
+  fd.append(F.progress,     '✉︎已報');
+  fd.append(F.firstContact, initial);
+  // 金額：A1 + B1（若有）
+  var grand = (r.totalPrice||0) + (r.installation ? r.installation.serviceFee : 0);
+  fd.append(F.cashTotal, grand);
+
+  // 子表 1000655 — 產品明細（A1）
+  // Ragic 子表寫入語法：<子表ID>_<欄位名>_<列ID> = 值；新建用負數列 ID
+  var spec='規格:電子顯示看板-'+typeCode+' '+(r.dual>1?'雙面':'單面')+'\n'+
+           '顯示字數:(H)'+(r.rows<10?'0':'')+r.rows+'字*(W)'+(r.cols<10?'0':'')+r.cols+'字\n'+
+           '解析點數:(H)'+(r.ptH||'—')+'點 * (W)'+(r.ptW||'—')+'點\n'+
+           '顯示面積:(H)'+(r.dispH?r.dispH.toFixed(1):'-')+'cm * (W)'+(r.dispW?r.dispW.toFixed(1):'-')+'cm\n'+
+           '含框尺寸:(H)'+(r.fh?r.fh.toFixed(1):'-')+'cm * (W)'+(r.fw?r.fw.toFixed(1):'-')+'cm(T)'+((FRAME_THICKNESS[r.fid]||0).toFixed(1))+'cm\n'+
+           '結構外框:'+((r.f&&r.f.grp!=='none')?'抗鏽加厚型雙層鋁合金':'輕型塑膠背板')+'\n'+
+           '平均功率:'+(r.totalW?Math.round(r.totalW*0.3):'-')+' W/hr(參考)\n'+
+           '機體重量:約'+(r.totalKg?r.totalKg.toFixed(2):'-')+'kg ± 5%';
+
+  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_項目_-1',     typeCode+' '+(r.dual>1?'雙面':'單面'));
+  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_規格內容_-1', spec);
+  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_數量_-1',     r.qty||1);
+  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_單位_-1',     '台');
+  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_單價_-1',     r.unitPrice||0);
+
+  // 子表 1000681 — 附加項目（B1，若有施工就拆 row）
+  if(r.installation && r.installation.detail){
+    var d=r.installation.detail, idx=-2;
+    function addRow(kind, label, amount){
+      if(!amount || amount<=0) return;
+      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_附加項目_'+idx, kind);
+      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_詳細內容_'+idx, label);
+      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_數量_'+idx,   '1');
+      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_單位_'+idx,   '式');
+      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_單價_'+idx,   amount);
+      idx--;
+    }
+    addRow('施工安裝', '出車油資', d.transport);
+    addRow('施工安裝', '基本工資（'+(r.installation.inputs && r.installation.inputs.crew ? r.installation.inputs.crew.master+'師+'+r.installation.inputs.crew.assistant+'助':'')+'）', d.labor);
+    addRow('施工安裝', '高度加級', d.height);
+    addRow('施工安裝', '急件加級', d.urgent);
+    addRow('施工安裝', '夜間加級（含出車）', d.night);
+    addRow('配件',     '配件總額', d.parts);
+  }
+  return {fd:fd, summary:{customer:customerName, total:grand, category:category, initial:initial}};
+}
+
+function pushSheet8Now(){
+  if(!isSheet8Enabled()){ toast('⚠ Sheet 8 推送未啟用'); return; }
+  if(!RESULT.mid){ toast('⚠ 請先完成報價'); return; }
+  if(!(GS('c_name')||'').trim()){ toast('⚠ 請填寫客戶名稱'); return; }
+  var route=getApiRoute();
+  if(route.mode !== 'worker'){
+    toast('⚠ Sheet 8 推送只支援 Worker 模式（請用 Google 登入）');
+    return;
+  }
+  var built=buildSheet8Payload();
+  if(!built){ toast('⚠ 資料準備失敗'); return; }
+  var s=built.summary;
+  var msg='即將推送到 Ragic 正式報價單（sheet 8）：\n\n'+
+          '客戶：'+s.customer+'\n'+
+          '類別：'+s.category+'\n'+
+          '報價人：'+s.initial+'\n'+
+          '未稅總計：$'+s.total.toLocaleString()+'\n\n'+
+          '確定要送出？';
+  if(!confirm(msg)) return;
+
+  var btn=document.getElementById('btnPushSheet8');
+  if(btn){btn.disabled=true; btn.textContent='⏳ 推送中...';}
+
+  // 用 Worker URL + ?sheet=8 路由
+  var postUrl = WORKER_URL.replace(/\/$/,'') + '/?sheet=8';
+  fetch(postUrl, {
+    method:'POST',
+    headers:{'X-Google-Token': currentUser.idToken},
+    body: built.fd
+  }).then(function(r){return r.text().then(function(t){return {ok:r.ok, status:r.status, body:t};});})
+    .then(function(res){
+      var parsed=null, ragicId='', status='';
+      try{parsed=JSON.parse(res.body); ragicId=parsed.ragicId||''; status=parsed.status||'';}catch(e){}
+      if(res.ok && status==='SUCCESS' && ragicId){
+        var url='https://ap10.ragic.com/Fan28/ragicproject-management/8/'+ragicId;
+        toast('✅ 推送成功！ragicId='+ragicId);
+        if(confirm('✅ 已寫入 Ragic 正式報價單（sheet 8）\nragicId = '+ragicId+'\n\n要立刻打開 Ragic 看嗎？')){
+          window.open(url, '_blank');
+        }
+      }else{
+        var msg=res.body.indexOf('guest')>=0?'被當訪客（Worker secret 可能失效）':
+                res.status===401?'Google 登入過期':
+                res.status===403?'帳號未在白名單':
+                'HTTP '+res.status+' / '+status;
+        alert('❌ 推送失敗：'+msg+'\n\n回應內容（前 300 字）：\n'+res.body.slice(0,300));
+      }
+    }).catch(function(e){
+      alert('❌ 網路錯誤：'+e.message);
+    }).finally(function(){
+      if(btn){btn.disabled=false; btn.textContent='☁ 推送 Ragic 報價單';}
+    });
 }
 
 
