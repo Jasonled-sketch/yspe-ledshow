@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.9</title>
+<title>USLED 快速報價 v9.10</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.9</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.10</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -496,6 +496,11 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 
 <!-- ══ Page 4: 預覽 ══ -->
 <div id="pg4" class="page" style="max-width:620px">
+  <!-- v9.10：預覽頁工具列 — 含「加施工」按鈕 -->
+  <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="btn" onclick="openInstallModal()" style="background:#ECFDF5;color:#065F46;border:1.5px solid #10B981;flex:1;min-width:140px">📐 加施工安裝</button>
+    <button class="btn" id="btnClearInstall" onclick="clearInstall()" style="background:#FEF2F2;color:#991B1B;border:1.5px solid #EF4444;display:none">✕ 清除施工</button>
+  </div>
   <div class="quote-scale-container" id="quoteContainer">
     <div class="quote-scale-inner" id="quoteInner">
       <div id="quoteSheet"></div>
@@ -507,6 +512,21 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
   </div>
   <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--sub)">
     儲存後會自動加入「歷史」分頁
+  </div>
+</div>
+
+<!-- v9.10：施工安裝計算 Modal -->
+<div id="installModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;padding:20px">
+  <div style="background:#181d27;border-radius:12px;max-width:1200px;height:calc(100vh - 40px);margin:0 auto;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#1A3A6B;color:#fff">
+      <div style="font-weight:700;font-size:14px">📐 施工安裝計算</div>
+      <div id="installPreview" style="flex:1;text-align:center;font-size:11px;color:#A7F3D0;font-family:monospace">— 尚未試算 —</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="applyInstall()" style="padding:6px 14px;background:#10B981;color:#fff;border:0;border-radius:5px;font-weight:700;cursor:pointer">✅ 套用</button>
+        <button onclick="closeInstallModal()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:5px;cursor:pointer">關閉</button>
+      </div>
+    </div>
+    <iframe id="installFrame" src="" style="flex:1;border:0;background:#111318"></iframe>
   </div>
 </div>
 
@@ -1591,9 +1611,50 @@ function buildQuote(){
         '<div style="text-align:right;font-weight:700;color:#2563EB">$'+price.toLocaleString()+'<br><span style="font-size:7px;color:#64748B">元</span></div>'+
         '<div style="text-align:right;font-weight:800;color:#1A3A6B">$'+total.toLocaleString()+'</div>'+
       '</div>'+
+      // v9.10：B1 施工安裝（有套用才顯示）
+      (function(){
+        var ins = RESULT.installation;
+        if(!ins || !ins.serviceFee) return '';
+        var det = ins.detail || {};
+        var detailLines = [];
+        if(det.transport>0) detailLines.push('▸ 出車油資：$'+det.transport.toLocaleString());
+        if(det.labor>0) detailLines.push('▸ 基本工資：$'+det.labor.toLocaleString());
+        if(det.height>0) detailLines.push('▸ 高度加級：$'+det.height.toLocaleString());
+        if(det.urgent>0) detailLines.push('▸ 急件加級：$'+det.urgent.toLocaleString());
+        if(det.night>0) detailLines.push('▸ 夜間加級：$'+det.night.toLocaleString());
+        if(det.parts>0) detailLines.push('▸ 配件費用：$'+det.parts.toLocaleString());
+        if(det.repairMat>0) detailLines.push('▸ 維修材料：$'+det.repairMat.toLocaleString());
+
+        var grandWithInstall = total + ins.serviceFee;
+        // 更新總計值（在外層用）
+        window.__quoteGrandTotal = grandWithInstall;
+
+        return '<div class="qs-item-row" style="background:linear-gradient(0deg,#F0FDF4 0%,#FFFFFF 100%)">'+
+          '<div style="font-weight:800;color:#1D9E75">B1</div>'+
+          '<div class="qs-spec-txt">'+
+            '<div style="margin-bottom:4px"><span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:#ECFDF5;color:#1D9E75;margin-right:4px">施工安裝</span>'+
+            (ins.repairMode ? '<span style="display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-weight:700;background:#FEF2F2;color:#991B1B">維修 '+(ins.rType||'')+'</span>' : '')+
+            '</div>'+
+            (ins.summary || '施工安裝服務')+'<br>'+
+            '<div style="margin-top:6px;padding:6px 8px;background:rgba(255,255,255,.7);border-radius:5px;border:1px solid #BBF7D0;line-height:1.7">'+
+            detailLines.join('<br>')+
+            '</div>'+
+          '</div>'+
+          '<div style="text-align:center;font-weight:700">1<br><span style="font-size:7px;color:#64748B">式</span></div>'+
+          '<div style="text-align:right;font-weight:700;color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'<br><span style="font-size:7px;color:#64748B">元</span></div>'+
+          '<div style="text-align:right;font-weight:800;color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'</div>'+
+        '</div>'+
+        // 兩個小計
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 14px;background:#F1F5F9;border-radius:4px;margin-top:4px;font-size:11px;color:#64748B">'+
+          '<span>產品小計</span><strong style="color:#1A3A6B">$'+total.toLocaleString()+'</strong>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 14px;background:#F1F5F9;border-radius:4px;margin-top:2px;font-size:11px;color:#64748B">'+
+          '<span>施工小計</span><strong style="color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'</strong>'+
+        '</div>';
+      })()+
       '<div class="qs-total-bar">'+
         '<span class="qs-total-lbl">現金未稅總計</span>'+
-        '<span class="qs-total-val">NT '+total.toLocaleString()+'</span>'+
+        '<span class="qs-total-val">NT '+((RESULT.installation&&RESULT.installation.serviceFee)?(total+RESULT.installation.serviceFee).toLocaleString():total.toLocaleString())+'</span>'+
       '</div>'+
       '<div class="qs-terms">'+
         '<div class="qs-term">交貨日期：正常訂單成立起7-13個工作天（不含週六日.國定假日）。特殊/天災則順延</div>'+
@@ -2547,6 +2608,54 @@ function renderCostPage(){
 }
 
 // ══ Toast ══
+// ══════════════════════════════════════════
+// ══ v9.10：施工安裝整合 ══
+// ══════════════════════════════════════════
+var INSTALL_PENDING = null;  // iframe 即時送來的最新計算結果（套用前暫存）
+
+function openInstallModal(){
+  if(!RESULT.mid){ toast('⚠ 請先選擇模組規格'); return; }
+  document.getElementById('installModal').style.display='block';
+  var ifr=document.getElementById('installFrame');
+  // 第一次開才載入，後續打開保留狀態
+  if(!ifr.src) ifr.src='install/';
+  document.getElementById('installPreview').textContent='— 在工具中試算 —';
+}
+function closeInstallModal(){
+  document.getElementById('installModal').style.display='none';
+}
+function applyInstall(){
+  if(!INSTALL_PENDING){
+    toast('⚠ 請先在工具中完成試算');
+    return;
+  }
+  RESULT.installation = INSTALL_PENDING;
+  closeInstallModal();
+  document.getElementById('btnClearInstall').style.display='';
+  try{ buildQuote(); }catch(e){console.error(e);}
+  toast('✅ 已加入施工 $'+INSTALL_PENDING.serviceFee.toLocaleString());
+}
+function clearInstall(){
+  RESULT.installation = null;
+  INSTALL_PENDING = null;
+  document.getElementById('btnClearInstall').style.display='none';
+  try{ buildQuote(); }catch(e){console.error(e);}
+  toast('🗑 已清除施工項目');
+}
+
+// 接收 iframe 計算結果
+window.addEventListener('message', function(event){
+  var d = event && event.data;
+  if(!d || d.type !== 'USLED_INSTALL_QUOTE') return;
+  INSTALL_PENDING = d.payload;
+  var prev = document.getElementById('installPreview');
+  if(prev){
+    prev.textContent = '$' + (d.payload.serviceFee||0).toLocaleString() +
+      (d.payload.summary ? '　|　' + d.payload.summary : '');
+  }
+});
+
+
 function toast(msg){
   var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
   clearTimeout(t._to);t._to=setTimeout(function(){t.classList.remove('show');},2500);
