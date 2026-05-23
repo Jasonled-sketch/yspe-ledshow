@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.10</title>
+<title>USLED 快速報價 v9.11</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.10</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.11</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -515,18 +515,19 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
   </div>
 </div>
 
-<!-- v9.10：施工安裝計算 Modal -->
+<!-- v9.11：施工安裝計算 Modal（修正 iframe size + 加另開分頁備案） -->
 <div id="installModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;padding:20px">
-  <div style="background:#181d27;border-radius:12px;max-width:1200px;height:calc(100vh - 40px);margin:0 auto;display:flex;flex-direction:column;overflow:hidden">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#1A3A6B;color:#fff">
+  <div style="background:#181d27;border-radius:12px;width:100%;max-width:1200px;height:calc(100vh - 40px);margin:0 auto;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:#1A3A6B;color:#fff;flex-shrink:0">
       <div style="font-weight:700;font-size:14px">📐 施工安裝計算</div>
       <div id="installPreview" style="flex:1;text-align:center;font-size:11px;color:#A7F3D0;font-family:monospace">— 尚未試算 —</div>
       <div style="display:flex;gap:8px">
+        <button onclick="openInstallNewTab()" title="iframe 顯示異常時用" style="padding:6px 12px;background:rgba(255,255,255,.12);color:#fff;border:0;border-radius:5px;cursor:pointer;font-size:11px">↗ 另開分頁</button>
         <button onclick="applyInstall()" style="padding:6px 14px;background:#10B981;color:#fff;border:0;border-radius:5px;font-weight:700;cursor:pointer">✅ 套用</button>
         <button onclick="closeInstallModal()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:5px;cursor:pointer">關閉</button>
       </div>
     </div>
-    <iframe id="installFrame" src="" style="flex:1;border:0;background:#111318"></iframe>
+    <iframe id="installFrame" src="" style="flex:1;width:100%;height:100%;min-height:500px;border:0;background:#111318;display:block"></iframe>
   </div>
 </div>
 
@@ -2617,9 +2618,14 @@ function openInstallModal(){
   if(!RESULT.mid){ toast('⚠ 請先選擇模組規格'); return; }
   document.getElementById('installModal').style.display='block';
   var ifr=document.getElementById('installFrame');
-  // 第一次開才載入，後續打開保留狀態
-  if(!ifr.src) ifr.src='install/';
+  // 第一次開才載入，後續打開保留狀態。加 cache-bust 確保是最新版本
+  if(!ifr.src) ifr.src='install/?_t='+Date.now();
   document.getElementById('installPreview').textContent='— 在工具中試算 —';
+}
+function openInstallNewTab(){
+  // iframe 顯示異常時的備案：在新分頁開啟，計算完手動填回主 PWA
+  window.open('install/?_t='+Date.now(), '_blank');
+  toast('💡 在新分頁試算後，記得回來手動套用金額');
 }
 function closeInstallModal(){
   document.getElementById('installModal').style.display='none';
