@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.15</title>
+<title>USLED 快速報價 v9.16</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.15</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.16</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -789,14 +789,17 @@ var _customMargin0 = 0.30;
 try{ var _saved=parseFloat(localStorage.getItem('usled_custom_margin')); if(!isNaN(_saved)&&_saved>0&&_saved<1) _customMargin0=_saved; }catch(e){}
 
 var TIERS = [
-  {name:'標價未稅', tag:'tier-act',  tagTxt:'最高',     margin:0.60,  sales:false},
-  {name:'當月活動', tag:'tier-act',  tagTxt:'限時優惠', margin:0.445, sales:true},
-  {name:'特別會員', tag:'tier-shop', tagTxt:'會員價',   margin:0.40,  sales:false},
-  {name:'蝦皮訂製', tag:'tier-shop', tagTxt:'電商訂製', margin:0.345, sales:true},
-  {name:'蝦皮常規', tag:'tier-shop', tagTxt:'電商常規', margin:0.27,  sales:false},
-  {name:'自取最底', tag:'tier-min',  tagTxt:'最低自取', margin:0.182, sales:true},
-  {name:'特殊經銷', tag:'tier-min',  tagTxt:'經銷批發', margin:0.133, sales:false},
-  {name:'自訂毛利', tag:'tier-act',  tagTxt:'自訂',     margin:_customMargin0, sales:false, editable:true}
+  {name:'標價未稅',     tag:'tier-act',  tagTxt:'最高',     margin:0.60,           sales:false},
+  {name:'毛利率 55%',   tag:'tier-act',  tagTxt:'高毛利',   margin:0.55,           sales:false},  // v9.16
+  {name:'毛利率 50%',   tag:'tier-act',  tagTxt:'中高毛利', margin:0.50,           sales:false},  // v9.16
+  {name:'當月活動',     tag:'tier-act',  tagTxt:'限時優惠', margin:0.445,          sales:true},
+  {name:'特別會員',     tag:'tier-shop', tagTxt:'會員價',   margin:0.40,           sales:false},
+  {name:'蝦皮訂製',     tag:'tier-shop', tagTxt:'電商訂製', margin:0.345,          sales:true},
+  {name:'蝦皮常規',     tag:'tier-shop', tagTxt:'電商常規', margin:0.27,           sales:false},
+  {name:'自取最底',     tag:'tier-min',  tagTxt:'最低自取', margin:0.182,          sales:true},
+  {name:'特殊經銷',     tag:'tier-min',  tagTxt:'經銷批發', margin:0.133,          sales:false},
+  {name:'自訂毛利',     tag:'tier-act',  tagTxt:'自訂',     margin:_customMargin0, sales:false, editable:true},
+  {name:'快速報價參考', tag:'tier-shop', tagTxt:'快速估算', margin:0,              sales:false, isRef:true}  // v9.16：用 m.twd × D × 2.5 標準估算（管理員快速心算對照用）
 ];
 
 // ══ 資料 ══
@@ -1438,7 +1441,10 @@ function updateTiers(){
   visible.forEach(function(x){
     var t=x.t, i=x.i;
     var price;
-    if(cost && cost>0){
+    if(t.isRef){
+      // v9.16 快速報價參考：用模組單價 × 片數 × 2.5 快速估算（沿用 v8 stdPrice 公式）
+      price = r.stdPrice || (cost && cost>0 ? Math.ceil(cost/0.4/100)*100 : 0);
+    }else if(cost && cost>0){
       // 真實成本 / (1-毛利率)，無條件進位到百位
       price = Math.ceil(cost/(1-t.margin)/100)*100;
     }else{
