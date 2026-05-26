@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.18</title>
+<title>USLED 快速報價 v9.19</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.18</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.19</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -367,8 +367,15 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
     <!-- v9.14：給 sheet 8 推送用的選填欄位 -->
     <div class="frow"><label>抵達地址 <span style="color:var(--sub);font-weight:400">(可選 — 施工或大型物流需要)</span></label><input id="c_address" type="text" placeholder="例：高雄市岡山區XX路X號"></div>
     <div class="g2">
-      <div class="frow"><label>統編 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_taxid" type="text" placeholder="8 碼" inputmode="numeric"></div>
+      <div class="frow"><label>統編 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_taxid" type="text" placeholder="" inputmode="numeric"></div>
       <div class="frow"><label>抬頭 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_company" type="text" placeholder=""></div>
+    </div>
+    <!-- v9.19：含發票切換（影響報價單顯示稅額）-->
+    <div class="frow" style="margin-top:6px">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0;font-weight:400">
+        <input type="checkbox" id="c_invoice" oninput="try{buildQuote()}catch(e){}" style="width:18px;height:18px;accent-color:var(--accent)">
+        <span style="font-size:13px;color:var(--brand)">📄 含發票（總計多 5% 稅額）</span>
+      </label>
     </div>
     <!-- v9.15：其他備註（推送到 sheet 8 的 1001191 欄位） -->
     <div class="frow"><label>其他備註 <span style="color:var(--sub);font-weight:400">(可選 — 交期、特殊規格、客戶要求)</span></label>
@@ -604,10 +611,20 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         </select>
       </div>
 
-      <!-- 配件 -->
+      <!-- v9.19：結構鐵架 (原配件費用) + 拆舊機 -->
       <div class="frow" style="margin-top:10px">
-        <label style="font-size:11px;font-weight:700;color:#64748B">🔩 配件總額 $（L鐵 / 角鋼 / 電纜 / 吊車...）</label>
+        <label style="font-size:11px;font-weight:700;color:#64748B">🔩 結構鐵架 $（L鐵 / 角鋼 / 電纜 / 吊車...）</label>
         <input id="iv_parts" type="number" min="0" value="0" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+      </div>
+
+      <div class="frow" style="margin-top:10px">
+        <label style="font-size:11px;font-weight:700;color:#64748B;display:block;margin-bottom:6px">🗑 拆舊機</label>
+        <select id="iv_demolish" onchange="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px">
+          <option value="0" selected>無</option>
+          <option value="600">小型 — $600</option>
+          <option value="1000">中型 — $1,000</option>
+          <option value="1500">大型 — $1,500</option>
+        </select>
       </div>
 
       <!-- 即時試算結果 -->
@@ -1793,11 +1810,12 @@ function buildQuote(){
         var det = ins.detail || {};
         var detailLines = [];
         if(det.transport>0) detailLines.push('▸ 出車油資：$'+det.transport.toLocaleString());
-        if(det.labor>0) detailLines.push('▸ 基本工資：$'+det.labor.toLocaleString());
-        if(det.height>0) detailLines.push('▸ 高度加級：$'+det.height.toLocaleString());
-        if(det.urgent>0) detailLines.push('▸ 急件加級：$'+det.urgent.toLocaleString());
-        if(det.night>0) detailLines.push('▸ 夜間加級：$'+det.night.toLocaleString());
-        if(det.parts>0) detailLines.push('▸ 配件費用：$'+det.parts.toLocaleString());
+        if(det.labor>0)     detailLines.push('▸ 師傅工資：$'+det.labor.toLocaleString());
+        if(det.height>0)    detailLines.push('▸ 高度加級'+(det.heightLabel?'（'+det.heightLabel+'）':'')+'：$'+det.height.toLocaleString());
+        if(det.urgent>0)    detailLines.push('▸ 急件加級：$'+det.urgent.toLocaleString());
+        if(det.night>0)     detailLines.push('▸ 夜間加級：$'+det.night.toLocaleString());
+        if(det.parts>0)     detailLines.push('▸ 結構鐵架：$'+det.parts.toLocaleString());
+        if(det.demolish>0)  detailLines.push('▸ 拆舊機'+(det.demolishLabel?'（'+det.demolishLabel+'）':'')+'：$'+det.demolish.toLocaleString());
         if(det.repairMat>0) detailLines.push('▸ 維修材料：$'+det.repairMat.toLocaleString());
 
         var grandWithInstall = total + ins.serviceFee;
@@ -1818,19 +1836,29 @@ function buildQuote(){
           '<div style="text-align:center;font-weight:700">1<br><span style="font-size:7px;color:#64748B">式</span></div>'+
           '<div style="text-align:right;font-weight:700;color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'<br><span style="font-size:7px;color:#64748B">元</span></div>'+
           '<div style="text-align:right;font-weight:800;color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'</div>'+
-        '</div>'+
-        // 兩個小計
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 14px;background:#F1F5F9;border-radius:4px;margin-top:4px;font-size:11px;color:#64748B">'+
-          '<span>產品小計</span><strong style="color:#1A3A6B">$'+total.toLocaleString()+'</strong>'+
-        '</div>'+
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 14px;background:#F1F5F9;border-radius:4px;margin-top:2px;font-size:11px;color:#64748B">'+
-          '<span>施工小計</span><strong style="color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'</strong>'+
         '</div>';
       })()+
-      '<div class="qs-total-bar">'+
-        '<span class="qs-total-lbl">現金未稅總計</span>'+
-        '<span class="qs-total-val">NT '+((RESULT.installation&&RESULT.installation.serviceFee)?(total+RESULT.installation.serviceFee).toLocaleString():total.toLocaleString())+'</span>'+
-      '</div>'+
+      // v9.19：3 欄總計 — 現金未稅 | 稅額 | 含稅總計（仿 Ragic 設計，取代產品/施工小計）
+      (function(){
+        var grand = total + ((RESULT.installation && RESULT.installation.serviceFee)||0);
+        var invoiceOn = !!(document.getElementById('c_invoice') && document.getElementById('c_invoice').checked);
+        var tax = invoiceOn ? Math.round(grand * 0.05) : 0;
+        var withTax = grand + tax;
+        return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:12px">'+
+          '<div style="padding:14px 10px;background:linear-gradient(135deg,#1A3A6B,#2563EB);color:#fff;border-radius:8px;text-align:center">'+
+            '<div style="font-size:10px;opacity:.85;letter-spacing:1px">現金未稅總計</div>'+
+            '<div style="font-size:18px;font-weight:900;margin-top:4px">NT $'+grand.toLocaleString()+'</div>'+
+          '</div>'+
+          '<div style="padding:14px 10px;background:'+(invoiceOn?'linear-gradient(135deg,#F59E0B,#D97706)':'linear-gradient(135deg,#94A3B8,#64748B)')+';color:#fff;border-radius:8px;text-align:center">'+
+            '<div style="font-size:10px;opacity:.85;letter-spacing:1px">稅額 '+(invoiceOn?'(5%)':'(未含發票)')+'</div>'+
+            '<div style="font-size:18px;font-weight:900;margin-top:4px">$'+tax.toLocaleString()+'</div>'+
+          '</div>'+
+          '<div style="padding:14px 10px;background:linear-gradient(135deg,#0F766E,#0D9488);color:#fff;border-radius:8px;text-align:center">'+
+            '<div style="font-size:10px;opacity:.85;letter-spacing:1px">含稅總計</div>'+
+            '<div style="font-size:18px;font-weight:900;margin-top:4px">NT $'+withTax.toLocaleString()+'</div>'+
+          '</div>'+
+        '</div>';
+      })()+
       '<div class="qs-terms">'+
         '<div class="qs-term">交貨日期：正常訂單成立起7-13個工作天（不含週六日.國定假日）。特殊/天災則順延</div>'+
         '<div class="qs-term">付款方式：定金40%訂單成立。寄貨前/安裝完畢結清。匯款手續費請勿內扣</div>'+
@@ -2864,7 +2892,11 @@ function calcInstallForm(){
   var labor  = (475 * mc + 410 * ac) * billHr;
 
   // ③ 高度加級
-  var height = parseInt(document.getElementById('iv_height').value)||0;
+  var heightEl  = document.getElementById('iv_height');
+  var height    = parseInt(heightEl.value)||0;
+  var heightTxt = heightEl.options[heightEl.selectedIndex].text;  // 範圍標籤
+  // 取「3.5–3.9m（8尺梯）」這段（從 — 之前）
+  var heightLabel = heightTxt.split('—')[0].trim();
 
   // ④ 急件加級 (base|per-extra-hr)
   var ugPair = document.getElementById('iv_urgent').value.split('|');
@@ -2880,24 +2912,29 @@ function calcInstallForm(){
   var nightOn = ngH1 > 0;
   var night = nightOn ? (transport + ngH1 + Math.max(0, hrs - 1) * ngH2) : 0;
 
-  // ⑥ 配件
+  // ⑥ 結構鐵架（原「配件」）
   var parts = parseFloat(document.getElementById('iv_parts').value)||0;
+  // ⑦ 拆舊機 (v9.19 新增)
+  var demolish = parseInt(document.getElementById('iv_demolish').value)||0;
+  var demolishEl  = document.getElementById('iv_demolish');
+  var demolishLbl = demolish>0 ? demolishEl.options[demolishEl.selectedIndex].text.split('—')[0].trim() : '';
 
   // 總計：夜間啟用時，出車併進夜間，獨立的 transport 不再加
   var transportShown = nightOn ? 0 : transport;
-  var total = Math.round(transportShown + labor + height + urgent + night + parts);
+  var total = Math.round(transportShown + labor + height + urgent + night + parts + demolish);
 
   // 顯示計費工時
   document.getElementById('iv_billable').textContent = billHr === 0 ? '免工資' : '計費 '+billHr.toFixed(1)+' hr';
 
-  // 顯示明細
+  // 顯示明細 — v9.19：文字標籤調整
   var lines = [];
   if(transportShown > 0) lines.push('出車（'+km+'km × $'+kmRate+'/km） ……… $'+Math.round(transport).toLocaleString());
-  if(labor > 0) lines.push('工資（'+mc+'師+'+ac+'助 × '+billHr.toFixed(1)+'hr） … $'+Math.round(labor).toLocaleString());
-  if(height > 0) lines.push('高度加級 ……………………… $'+height.toLocaleString());
+  if(labor > 0) lines.push('師傅工資（'+mc+'師+'+ac+'助 × '+billHr.toFixed(1)+'hr） … $'+Math.round(labor).toLocaleString());
+  if(height > 0) lines.push('高度加級（'+heightLabel+'） ………… $'+height.toLocaleString());
   if(urgent > 0) lines.push('急件加級 ……………………… $'+urgent.toLocaleString());
   if(night > 0)  lines.push('夜間加級（含出車） ………… $'+Math.round(night).toLocaleString());
-  if(parts > 0)  lines.push('配件費用 ……………………… $'+parts.toLocaleString());
+  if(parts > 0)  lines.push('結構鐵架 ……………………… $'+parts.toLocaleString());
+  if(demolish > 0) lines.push('拆舊機（'+demolishLbl+'） ………… $'+demolish.toLocaleString());
   if(lines.length === 0) lines.push('— 尚未輸入有效參數 —');
   document.getElementById('iv_breakdown').innerHTML = lines.join('<br>');
   document.getElementById('iv_total').textContent = '$'+total.toLocaleString();
@@ -2906,19 +2943,24 @@ function calcInstallForm(){
   window.__installFormPending = {
     serviceFee: total,
     summary: ['出車 '+km+'km', mc+'師+'+ac+'助', '工時 '+(wmin/60).toFixed(1)+'hr',
-              height>0?'高度加級':'', urgent>0?'急件':'', nightOn?'夜間':''].filter(Boolean).join(' / '),
+              height>0?('高度 '+heightLabel):'', urgent>0?'急件':'', nightOn?'夜間':'',
+              demolish>0?('拆舊機 '+demolishLbl):''].filter(Boolean).join(' / '),
     detail: {
-      transport: Math.round(transportShown),
-      labor: Math.round(labor),
-      height: height,
-      urgent: urgent,
-      night: Math.round(night),
-      parts: parts
+      transport:   Math.round(transportShown),
+      labor:       Math.round(labor),
+      height:      height,
+      heightLabel: heightLabel,
+      urgent:      urgent,
+      night:       Math.round(night),
+      parts:       parts,
+      demolish:    demolish,
+      demolishLabel: demolishLbl
     },
     inputs: { km:km, crew:{master:mc, assistant:ac}, wmin:wmin,
-              heightRaw:document.getElementById('iv_height').value,
-              urgentRaw:document.getElementById('iv_urgent').value,
-              nightRaw: document.getElementById('iv_night').value,
+              heightRaw:   document.getElementById('iv_height').value,
+              urgentRaw:   document.getElementById('iv_urgent').value,
+              nightRaw:    document.getElementById('iv_night').value,
+              demolishRaw: document.getElementById('iv_demolish').value,
               parts:parts }
   };
 }
@@ -2936,6 +2978,7 @@ function openInstallForm(){
     if(ins.inputs.heightRaw) document.getElementById('iv_height').value = ins.inputs.heightRaw;
     if(ins.inputs.urgentRaw) document.getElementById('iv_urgent').value = ins.inputs.urgentRaw;
     if(ins.inputs.nightRaw)  document.getElementById('iv_night').value  = ins.inputs.nightRaw;
+    if(ins.inputs.demolishRaw) document.getElementById('iv_demolish').value = ins.inputs.demolishRaw;
     document.getElementById('iv_parts').value = ins.inputs.parts || 0;
   }
   calcInstallForm();
