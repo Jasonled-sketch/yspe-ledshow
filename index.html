@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.19</title>
+<title>USLED 快速報價 v9.20</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.19</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.20</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -709,6 +709,18 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 
     <div id="setPanel1">
       <div id="cfgStatus" style="display:none;margin-bottom:10px"></div>
+
+      <!-- v9.20：線上編輯參數（主要按鈕） -->
+      <button class="lock-btn" onclick="openParamEditor()" style="background:linear-gradient(135deg,#1D9E75,#10B981);color:#fff;font-size:14px;padding:14px">
+        🛠 線上編輯參數（推薦）
+      </button>
+      <div style="font-size:11px;color:var(--sub);margin-top:8px;padding:10px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:8px;line-height:1.7">
+        💡 直接在 PWA 內開啟參數編輯器（v4.9.3）<br>
+        修改後按「✅ 套用到 PWA」即可生效並自動存到本機，不用再匯出 / 上傳 JSON。
+      </div>
+
+      <div style="margin:20px 0 10px;font-size:11px;color:var(--sub);text-align:center;letter-spacing:2px">— 或匯入既有 JSON 檔 —</div>
+
       <label class="file-drop" for="cfgFile">
         <div class="file-icon">📂</div>
         <div class="file-text">選擇 usled_config_*.json</div>
@@ -716,7 +728,19 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <input type="file" id="cfgFile" accept=".json" style="display:none" onchange="loadJson(this)">
       </label>
       <div style="font-size:11px;color:var(--sub);margin-top:10px;padding:10px;background:var(--bg);border-radius:8px">
-        💡 預設使用內建設定（v4.9.3）。如需更新成本，請從「參數編輯器」匯出新的 JSON 檔。
+        💡 預設使用內建設定（v4.9.3）。
+      </div>
+    </div>
+
+    <!-- v9.20：參數編輯器全螢幕 modal -->
+    <div id="paramEditorModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;padding:10px">
+      <div style="background:#fff;border-radius:10px;width:100%;height:calc(100vh - 20px);margin:0 auto;display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(135deg,#1D9E75,#10B981);color:#fff;flex-shrink:0">
+          <div style="font-weight:700;font-size:14px">🛠 參數編輯器 v4.9.3</div>
+          <div id="paramEditorStatus" style="flex:1;text-align:center;font-size:11px;color:#A7F3D0;font-family:monospace">— 編輯後按右上 ✅ 套用到 PWA —</div>
+          <button onclick="closeParamEditor()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:5px;cursor:pointer">關閉</button>
+        </div>
+        <iframe id="paramEditorFrame" src="" style="flex:1;width:100%;height:100%;min-height:500px;border:0;background:#F7F6F3;display:block"></iframe>
       </div>
     </div>
 
@@ -1720,6 +1744,40 @@ function openSettings(){
   var tg=document.getElementById('sheet8_toggle');
   if(tg) tg.checked = isSheet8Enabled();
 }
+
+// v9.20：線上參數編輯器
+function openParamEditor(){
+  var modal=document.getElementById('paramEditorModal');
+  var ifr=document.getElementById('paramEditorFrame');
+  modal.style.display='block';
+  if(!ifr.src){
+    // 編輯器在 repo 根目錄，URL 編碼中文
+    ifr.src = 'USLED_%E5%8F%83%E6%95%B8%E7%B7%A8%E8%BC%AF%E5%99%A8.html?_t=' + Date.now();
+  }
+  document.getElementById('paramEditorStatus').textContent = '— 編輯後按右上 ✅ 套用到 PWA —';
+}
+function closeParamEditor(){
+  document.getElementById('paramEditorModal').style.display='none';
+}
+
+// 接收編輯器送來的新 cfg
+window.addEventListener('message', function(event){
+  var d = event && event.data;
+  if(!d || d.type !== 'USLED_CFG_UPDATE' || !d.cfg) return;
+  try{
+    buildFromJson(d.cfg);
+    localStorage.setItem('usled_quote_cfg', JSON.stringify(d.cfg));
+    document.getElementById('paramEditorStatus').textContent =
+      '✅ 已套用 (' + new Date().toLocaleTimeString('zh-TW', {hour12:false}) + ')';
+    // 觸發畫面重算
+    if(typeof onMod==='function' && RESULT.mid) onMod();
+    if(typeof calc==='function') calc();
+    if(typeof updateTiers==='function') updateTiers();
+    toast('🛠 參數已更新 + 存到本機');
+  }catch(e){
+    alert('⚠ 套用失敗：' + e.message);
+  }
+});
 function closeSettings(){document.getElementById('settingsSheet').classList.remove('show');}
 function switchSetTab(n){
   for(var i=1;i<=3;i++){

@@ -103,6 +103,7 @@ nav{background:#fff;border-bottom:1px solid #E2DED7;display:flex;overflow-x:auto
   <div style="width:26px;height:26px;border-radius:5px;background:#185FA5;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12px;flex-shrink:0">U</div>
   <div><h1>USLED 譽昇光電 — 參數編輯器 v4.9.3</h1><p>控制卡來源切換 · 電源線RMB/重量 · 內聯顯示 · 小計1位小數 · 背板才數計算值</p></div>
   <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
+  <button id="applyToPwaBtn" onclick="APPLY_TO_PWA()" style="background:#F59E0B;color:#fff;border:none;border-radius:6px;padding:5px 11px;font-size:10.5px;cursor:pointer;font-weight:700;display:none">✅ 套用到 PWA</button>
   <button onclick="EXPORT_CFG()" style="background:#1D9E75;color:#fff;border:none;border-radius:6px;padding:5px 11px;font-size:10.5px;cursor:pointer;font-weight:600">💾 匯出設定</button>
   <label style="background:#374151;color:#fff;border-radius:6px;padding:5px 11px;font-size:10.5px;cursor:pointer;font-weight:600">📂 載入設定<input type="file" id="importFile" accept=".json" style="display:none" onchange="IMPORT_CFG(this)"></label>
   <div class="hbadge" id="hbadge">未修改</div>
@@ -901,7 +902,8 @@ CALC();SC();
 // ══════════════════════════════════════════
 // 匯出/載入設定 (v4.9)
 // ══════════════════════════════════════════
-function EXPORT_CFG(){
+// v4.9.4：抽出 cfg builder，讓 EXPORT_CFG (下載) 跟 APPLY_TO_PWA (postMessage) 共用
+function BUILD_CFG_OBJECT(){
   var cfg={
     _version:"4.9",
     _exported:new Date().toISOString().slice(0,16).replace("T"," "),
@@ -939,7 +941,11 @@ function EXPORT_CFG(){
   });
   // 報價等級
   TIERS.forEach(function(t,i){if(t.margin>0){var el=document.getElementById("ti_"+i);if(el)cfg.tiers[i]=parseFloat(el.value);}});
+  return cfg;
+}
 
+function EXPORT_CFG(){
+  var cfg=BUILD_CFG_OBJECT();
   var json=JSON.stringify(cfg,null,2);
   var blob=new Blob([json],{type:"application/json"});
   var a=document.createElement("a");
@@ -949,6 +955,29 @@ function EXPORT_CFG(){
   a.click();
   alert("✅ 設定已匯出！\n上傳到 GitHub 後，報價單系統即可自動讀取最新成本。");
 }
+
+// v4.9.4：iframe 內直接套用到主 PWA
+function APPLY_TO_PWA(){
+  var cfg=BUILD_CFG_OBJECT();
+  if(window.parent && window.parent!==window){
+    try{
+      window.parent.postMessage({type:'USLED_CFG_UPDATE', cfg:cfg}, '*');
+      var b=document.getElementById('applyToPwaBtn');
+      if(b){b.textContent='✅ 已套用'; b.style.background='#10B981';
+            setTimeout(function(){b.textContent='✅ 套用到 PWA'; b.style.background='#F59E0B';}, 2000);}
+    }catch(e){ alert('套用失敗：'+e.message); }
+  }else{
+    alert('此功能僅在主 PWA 內嵌時可用。\n獨立開啟請用「💾 匯出設定」下載 JSON。');
+  }
+}
+
+// 初始化：iframe 內顯示「套用到 PWA」按鈕
+(function(){
+  if(window.parent && window.parent!==window){
+    var b=document.getElementById('applyToPwaBtn');
+    if(b) b.style.display='inline-block';
+  }
+})();
 
 function IMPORT_CFG(input){
   var file=input.files[0]; if(!file)return;
