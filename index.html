@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.16</title>
+<title>USLED 快速報價 v9.17</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.16</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.17</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -368,7 +368,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
     <div class="frow"><label>抵達地址 <span style="color:var(--sub);font-weight:400">(可選 — 施工或大型物流需要)</span></label><input id="c_address" type="text" placeholder="例：高雄市岡山區XX路X號"></div>
     <div class="g2">
       <div class="frow"><label>統編 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_taxid" type="text" placeholder="8 碼" inputmode="numeric"></div>
-      <div class="frow"><label>抬頭 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_company" type="text" placeholder="開立發票公司名"></div>
+      <div class="frow"><label>抬頭 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_company" type="text" placeholder=""></div>
     </div>
     <!-- v9.15：其他備註（推送到 sheet 8 的 1001191 欄位） -->
     <div class="frow"><label>其他備註 <span style="color:var(--sub);font-weight:400">(可選 — 交期、特殊規格、客戶要求)</span></label>
@@ -788,19 +788,28 @@ var SEL = {mod:'', frm:'', pwr:'', ctrl:''};   // 已選 id
 var _customMargin0 = 0.30;
 try{ var _saved=parseFloat(localStorage.getItem('usled_custom_margin')); if(!isNaN(_saved)&&_saved>0&&_saved<1) _customMargin0=_saved; }catch(e){}
 
+// v9.17：每個 tier 加 cfgKey 屬性，buildFromJson 依 key 對應（不按位置），避免新增 tier 造成錯位
 var TIERS = [
-  {name:'標價未稅',     tag:'tier-act',  tagTxt:'最高',     margin:0.60,           sales:false},
-  {name:'毛利率 55%',   tag:'tier-act',  tagTxt:'高毛利',   margin:0.55,           sales:false},  // v9.16
-  {name:'毛利率 50%',   tag:'tier-act',  tagTxt:'中高毛利', margin:0.50,           sales:false},  // v9.16
-  {name:'當月活動',     tag:'tier-act',  tagTxt:'限時優惠', margin:0.445,          sales:true},
-  {name:'特別會員',     tag:'tier-shop', tagTxt:'會員價',   margin:0.40,           sales:false},
-  {name:'蝦皮訂製',     tag:'tier-shop', tagTxt:'電商訂製', margin:0.345,          sales:true},
-  {name:'蝦皮常規',     tag:'tier-shop', tagTxt:'電商常規', margin:0.27,           sales:false},
-  {name:'自取最底',     tag:'tier-min',  tagTxt:'最低自取', margin:0.182,          sales:true},
-  {name:'特殊經銷',     tag:'tier-min',  tagTxt:'經銷批發', margin:0.133,          sales:false},
-  {name:'自訂毛利',     tag:'tier-act',  tagTxt:'自訂',     margin:_customMargin0, sales:false, editable:true},
-  {name:'快速報價參考', tag:'tier-shop', tagTxt:'快速估算', margin:0,              sales:false, isRef:true}  // v9.16：用 m.twd × D × 2.5 標準估算（管理員快速心算對照用）
+  {name:'標價未稅',   tag:'tier-act',  tagTxt:'最高',     margin:0.60,           sales:false, cfgKey:1},
+  {name:'毛利率 55%', tag:'tier-act',  tagTxt:'高毛利',   margin:0.55,           sales:false, cfgKey:null},
+  {name:'毛利率 50%', tag:'tier-act',  tagTxt:'中高毛利', margin:0.50,           sales:false, cfgKey:null},
+  {name:'當月活動',   tag:'tier-act',  tagTxt:'限時優惠', margin:0.445,          sales:true,  cfgKey:2},
+  {name:'特別會員',   tag:'tier-shop', tagTxt:'會員價',   margin:0.40,           sales:false, cfgKey:3},
+  {name:'蝦皮訂製',   tag:'tier-shop', tagTxt:'電商訂製', margin:0.345,          sales:true,  cfgKey:4},
+  {name:'蝦皮常規',   tag:'tier-shop', tagTxt:'電商常規', margin:0.27,           sales:false, cfgKey:5},
+  {name:'自取最底',   tag:'tier-min',  tagTxt:'最低自取', margin:0.182,          sales:true,  cfgKey:6},
+  {name:'特殊經銷',   tag:'tier-min',  tagTxt:'經銷批發', margin:0.133,          sales:false, cfgKey:7},
+  {name:'自訂毛利',   tag:'tier-act',  tagTxt:'自訂',     margin:_customMargin0, sales:false, editable:true, cfgKey:null}
+  // v9.17：「快速報價參考」拿掉 tier，改用單字單價 × 字數，顯示在報價等級頁頂部的資訊條
 ];
+
+// v9.17：快速報價參考 — 每個模組的「單字參考價」（管理員心算對照用）
+// 公式：r.chars × QUICK_REF_PER_CHAR[mid]
+// 未列出的模組顯示「未設定參考價」
+var QUICK_REF_PER_CHAR = {
+  P10C: 550
+  // TODO：其他模組待 Jason 提供（M04C、P08C、P06C、M10C 等）
+};
 
 // ══ 資料 ══
 var MODS=[], FRMS=[], PWRS=[], CTRL=[];
@@ -940,7 +949,15 @@ function buildFromJson(cfg){
     var d=cfg.ctrl[id];
     CTRL.push(Object.assign({id:id,price:d.price,wg:d.wg},m));
   });
-  if(cfg.tiers){var t=cfg.tiers;for(var i=1;i<=7;i++){if(t[i]&&TIERS[i-1])TIERS[i-1].margin=t[i]/100;}}
+  if(cfg.tiers){
+    // v9.17：用 cfgKey 對應而非位置（位置覆寫會被新增 tier 推亂）
+    var t=cfg.tiers;
+    TIERS.forEach(function(tier){
+      if(tier.cfgKey && t[tier.cfgKey] != null){
+        tier.margin = t[tier.cfgKey]/100;
+      }
+    });
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1422,17 +1439,36 @@ function updateTiers(){
   // 工時 / 積分 摘要列（每個 tier 都會用到，先放上面）
   var kpiInfo='';
   if(r.workMin>0||r.kpi>0){
-    kpiInfo='<div style="background:#F0F4F8;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px">'+
+    kpiInfo='<div style="background:#F0F4F8;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px">'+
       '<div><span style="color:var(--sub)">總工時：</span><strong style="color:var(--brand)">'+(r.workHr||0).toFixed(2)+' hr</strong> ('+(r.workMin||0).toFixed(1)+' 分)</div>'+
       '<div><span style="color:var(--sub)">積分點：</span><strong style="color:var(--brand2)">'+(r.kpi||0).toFixed(1)+'</strong></div>'+
       '<div><span style="color:var(--sub)">數量：</span><strong>'+r.qty+' 台</strong></div>'+
     '</div>';
   }
   area.innerHTML=kpiInfo;
+
+  // v9.17：快速報價參考（管理員心算對照用，獨立資訊條，不是 tier）
+  if(isMgr && r.mid && r.chars){
+    var perChar = QUICK_REF_PER_CHAR[r.mid];
+    var refInfo;
+    if(perChar){
+      var refTotal = perChar * r.chars;
+      refInfo = '<strong style="color:#92400E;font-size:14px">$'+(perChar*r.chars).toLocaleString()+'</strong>'+
+                ' <span style="color:var(--sub);font-size:11px">＝ $'+perChar+' × '+r.chars+' 字</span>';
+    }else{
+      refInfo = '<span style="color:var(--sub);font-size:11px">模組「'+r.mid+'」尚未設定單字參考價</span>';
+    }
+    area.innerHTML+=
+      '<div style="background:#FFFBEB;border:1.5px dashed #F59E0B;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:12px;font-size:12px">'+
+        '<span style="color:#92400E;font-weight:700">🧮 快速報價參考</span>'+
+        '<span style="flex:1">'+refInfo+'</span>'+
+      '</div>';
+  }
+
   if(!isMgr){
     area.innerHTML+='<div style="font-size:11px;color:var(--sub);margin-bottom:10px">業務模式：顯示 3 個常用等級</div>';
   }else{
-    area.innerHTML+='<div style="font-size:11px;color:var(--yellow);margin-bottom:10px;font-weight:700">🔑 管理者模式：顯示全部 7 個固定等級 + 自訂毛利率</div>';
+    area.innerHTML+='<div style="font-size:11px;color:var(--yellow);margin-bottom:10px;font-weight:700">🔑 管理者模式：顯示全部 9 個固定等級 + 自訂毛利率</div>';
   }
 
   // v9.1：成本基準 = 材料 + 工時(委外工資)，價格 = 成本 / (1-毛利率)
@@ -1441,10 +1477,7 @@ function updateTiers(){
   visible.forEach(function(x){
     var t=x.t, i=x.i;
     var price;
-    if(t.isRef){
-      // v9.16 快速報價參考：用模組單價 × 片數 × 2.5 快速估算（沿用 v8 stdPrice 公式）
-      price = r.stdPrice || (cost && cost>0 ? Math.ceil(cost/0.4/100)*100 : 0);
-    }else if(cost && cost>0){
+    if(cost && cost>0){
       // 真實成本 / (1-毛利率)，無條件進位到百位
       price = Math.ceil(cost/(1-t.margin)/100)*100;
     }else{
@@ -2956,9 +2989,11 @@ function buildSheet8Payload(){
   if(taxId)    fd.append(F.taxId,       taxId);
   if(company)  fd.append(F.companyName, company);
   if(memo)     fd.append(F.memo,        memo);
-  fd.append(F.productBrief, 'LED 顯示看板');
-  fd.append(F.category,     category);
-  fd.append(F.progress,     '✉︎已報');
+  // v9.17：產品簡要從客戶頁 memo 抓首句 / 沒填就用模組 ID；不再硬編「LED 顯示看板」
+  var productBriefAuto = memo ? memo.split(/[\n。.]/)[0].slice(0,30) : (r.mid || '');
+  if(productBriefAuto) fd.append(F.productBrief, productBriefAuto);
+  fd.append(F.category, category);
+  fd.append(F.progress, '✉︎已報');
   fd.append(F.firstContact, initial);
   // 金額：A1 + B1（若有）
   var grand = (r.totalPrice||0) + (r.installation ? r.installation.serviceFee : 0);
