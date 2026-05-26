@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.17</title>
+<title>USLED 快速報價 v9.18</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.17</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.18</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -537,9 +537,21 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
     </div>
 
     <div style="padding:16px 18px;font-size:13px;color:#1F2937">
-      <!-- 距離 + 人員 -->
-      <div class="frow"><label style="font-size:11px;font-weight:700;color:#64748B">📍 距離（單程 km）</label>
-        <input id="iv_km" type="number" min="0" value="30" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+      <!-- v9.18：距離改地區選擇 -->
+      <div class="frow"><label style="font-size:11px;font-weight:700;color:#64748B">📍 施工地區（自動帶 km）</label>
+        <select id="iv_km" onchange="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px">
+          <option value="10" selected>岡山（10 km）</option>
+          <option value="20">梓官 / 彌陀 / 燕巢 / 阿蓮 / 永安 / 路竹 / 本州 / 橋頭（20 km）</option>
+          <option value="40">田寮 / 湖內 / 楠梓 / 大社 / 歸仁 / 龍崎 / 茄萣（40 km）</option>
+          <option value="50">南高雄市區 三民 / 前鎮 / 鼓山 / 左營（50 km）</option>
+          <option value="60">小港 / 大寮 / 九曲堂 / 大樹 / 關廟 / 內門 / 台南市（60 km）</option>
+          <option value="80">旗山 / 屏東市 / 里港 / 美濃 / 林園 / 新市 / 新化 / 安南（80 km）</option>
+          <option value="100">麻豆 / 新園 / 崁頂 / 東港 / 林邊 / 潮州 / 佳里 / 七股 / 西港 / 善化 / 萬巒（100 km）</option>
+          <option value="130">學甲 / 新營 / 玉井 / 山上 / 鹽水 / 甲仙 / 杉林溪 / 枋寮 / 白河 / 柳營 / 東山 / 六龜（130 km）</option>
+          <option value="170">枋山 / 布袋 / 大內 / 大埔 / 後壁 / 楠西 / 那馬夏（170 km）</option>
+          <option value="200">車城 / 恆春 / 嘉義（200 km）</option>
+          <option value="400">台東 / 雲林 / 彰化 / 台中（400 km）</option>
+        </select>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
@@ -551,8 +563,9 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         </div>
       </div>
 
-      <div class="frow" style="margin-top:10px"><label style="font-size:11px;font-weight:700;color:#64748B">⏱ 施工工時（分鐘）<span id="iv_billable" style="float:right;color:#10B981;font-weight:600">計費 1.0 hr</span></label>
-        <input id="iv_wmin" type="number" min="0" value="60" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
+      <!-- v9.18：預設 120 分（2hr），step=30 -->
+      <div class="frow" style="margin-top:10px"><label style="font-size:11px;font-weight:700;color:#64748B">⏱ 施工工時（分鐘，30 分一單位）<span id="iv_billable" style="float:right;color:#10B981;font-weight:600">計費 2.0 hr</span></label>
+        <input id="iv_wmin" type="number" min="0" value="120" step="30" inputmode="numeric" oninput="calcInstallForm()" style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:14px">
       </div>
 
       <!-- 高度 -->
@@ -791,8 +804,8 @@ try{ var _saved=parseFloat(localStorage.getItem('usled_custom_margin')); if(!isN
 // v9.17：每個 tier 加 cfgKey 屬性，buildFromJson 依 key 對應（不按位置），避免新增 tier 造成錯位
 var TIERS = [
   {name:'標價未稅',   tag:'tier-act',  tagTxt:'最高',     margin:0.60,           sales:false, cfgKey:1},
-  {name:'毛利率 55%', tag:'tier-act',  tagTxt:'高毛利',   margin:0.55,           sales:false, cfgKey:null},
-  {name:'毛利率 50%', tag:'tier-act',  tagTxt:'中高毛利', margin:0.50,           sales:false, cfgKey:null},
+  {name:'活動促銷',   tag:'tier-act',  tagTxt:'促銷',     margin:0.55,           sales:false, cfgKey:null},
+  {name:'特價優惠',   tag:'tier-act',  tagTxt:'特價',     margin:0.50,           sales:false, cfgKey:null},
   {name:'當月活動',   tag:'tier-act',  tagTxt:'限時優惠', margin:0.445,          sales:true,  cfgKey:2},
   {name:'特別會員',   tag:'tier-shop', tagTxt:'會員價',   margin:0.40,           sales:false, cfgKey:3},
   {name:'蝦皮訂製',   tag:'tier-shop', tagTxt:'電商訂製', margin:0.345,          sales:true,  cfgKey:4},
@@ -1447,6 +1460,19 @@ function updateTiers(){
   }
   area.innerHTML=kpiInfo;
 
+  // v9.18：成本資訊（管理員專屬，本來在每張 tier 卡上重複，搬到上方統一顯示）
+  if(isMgr){
+    var costForBar = (r.totalCost && r.totalCost>0) ? r.totalCost : r.matCost;
+    if(costForBar > 0){
+      area.innerHTML+=
+        '<div style="background:#EEF4FF;border:1.5px solid #C7D9F9;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;gap:14px;flex-wrap:wrap;font-size:12px">'+
+          '<div><span style="color:var(--sub)">材料成本：</span><strong>$'+Math.round(r.matSub||r.matCost||0).toLocaleString()+'</strong></div>'+
+          '<div><span style="color:var(--sub)">工時成本（委外）：</span><strong>$'+Math.round(r.workCost||0).toLocaleString()+'</strong></div>'+
+          '<div><span style="color:var(--sub)">總成本：</span><strong style="color:#1A3A6B">$'+Math.round(costForBar).toLocaleString()+'</strong></div>'+
+        '</div>';
+    }
+  }
+
   // v9.17：快速報價參考（管理員心算對照用，獨立資訊條，不是 tier）
   if(isMgr && r.mid && r.chars){
     var perChar = QUICK_REF_PER_CHAR[r.mid];
@@ -1493,9 +1519,7 @@ function updateTiers(){
     var profitPct=price>0?(profit/price*100):0;
     var mgrHtml=isMgr?
       '<div class="tier-cost-bar mgr-show">'+
-        '<div class="cost-row"><span>材料成本</span><strong>$'+Math.round(r.matSub||r.matCost||0).toLocaleString()+'</strong></div>'+
-        '<div class="cost-row"><span>工時成本（委外）</span><strong>$'+Math.round(r.workCost||0).toLocaleString()+'</strong></div>'+
-        '<div class="cost-row" style="border-top:1px dashed var(--border);padding-top:4px;margin-top:2px"><span>總成本</span><strong>$'+Math.round(cost).toLocaleString()+'</strong></div>'+
+        // v9.18：材料/工時/總成本搬到頂部統一顯示，每張卡只留毛利資訊
         '<div class="cost-row"><span>毛利金額</span><strong style="color:var(--green)">$'+Math.round(profit).toLocaleString()+'</strong></div>'+
         '<div class="cost-row"><span>毛利率</span><strong>'+profitPct.toFixed(1)+'%</strong></div>'+
         '<div class="profit-bar"><div class="profit-fill" style="width:'+Math.min(Math.max(profitPct,0),100)+'%"></div></div>'+
