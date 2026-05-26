@@ -956,27 +956,35 @@ function EXPORT_CFG(){
   alert("✅ 設定已匯出！\n上傳到 GitHub 後，報價單系統即可自動讀取最新成本。");
 }
 
-// v4.9.4：iframe 內直接套用到主 PWA
+// v4.9.5：用 localStorage + storage event 跨分頁通訊（取代 iframe postMessage）
+// 主 PWA 監聽 'usled_pending_cfg' 的 storage 事件即可套用
 function APPLY_TO_PWA(){
   var cfg=BUILD_CFG_OBJECT();
-  if(window.parent && window.parent!==window){
-    try{
-      window.parent.postMessage({type:'USLED_CFG_UPDATE', cfg:cfg}, '*');
-      var b=document.getElementById('applyToPwaBtn');
-      if(b){b.textContent='✅ 已套用'; b.style.background='#10B981';
-            setTimeout(function(){b.textContent='✅ 套用到 PWA'; b.style.background='#F59E0B';}, 2000);}
-    }catch(e){ alert('套用失敗：'+e.message); }
-  }else{
-    alert('此功能僅在主 PWA 內嵌時可用。\n獨立開啟請用「💾 匯出設定」下載 JSON。');
+  try{
+    // 加 _ts 確保每次寫入都觸發 storage event（即使 cfg 一樣）
+    cfg._appliedAt = Date.now();
+    localStorage.setItem('usled_pending_cfg', JSON.stringify(cfg));
+    var b=document.getElementById('applyToPwaBtn');
+    if(b){
+      b.textContent='✅ 已套用到 PWA';
+      b.style.background='#10B981';
+      setTimeout(function(){
+        b.textContent='✅ 套用到 PWA';
+        b.style.background='#F59E0B';
+      }, 2500);
+    }
+    // 同時試 postMessage（如果是 iframe 也支援）
+    if(window.opener) try{window.opener.postMessage({type:'USLED_CFG_UPDATE',cfg:cfg},'*');}catch(e){}
+    if(window.parent && window.parent!==window) try{window.parent.postMessage({type:'USLED_CFG_UPDATE',cfg:cfg},'*');}catch(e){}
+  }catch(e){
+    alert('套用失敗：'+e.message);
   }
 }
 
-// 初始化：iframe 內顯示「套用到 PWA」按鈕
+// 初始化：「套用到 PWA」按鈕一律顯示（不管是 iframe 還是新分頁）
 (function(){
-  if(window.parent && window.parent!==window){
-    var b=document.getElementById('applyToPwaBtn');
-    if(b) b.style.display='inline-block';
-  }
+  var b=document.getElementById('applyToPwaBtn');
+  if(b) b.style.display='inline-block';
 })();
 
 function IMPORT_CFG(input){

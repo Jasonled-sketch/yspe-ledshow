@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.20</title>
+<title>USLED 快速報價 v9.21</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.20</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.21</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -370,12 +370,12 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="frow"><label>統編 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_taxid" type="text" placeholder="" inputmode="numeric"></div>
       <div class="frow"><label>抬頭 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_company" type="text" placeholder=""></div>
     </div>
-    <!-- v9.19：含發票切換（影響報價單顯示稅額）-->
+    <!-- v9.19/v9.21：含發票切換（用 onchange + 整列可點區域） -->
     <div class="frow" style="margin-top:6px">
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0;font-weight:400">
-        <input type="checkbox" id="c_invoice" oninput="try{buildQuote()}catch(e){}" style="width:18px;height:18px;accent-color:var(--accent)">
-        <span style="font-size:13px;color:var(--brand)">📄 含發票（總計多 5% 稅額）</span>
-      </label>
+      <div onclick="document.getElementById('c_invoice').click()" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F8FAFC;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;user-select:none">
+        <input type="checkbox" id="c_invoice" onchange="try{buildQuote()}catch(e){}" onclick="event.stopPropagation()" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">
+        <span style="font-size:13px;color:var(--brand);font-weight:600">📄 含發票（總計多 5% 稅額）</span>
+      </div>
     </div>
     <!-- v9.15：其他備註（推送到 sheet 8 的 1001191 欄位） -->
     <div class="frow"><label>其他備註 <span style="color:var(--sub);font-weight:400">(可選 — 交期、特殊規格、客戶要求)</span></label>
@@ -732,17 +732,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       </div>
     </div>
 
-    <!-- v9.20：參數編輯器全螢幕 modal -->
-    <div id="paramEditorModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;padding:10px">
-      <div style="background:#fff;border-radius:10px;width:100%;height:calc(100vh - 20px);margin:0 auto;display:flex;flex-direction:column;overflow:hidden">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:linear-gradient(135deg,#1D9E75,#10B981);color:#fff;flex-shrink:0">
-          <div style="font-weight:700;font-size:14px">🛠 參數編輯器 v4.9.3</div>
-          <div id="paramEditorStatus" style="flex:1;text-align:center;font-size:11px;color:#A7F3D0;font-family:monospace">— 編輯後按右上 ✅ 套用到 PWA —</div>
-          <button onclick="closeParamEditor()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:5px;cursor:pointer">關閉</button>
-        </div>
-        <iframe id="paramEditorFrame" src="" style="flex:1;width:100%;height:100%;min-height:500px;border:0;background:#F7F6F3;display:block"></iframe>
-      </div>
-    </div>
+    <!-- v9.21：參數編輯器改新分頁開啟，不再需要 modal/iframe -->
 
     <div id="setPanel2" style="display:none">
       <div style="font-size:12px;color:var(--sub);margin-bottom:12px;line-height:1.6">
@@ -1745,31 +1735,23 @@ function openSettings(){
   if(tg) tg.checked = isSheet8Enabled();
 }
 
-// v9.20：線上參數編輯器
+// v9.21：開啟參數編輯器（新分頁）+ 監聽 storage event 自動套用
 function openParamEditor(){
-  var modal=document.getElementById('paramEditorModal');
-  var ifr=document.getElementById('paramEditorFrame');
-  modal.style.display='block';
-  if(!ifr.src){
-    // 編輯器在 repo 根目錄，URL 編碼中文
-    ifr.src = 'USLED_%E5%8F%83%E6%95%B8%E7%B7%A8%E8%BC%AF%E5%99%A8.html?_t=' + Date.now();
+  // 中文路徑要 URL 編碼
+  var url = 'USLED_%E5%8F%83%E6%95%B8%E7%B7%A8%E8%BC%AF%E5%99%A8.html?_t=' + Date.now();
+  var w = window.open(url, 'usled_editor');
+  if(!w){
+    toast('⚠ 瀏覽器擋住新分頁，請允許彈出視窗');
+    return;
   }
-  document.getElementById('paramEditorStatus').textContent = '— 編輯後按右上 ✅ 套用到 PWA —';
-}
-function closeParamEditor(){
-  document.getElementById('paramEditorModal').style.display='none';
+  toast('🛠 編輯器已開啟（新分頁），改完按「✅ 套用到 PWA」自動同步');
 }
 
-// 接收編輯器送來的新 cfg
-window.addEventListener('message', function(event){
-  var d = event && event.data;
-  if(!d || d.type !== 'USLED_CFG_UPDATE' || !d.cfg) return;
+// 套用參數的共用邏輯
+function _applyCfgFromEditor(cfg){
   try{
-    buildFromJson(d.cfg);
-    localStorage.setItem('usled_quote_cfg', JSON.stringify(d.cfg));
-    document.getElementById('paramEditorStatus').textContent =
-      '✅ 已套用 (' + new Date().toLocaleTimeString('zh-TW', {hour12:false}) + ')';
-    // 觸發畫面重算
+    buildFromJson(cfg);
+    localStorage.setItem('usled_quote_cfg', JSON.stringify(cfg));
     if(typeof onMod==='function' && RESULT.mid) onMod();
     if(typeof calc==='function') calc();
     if(typeof updateTiers==='function') updateTiers();
@@ -1777,6 +1759,23 @@ window.addEventListener('message', function(event){
   }catch(e){
     alert('⚠ 套用失敗：' + e.message);
   }
+}
+
+// 監聽編輯器（新分頁）寫入 localStorage
+window.addEventListener('storage', function(e){
+  if(e.key === 'usled_pending_cfg' && e.newValue){
+    try{
+      var cfg = JSON.parse(e.newValue);
+      _applyCfgFromEditor(cfg);
+    }catch(err){}
+  }
+});
+
+// 監聽 postMessage（萬一是 iframe 模式）
+window.addEventListener('message', function(event){
+  var d = event && event.data;
+  if(!d || d.type !== 'USLED_CFG_UPDATE' || !d.cfg) return;
+  _applyCfgFromEditor(d.cfg);
 });
 function closeSettings(){document.getElementById('settingsSheet').classList.remove('show');}
 function switchSetTab(n){
@@ -1831,13 +1830,14 @@ function buildQuote(){
       '<div class="qs-info">'+
         '<div class="qs-cell"><span class="qs-cell-lbl">客戶名稱</span><span class="qs-cell-val">'+client+'</span></div>'+
         '<div class="qs-cell"><span class="qs-cell-lbl">連絡電話</span><span class="qs-cell-val">'+phone+'</span></div>'+
-        // v9.15：選填欄位（有填才顯示，沒填就不出現）
+        // v9.15：選填欄位（有填才顯示）
         (addressStr ? '<div class="qs-cell" style="grid-column:span 2"><span class="qs-cell-lbl">抵達地址</span><span class="qs-cell-val">'+addressStr+'</span></div>' : '')+
+        // v9.21：統編 + 抬頭 一行；機型款式 + 備註 一行（備註放在抬頭下方那一格）
         (taxIdStr || companyStr ?
           '<div class="qs-cell"><span class="qs-cell-lbl">統編</span><span class="qs-cell-val">'+(taxIdStr||'—')+'</span></div>'+
           '<div class="qs-cell"><span class="qs-cell-lbl">抬頭</span><span class="qs-cell-val">'+(companyStr||'—')+'</span></div>' : '')+
-        '<div class="qs-cell" style="grid-column:span 2"><span class="qs-cell-lbl">機型款式</span><span class="qs-cell-val">'+typeCode+'　'+(r.dual>1?'雙面':'單面')+'</span></div>'+
-        (memoStr ? '<div class="qs-cell" style="grid-column:span 2;background:#FFFBEB;border-color:#F59E0B"><span class="qs-cell-lbl" style="color:#92400E">📝 備註</span><span class="qs-cell-val" style="color:#78350F">'+memoStr+'</span></div>' : '')+
+        '<div class="qs-cell'+(memoStr?'':' ')+'"'+(memoStr?'':' style="grid-column:span 2"')+'><span class="qs-cell-lbl">機型款式</span><span class="qs-cell-val">'+typeCode+'　'+(r.dual>1?'雙面':'單面')+'</span></div>'+
+        (memoStr ? '<div class="qs-cell"><span class="qs-cell-lbl">備註</span><span class="qs-cell-val">'+memoStr+'</span></div>' : '')+
       '</div>'+
       '<div class="qs-item-hd"><span>序</span><span>規格內容</span><span>數量</span><span>單價</span><span>小計</span></div>'+
       '<div class="qs-item-row">'+
@@ -1896,24 +1896,25 @@ function buildQuote(){
           '<div style="text-align:right;font-weight:800;color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'</div>'+
         '</div>';
       })()+
-      // v9.19：3 欄總計 — 現金未稅 | 稅額 | 含稅總計（仿 Ragic 設計，取代產品/施工小計）
+      // v9.21：低調版 3 欄總計（仿原本 qs-total-bar 風格，但分 3 段）
       (function(){
         var grand = total + ((RESULT.installation && RESULT.installation.serviceFee)||0);
         var invoiceOn = !!(document.getElementById('c_invoice') && document.getElementById('c_invoice').checked);
         var tax = invoiceOn ? Math.round(grand * 0.05) : 0;
         var withTax = grand + tax;
-        return '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:12px">'+
-          '<div style="padding:14px 10px;background:linear-gradient(135deg,#1A3A6B,#2563EB);color:#fff;border-radius:8px;text-align:center">'+
-            '<div style="font-size:10px;opacity:.85;letter-spacing:1px">現金未稅總計</div>'+
-            '<div style="font-size:18px;font-weight:900;margin-top:4px">NT $'+grand.toLocaleString()+'</div>'+
+        // 一條深藍底 bar，內含 3 段 inline 文字
+        return '<div class="qs-total-bar" style="display:flex;justify-content:space-around;align-items:baseline;gap:14px;padding:10px 18px">'+
+          '<div style="display:flex;align-items:baseline;gap:8px">'+
+            '<span style="font-size:12px;opacity:.85">現金未稅</span>'+
+            '<span style="font-size:16px;font-weight:800">NT $'+grand.toLocaleString()+'</span>'+
           '</div>'+
-          '<div style="padding:14px 10px;background:'+(invoiceOn?'linear-gradient(135deg,#F59E0B,#D97706)':'linear-gradient(135deg,#94A3B8,#64748B)')+';color:#fff;border-radius:8px;text-align:center">'+
-            '<div style="font-size:10px;opacity:.85;letter-spacing:1px">稅額 '+(invoiceOn?'(5%)':'(未含發票)')+'</div>'+
-            '<div style="font-size:18px;font-weight:900;margin-top:4px">$'+tax.toLocaleString()+'</div>'+
+          '<div style="display:flex;align-items:baseline;gap:8px;opacity:'+(invoiceOn?'1':'.6')+'">'+
+            '<span style="font-size:12px;opacity:.85">稅額'+(invoiceOn?'(5%)':'(免)')+'</span>'+
+            '<span style="font-size:16px;font-weight:800">$'+tax.toLocaleString()+'</span>'+
           '</div>'+
-          '<div style="padding:14px 10px;background:linear-gradient(135deg,#0F766E,#0D9488);color:#fff;border-radius:8px;text-align:center">'+
-            '<div style="font-size:10px;opacity:.85;letter-spacing:1px">含稅總計</div>'+
-            '<div style="font-size:18px;font-weight:900;margin-top:4px">NT $'+withTax.toLocaleString()+'</div>'+
+          '<div style="display:flex;align-items:baseline;gap:8px">'+
+            '<span style="font-size:12px;opacity:.85">含稅總計</span>'+
+            '<span style="font-size:16px;font-weight:800">NT $'+withTax.toLocaleString()+'</span>'+
           '</div>'+
         '</div>';
       })()+
