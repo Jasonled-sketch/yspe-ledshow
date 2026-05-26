@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.22</title>
+<title>USLED 快速報價 v9.23</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.22</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.23</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -2366,9 +2366,14 @@ function buildRagicUrl(base,extra){
 // 回傳：{mode:'worker'|'direct'|null, postUrl, buildGetUrl(params), headers, reason}
 function getApiRoute(){
   if(WORKER_URL && currentUser && currentUser.idToken){
-    // 檢查 token 過期
+    // 檢查 token 過期 — v9.23：嘗試靜默刷新，使用者不用手動點登入
     if(currentUser.tokenExp && currentUser.tokenExp < Date.now()){
-      return {mode:null, reason:'登入已過期，請重新登入 Google'};
+      try{
+        if(typeof google!=='undefined' && google.accounts){
+          google.accounts.id.prompt();  // 觸發 Google 自動 prompt（若已登入會直接給新 token）
+        }
+      }catch(e){}
+      return {mode:null, reason:'登入已過期，正在嘗試重新驗證... 請稍候再按一次'};
     }
     var base = WORKER_URL.replace(/\/$/,'');
     return {
@@ -2613,9 +2618,16 @@ function initGoogleSignIn(){
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleSignIn,
-      auto_select: false,
+      auto_select: true,           // v9.23：開啟自動登入（之前登過的 Google 帳號自動發新 token）
       cancel_on_tap_outside: false
     });
+    // v9.23：若 token 過期，靜默 prompt 重新取得（不打擾使用者）
+    try{
+      var u = currentUser;
+      if(u && u.tokenExp && u.tokenExp < Date.now()){
+        google.accounts.id.prompt();
+      }
+    }catch(e){}
   }
   tryInit();
 }
@@ -2666,9 +2678,9 @@ function loadSavedUser(){
   try{
     var u=JSON.parse(localStorage.getItem('usled_user')||'null');
     if(u && ROLE_WHITELIST[u.email]===u.role){
-      // v9.2/v9.3：Worker 模式下若沒有 idToken 或 token 過期，靜默清掉強制重新登入
-      // （這會處理「v9.0/v9.1 舊登入記憶」+「Google token 過期」兩種情況）
-      if(WORKER_URL && (!u.idToken || (u.tokenExp && u.tokenExp < Date.now()))){
+      // v9.23：完全沒 idToken 才清（很舊的 v9.0/v9.1 記憶）
+      // token 過期不清！保留登入狀態給 UI 用。只有「推送 Ragic」等需要新 token 的操作會即時要求重認證
+      if(WORKER_URL && !u.idToken){
         localStorage.removeItem('usled_user');
         return false;
       }
