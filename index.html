@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.21</title>
+<title>USLED 快速報價 v9.22</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.21</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.22</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -370,13 +370,11 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
       <div class="frow"><label>統編 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_taxid" type="text" placeholder="" inputmode="numeric"></div>
       <div class="frow"><label>抬頭 <span style="color:var(--sub);font-weight:400">(可選 — 發票用)</span></label><input id="c_company" type="text" placeholder=""></div>
     </div>
-    <!-- v9.19/v9.21：含發票切換（用 onchange + 整列可點區域） -->
-    <div class="frow" style="margin-top:6px">
-      <div onclick="document.getElementById('c_invoice').click()" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F8FAFC;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;user-select:none">
-        <input type="checkbox" id="c_invoice" onchange="try{buildQuote()}catch(e){}" onclick="event.stopPropagation()" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer">
-        <span style="font-size:13px;color:var(--brand);font-weight:600">📄 含發票（總計多 5% 稅額）</span>
-      </div>
-    </div>
+    <!-- v9.22：含發票切換 — 標準 label 寫法（label 包 checkbox，點任何地方都觸發）-->
+    <label for="c_invoice" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#F8FAFC;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;user-select:none;margin-top:6px">
+      <input type="checkbox" id="c_invoice" onchange="try{buildQuote()}catch(e){}" style="width:18px;height:18px;accent-color:var(--accent);cursor:pointer;margin:0">
+      <span style="font-size:13px;color:var(--brand);font-weight:600">📄 含發票（總計多 5% 稅額）</span>
+    </label>
     <!-- v9.15：其他備註（推送到 sheet 8 的 1001191 欄位） -->
     <div class="frow"><label>其他備註 <span style="color:var(--sub);font-weight:400">(可選 — 交期、特殊規格、客戶要求)</span></label>
       <textarea id="c_memo" rows="2" placeholder="例：6 月初交件 / 需含安裝 / 客戶指定外觀..." style="width:100%;padding:8px;border:1.5px solid #CBD5E1;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical"></textarea>
@@ -1896,25 +1894,32 @@ function buildQuote(){
           '<div style="text-align:right;font-weight:800;color:#1D9E75">$'+ins.serviceFee.toLocaleString()+'</div>'+
         '</div>';
       })()+
-      // v9.21：低調版 3 欄總計（仿原本 qs-total-bar 風格，但分 3 段）
+      // v9.22：總計 bar — 更小 + 左右靠邊 + 條件顯示稅額
+      // 沒勾發票：只顯示「現金未稅 NT $XXX」單行
+      // 有勾發票：左邊現金未稅 / 中間稅額 / 右邊含稅總計
       (function(){
         var grand = total + ((RESULT.installation && RESULT.installation.serviceFee)||0);
         var invoiceOn = !!(document.getElementById('c_invoice') && document.getElementById('c_invoice').checked);
-        var tax = invoiceOn ? Math.round(grand * 0.05) : 0;
+        if(!invoiceOn){
+          return '<div class="qs-total-bar" style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 16px">'+
+            '<span style="font-size:11px;opacity:.85">現金未稅總計</span>'+
+            '<span style="font-size:15px;font-weight:800">NT $'+grand.toLocaleString()+'</span>'+
+          '</div>';
+        }
+        var tax = Math.round(grand * 0.05);
         var withTax = grand + tax;
-        // 一條深藍底 bar，內含 3 段 inline 文字
-        return '<div class="qs-total-bar" style="display:flex;justify-content:space-around;align-items:baseline;gap:14px;padding:10px 18px">'+
-          '<div style="display:flex;align-items:baseline;gap:8px">'+
-            '<span style="font-size:12px;opacity:.85">現金未稅</span>'+
-            '<span style="font-size:16px;font-weight:800">NT $'+grand.toLocaleString()+'</span>'+
+        return '<div class="qs-total-bar" style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 16px">'+
+          '<div style="display:flex;align-items:baseline;gap:6px">'+
+            '<span style="font-size:11px;opacity:.85">現金未稅</span>'+
+            '<span style="font-size:15px;font-weight:800">NT $'+grand.toLocaleString()+'</span>'+
           '</div>'+
-          '<div style="display:flex;align-items:baseline;gap:8px;opacity:'+(invoiceOn?'1':'.6')+'">'+
-            '<span style="font-size:12px;opacity:.85">稅額'+(invoiceOn?'(5%)':'(免)')+'</span>'+
-            '<span style="font-size:16px;font-weight:800">$'+tax.toLocaleString()+'</span>'+
+          '<div style="display:flex;align-items:baseline;gap:6px">'+
+            '<span style="font-size:11px;opacity:.85">稅額(5%)</span>'+
+            '<span style="font-size:14px;font-weight:700">$'+tax.toLocaleString()+'</span>'+
           '</div>'+
-          '<div style="display:flex;align-items:baseline;gap:8px">'+
-            '<span style="font-size:12px;opacity:.85">含稅總計</span>'+
-            '<span style="font-size:16px;font-weight:800">NT $'+withTax.toLocaleString()+'</span>'+
+          '<div style="display:flex;align-items:baseline;gap:6px">'+
+            '<span style="font-size:11px;opacity:.85">含稅總計</span>'+
+            '<span style="font-size:15px;font-weight:800">NT $'+withTax.toLocaleString()+'</span>'+
           '</div>'+
         '</div>';
       })()+
