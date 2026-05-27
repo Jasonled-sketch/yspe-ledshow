@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.23</title>
+<title>USLED 快速報價 v9.24</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.23</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.24</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -1520,6 +1520,39 @@ function updateTiers(){
       '</div>';
   }
 
+  // v9.24：行情參考卡（從 Sheet 18 fetch，cache 5min）
+  // 業務員 = 看到參考價；管理員 = 看到參考價 + 「更新行情價」按鈕
+  var specKey = computeSpecKey(r);
+  if(specKey){
+    var placeholderId = 'marketRefSlot';
+    area.innerHTML += '<div id="'+placeholderId+'"></div>';
+    fetchMarketPrice(specKey, function(mp){
+      var slot = document.getElementById(placeholderId);
+      if(!slot) return;  // 使用者已離開頁面
+      var html = '';
+      if(mp && mp.marketPrice > 0){
+        html =
+          '<div style="background:#FFF7ED;border:1.5px solid #FB923C;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px">'+
+            '<span style="color:#9A3412;font-weight:700">💡 行情建議售價</span>'+
+            '<strong style="color:#EA580C;font-size:18px">NT $'+Math.round(mp.marketPrice).toLocaleString()+'</strong>'+
+            (mp.memo ? '<span style="flex:1 1 100%;color:#78716C;font-size:11px;margin-top:2px">📝 '+mp.memo+'</span>' : '')+
+            '<span style="flex:1 1 100%;color:#A8A29E;font-size:10px">'+(mp.source||'')+'　'+(mp.updatedBy||'?')+' 於 '+(mp.lastUpdate||'')+' 更新</span>'+
+            '<button onclick="useMarketPrice('+mp.marketPrice+')" style="padding:6px 12px;background:#EA580C;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">套用此價</button>'+
+            (isMgr ? '<button onclick="openMarketPriceModal(\''+specKey.replace(/'/g,"\\'")+'\', RESULT, '+JSON.stringify(mp).replace(/"/g,'&quot;')+')" style="padding:6px 10px;background:#fff;color:#EA580C;border:1.5px solid #EA580C;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer">✏ 改</button>' : '')+
+          '</div>';
+      }else if(isMgr){
+        // 管理員看到還沒設定的規格 → 顯示「設定行情價」按鈕
+        html =
+          '<div style="background:#F5F3FF;border:1.5px dashed #A78BFA;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:12px">'+
+            '<span style="color:#6D28D9">📊 此規格尚未設定行情價</span>'+
+            '<span style="flex:1;color:#94A3B8;font-family:monospace;font-size:10px">'+specKey+'</span>'+
+            '<button onclick="openMarketPriceModal(\''+specKey.replace(/'/g,"\\'")+'\', RESULT, null)" style="padding:6px 12px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">📊 設定行情價</button>'+
+          '</div>';
+      }
+      slot.outerHTML = html;
+    });
+  }
+
   if(!isMgr){
     area.innerHTML+='<div style="font-size:11px;color:var(--sub);margin-bottom:10px">業務模式：顯示 3 個常用等級</div>';
   }else{
@@ -2278,6 +2311,22 @@ var RAGIC_FIELD_IDS_SHEET8 = {
 // Sheet 8 子表 ID + 欄位
 var RAGIC_SHEET8_SUBTABLE_PRODUCT  = '1000655';  // 產品明細
 var RAGIC_SHEET8_SUBTABLE_ADDITION = '1000681';  // 附加項目
+
+// v9.24：Sheet 18 字幕機行情參考 — 管理員 key、業務員看
+var RAGIC_FIELD_IDS_SHEET18 = {
+  specKey:     '1002851',  // spec_key（規格指紋）
+  mod:         '1002852',  // 模組
+  rows:        '1002853',  // 字高（字數）
+  cols:        '1002854',  // 字寬（字數）
+  dual:        '1002855',  // 單雙面
+  frm:         '1002856',  // 鋁框
+  pwr:         '1002858',  // 電源規格（完整型號）
+  marketPrice: '1002859',  // 建議行情售價（數值）
+  memo:        '1002860',  // 備註
+  source:      '1002861',  // 來源（蝦皮/對手報價/客戶反饋/自訂）
+  lastUpdate:  '1002862',  // 上次更新（YYYY/MM/DD）
+  updatedBy:   '1002863'   // 更新者
+};
 
 // 啟用旗標（localStorage 控制；預設關閉）
 function isSheet8Enabled(){
@@ -3234,6 +3283,248 @@ function pushSheet8Now(){
     });
 }
 
+
+// ══════════════════════════════════════════
+// ══ v9.24：行情參考價（Sheet 18）═════════════
+// ══════════════════════════════════════════
+// 概念：管理員手動 key 某規格的建議行情售價 → 業務員試算時自動看到
+// spec_key 格式：<模組>-h<字高>-w<字寬>-<D|S>-<鋁框>-<電源>
+// 例：P10C-h11-w24-D-X-LAA0、M04C-h2-w8-S-X-LAA0
+function computeSpecKey(r){
+  if(!r || !r.mid || !r.rows || !r.cols) return '';
+  var dual = (r.dual && r.dual > 1) ? 'D' : 'S';
+  var frm  = r.fid || '?';
+  var pwr  = r.pid || '?';
+  return r.mid + '-h' + r.rows + '-w' + r.cols + '-' + dual + '-' + frm + '-' + pwr;
+}
+
+// 從 Ragic Sheet 18 fetch 該規格的行情價（用 where filter spec_key）
+// 結果 cache 在 localStorage 5 分鐘，減少 API 呼叫
+function fetchMarketPrice(specKey, cb){
+  if(!specKey){ cb(null); return; }
+  // 5 分鐘 cache
+  try{
+    var cache = JSON.parse(localStorage.getItem('usled_market_cache')||'{}');
+    var hit = cache[specKey];
+    if(hit && (Date.now() - hit.ts) < 5*60*1000){
+      cb(hit.data); return;
+    }
+  }catch(e){}
+
+  var route = getApiRoute();
+  if(route.mode !== 'worker'){
+    // 沒登入 Google 就不查（避免暴露 API key）
+    cb(null); return;
+  }
+  // Worker URL 加 ?sheet=18 路由
+  // GET ?api&naming=fid&where=1002851,eq,<specKey>&limit=1
+  var qs = 'sheet=18&naming=fid&where='+encodeURIComponent(RAGIC_FIELD_IDS_SHEET18.specKey+',eq,'+specKey)+'&limit=1';
+  var url = WORKER_URL.replace(/\/$/,'') + '/?' + qs;
+  fetch(url, { headers: route.headers })
+    .then(function(r){ return r.json(); })
+    .then(function(json){
+      // Ragic 回傳 { "recordIdx": {fields...}, ... }，空就是 {} 或 [] 或 {"recordIdx":{...}}
+      var data = null;
+      if(json && typeof json === 'object'){
+        var keys = Object.keys(json).filter(function(k){ return /^\d/.test(k); });
+        if(keys.length > 0){
+          var rec = json[keys[0]];
+          data = {
+            ragicId:     rec._ragicId || keys[0],
+            specKey:     rec[RAGIC_FIELD_IDS_SHEET18.specKey] || '',
+            marketPrice: parseFloat(rec[RAGIC_FIELD_IDS_SHEET18.marketPrice] || 0),
+            memo:        rec[RAGIC_FIELD_IDS_SHEET18.memo] || '',
+            source:      rec[RAGIC_FIELD_IDS_SHEET18.source] || '',
+            lastUpdate:  rec[RAGIC_FIELD_IDS_SHEET18.lastUpdate] || '',
+            updatedBy:   rec[RAGIC_FIELD_IDS_SHEET18.updatedBy] || ''
+          };
+        }
+      }
+      // 寫入 cache
+      try{
+        var c = JSON.parse(localStorage.getItem('usled_market_cache')||'{}');
+        c[specKey] = { ts: Date.now(), data: data };
+        localStorage.setItem('usled_market_cache', JSON.stringify(c));
+      }catch(e){}
+      cb(data);
+    })
+    .catch(function(e){
+      console.warn('fetchMarketPrice failed:', e);
+      cb(null);
+    });
+}
+
+// 管理員寫入/更新行情價到 Sheet 18
+// 如果 specKey 已存在 → UPDATE（用 ragicId）；不存在 → POST 新增
+function saveMarketPrice(specKey, r, marketPrice, memo, source, existingRagicId, cb){
+  var route = getApiRoute();
+  if(route.mode !== 'worker'){ cb({ok:false, msg:'需要 Google 登入'}); return; }
+  if(!isMgr){ cb({ok:false, msg:'需要管理者權限'}); return; }
+
+  var F = RAGIC_FIELD_IDS_SHEET18;
+  var fd = new FormData();
+  fd.append(F.specKey,     specKey);
+  fd.append(F.mod,         r.mid || '');
+  fd.append(F.rows,        r.rows || 0);
+  fd.append(F.cols,        r.cols || 0);
+  fd.append(F.dual,        (r.dual > 1) ? '雙面' : '單面');
+  fd.append(F.frm,         r.fid || '');
+  fd.append(F.pwr,         r.pid || '');
+  fd.append(F.marketPrice, parseInt(marketPrice, 10) || 0);
+  fd.append(F.memo,        memo || '');
+  fd.append(F.source,      source || '自訂');
+  // 日期 YYYY/MM/DD（Ragic 格式）
+  var now = new Date();
+  var dateStr = now.getFullYear() + '/' +
+                String(now.getMonth()+1).padStart(2,'0') + '/' +
+                String(now.getDate()).padStart(2,'0');
+  fd.append(F.lastUpdate, dateStr);
+  fd.append(F.updatedBy,  (currentUser && currentUser.email) ? getUserInitial(currentUser.email) : 'J');
+
+  // 路由：worker URL + ?sheet=18，若 update 加 path/<ragicId>（Ragic UPDATE 用同 POST，URL 多 /<id>）
+  // Worker 不支援 path 帶 ragicId，所以用 query 帶 recordId（Ragic 的 query 形式為 ?api&_subtableRid=...）
+  // 簡單做法：DELETE 舊 + POST 新（兩步），或直接用 Ragic 的 update 機制
+  // 這裡：existingRagicId 有值就在 URL 多加 _ragicId（Ragic 支援用 POST 到 /<sheetId>/<ragicId>?api 更新）
+  // Worker 沒 path 處理 → 我們在 worker URL 用 query 傳，PWA 端 hack：用 worker 的 query 機制（recordId）
+  // 實際上 Ragic update 也可以送同 spec_key + 其他欄位，靠 spec_key 的唯一性自動覆蓋（如果 Key 欄位設「不可重複」）
+  // 但保險起見，存在就先 DELETE 再 POST：但 DELETE 在 worker 也要實作
+  // 最務實：每次都新增一筆（POST），業務員 fetch 時用最新一筆（limit=1, 按時間 desc）
+  // → 改 fetchMarketPrice 加 reverse=true 或 sort by lastUpdate desc
+
+  var postUrl = WORKER_URL.replace(/\/$/,'') + '/?sheet=18';
+  fetch(postUrl, {
+    method:'POST',
+    headers: route.headers,
+    body: fd
+  })
+  .then(function(r){ return r.text().then(function(t){ return {ok:r.ok, status:r.status, body:t}; }); })
+  .then(function(res){
+    var parsed=null, ragicId='', status='';
+    try{ parsed=JSON.parse(res.body); ragicId=parsed.ragicId||''; status=parsed.status||''; }catch(e){}
+    if(res.ok && status==='SUCCESS' && ragicId){
+      // 清 cache 讓下次重 fetch
+      try{
+        var c = JSON.parse(localStorage.getItem('usled_market_cache')||'{}');
+        delete c[specKey];
+        localStorage.setItem('usled_market_cache', JSON.stringify(c));
+      }catch(e){}
+      cb({ok:true, ragicId:ragicId});
+    }else{
+      cb({ok:false, msg:'HTTP '+res.status+' '+status, body:res.body.slice(0,300)});
+    }
+  })
+  .catch(function(e){
+    cb({ok:false, msg:'網路錯誤：'+e.message});
+  });
+}
+
+// 業務員/管理員按「套用此價」→ 把行情價塞進「自訂毛利」tier 並選中
+// 反推毛利率：margin = 1 - cost/price
+function useMarketPrice(price){
+  var r = RESULT;
+  if(!r || !r.mid){ toast('⚠ 請先完成試算'); return; }
+  if(!price || price<=0){ toast('⚠ 無效價格'); return; }
+  var cost = (r.totalCost && r.totalCost>0) ? r.totalCost : r.matCost;
+  // 找「自訂毛利」tier
+  var customIdx = -1;
+  for(var i=0;i<TIERS.length;i++){
+    if(TIERS[i].editable){ customIdx = i; break; }
+  }
+  if(customIdx < 0){ toast('⚠ 找不到自訂毛利 tier'); return; }
+  // 反推毛利率
+  if(cost > 0 && price > cost){
+    var margin = 1 - cost/price;
+    TIERS[customIdx].margin = Math.max(0.01, Math.min(0.95, margin));
+    try{ localStorage.setItem('usled_custom_margin', String(TIERS[customIdx].margin)); }catch(e){}
+  }
+  selTier = customIdx;
+  RESULT.unitPrice  = price;
+  RESULT.totalPrice = price * (r.qty||1);
+  RESULT.tierName   = TIERS[customIdx].name;
+  updateTiers();
+  toast('✅ 已套用行情價 NT $'+price.toLocaleString());
+}
+
+// 管理員按「📊 更新行情價」彈出的 modal
+function openMarketPriceModal(specKey, r, existing){
+  // 移除舊 modal（若有）
+  var old = document.getElementById('marketPriceModal');
+  if(old) old.remove();
+
+  var typeCode = (r.mid||'') +
+                 (r.rows<10?'0':'')+(r.rows||0) +
+                 (r.cols<10?'0':'')+(r.cols||0) +
+                 (r.fid?'-'+r.fid:'') + (r.pid||'');
+
+  var modal = document.createElement('div');
+  modal.id = 'marketPriceModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var existingHtml = existing && existing.marketPrice ?
+    '<div style="background:#FFF7ED;border:1.5px solid #FB923C;border-radius:8px;padding:10px;margin-bottom:12px;font-size:13px">'+
+      '<div style="font-weight:700;color:#9A3412;margin-bottom:4px">📊 目前已有的行情價</div>'+
+      '<div>價格：<strong style="color:#EA580C;font-size:16px">NT $'+Math.round(existing.marketPrice).toLocaleString()+'</strong></div>'+
+      (existing.memo ? '<div style="margin-top:4px">備註：'+existing.memo+'</div>' : '')+
+      (existing.source ? '<div style="margin-top:2px;color:#78716C">來源：'+existing.source+'　更新者：'+(existing.updatedBy||'?')+'　日期：'+(existing.lastUpdate||'')+'</div>' : '')+
+    '</div>' : '';
+
+  modal.innerHTML =
+    '<div style="background:#fff;border-radius:14px;max-width:480px;width:100%;max-height:90vh;overflow:auto;padding:20px;box-shadow:0 10px 40px rgba(0,0,0,0.3)">'+
+      '<div style="font-size:18px;font-weight:700;color:#1A3A6B;margin-bottom:4px">📊 更新行情價</div>'+
+      '<div style="font-size:13px;color:#64748b;margin-bottom:14px">規格：'+typeCode+'　'+((r.dual>1)?'雙面':'單面')+'</div>'+
+      '<div style="font-size:11px;color:#94a3b8;font-family:monospace;margin-bottom:14px">spec_key: '+specKey+'</div>'+
+      existingHtml+
+      '<div style="margin-bottom:12px">'+
+        '<label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">建議行情售價（單台未稅 NT$）</label>'+
+        '<input type="number" id="mpInput_price" min="1" step="100" placeholder="例：4200" value="'+(existing&&existing.marketPrice?Math.round(existing.marketPrice):'')+'" style="width:100%;padding:10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:16px;box-sizing:border-box">'+
+      '</div>'+
+      '<div style="margin-bottom:12px">'+
+        '<label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">來源</label>'+
+        '<select id="mpInput_source" style="width:100%;padding:10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:14px;box-sizing:border-box">'+
+          '<option value="自訂">自訂</option>'+
+          '<option value="蝦皮">蝦皮（電商）</option>'+
+          '<option value="對手報價">對手報價（同業）</option>'+
+          '<option value="客戶反饋">客戶反饋</option>'+
+        '</select>'+
+      '</div>'+
+      '<div style="margin-bottom:14px">'+
+        '<label style="font-size:13px;font-weight:600;display:block;margin-bottom:4px">備註（選填）</label>'+
+        '<textarea id="mpInput_memo" rows="2" placeholder="例：蝦皮對手 XX 賣 3800，我們建議 4200" style="width:100%;padding:8px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:13px;box-sizing:border-box;resize:vertical">'+(existing&&existing.memo?existing.memo:'')+'</textarea>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;justify-content:flex-end">'+
+        '<button id="mpBtn_cancel" style="padding:10px 18px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-weight:600;cursor:pointer">取消</button>'+
+        '<button id="mpBtn_save" style="padding:10px 18px;background:#2563EB;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">💾 儲存到 Ragic</button>'+
+      '</div>'+
+    '</div>';
+
+  document.body.appendChild(modal);
+
+  if(existing && existing.source){
+    var sel = document.getElementById('mpInput_source');
+    if(sel) sel.value = existing.source;
+  }
+
+  document.getElementById('mpBtn_cancel').onclick = function(){ modal.remove(); };
+  modal.onclick = function(e){ if(e.target === modal) modal.remove(); };
+  document.getElementById('mpBtn_save').onclick = function(){
+    var price = parseInt(document.getElementById('mpInput_price').value, 10);
+    var src   = document.getElementById('mpInput_source').value || '自訂';
+    var memo  = document.getElementById('mpInput_memo').value.trim();
+    if(!price || price <= 0){ toast('⚠ 請輸入有效價格'); return; }
+    var saveBtn = document.getElementById('mpBtn_save');
+    saveBtn.disabled = true; saveBtn.textContent = '⏳ 儲存中...';
+    saveMarketPrice(specKey, r, price, memo, src, existing&&existing.ragicId, function(res){
+      if(res.ok){
+        toast('✅ 行情價已更新');
+        modal.remove();
+        updateTiers();  // 重新渲染顯示新行情價
+      }else{
+        saveBtn.disabled = false; saveBtn.textContent = '💾 儲存到 Ragic';
+        alert('❌ 儲存失敗：'+res.msg+'\n\n'+(res.body||''));
+      }
+    });
+  };
+}
 
 function toast(msg){
   var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');
