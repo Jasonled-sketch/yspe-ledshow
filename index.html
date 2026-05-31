@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.25</title>
+<title>USLED 快速報價 v9.26</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.25</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.26</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -849,8 +849,12 @@ var TIERS = [
 // 公式：r.chars × QUICK_REF_PER_CHAR[mid]
 // 未列出的模組顯示「未設定參考價」
 var QUICK_REF_PER_CHAR = {
-  P10C: 550
-  // TODO：其他模組待 Jason 提供（M04C、P08C、P06C、M10C 等）
+  // v9.25：從參數編輯器模組資料 m.q 同步（每字快速報價參考價）
+  // 之後在編輯器⑩改了再「套用到 PWA」會覆寫這裡（cfg.quickRef）
+  P10R:450, P10C:550, P10S:600, P08C:500, P06C:450, P05C:210, P5CM:240, P04C:205,
+  P03C:100, P25F:115,
+  M10C:250, M10R:400, M06C:120, M05C:85, M04C:90, M4CL:80, M47D:80, M03C:60,
+  M25F:50, M02C:40, M186:35
 };
 
 // ══ 資料 ══
@@ -1482,8 +1486,11 @@ function updateTiers(){
     area.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">請先在「產品」頁選擇模組規格</div>';return;
   }
   var r=RESULT;
-  // 業務看 sales:true 的 3 個，管理者看全部 7 個
-  var visible=TIERS.map(function(t,i){return {t:t,i:i};}).filter(function(x){return isMgr||x.t.sales;});
+  // 業務看 sales:true 的 3 個，管理者看全部
+  // v9.25：按毛利率降序排列（自訂毛利依當前值插入正確位置）
+  var visible=TIERS.map(function(t,i){return {t:t,i:i};})
+    .filter(function(x){return isMgr||x.t.sales;})
+    .sort(function(a,b){return b.t.margin - a.t.margin;});
 
   // 工時 / 積分 摘要列（每個 tier 都會用到，先放上面）
   var kpiInfo='';
