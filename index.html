@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.28</title>
+<title>USLED 快速報價 v9.29</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.28</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.29</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -1534,44 +1534,12 @@ function updateTiers(){
       '</div>';
   }
 
-  // v9.24：行情參考卡（從 Sheet 18 fetch，cache 1h）
-  // 業務員 = 看到參考價；管理員 = 看到參考價 + 「✏ 改」按鈕
-  // v9.25：改用 dataset + addEventListener，避免 inline onclick + JSON escape 出問題
+  // v9.24：行情參考卡（從 Sheet 18 fetch）— 只先插佔位 div
+  // v9.29：fetch + 塞卡片的實際動作移到 updateTiers 最尾端執行（renderMarketCard），
+  //   否則快取命中時 callback 同步執行先綁好 onclick，後面的 area.innerHTML += 會把 handler 洗掉
   var specKey = computeSpecKey(r);
   if(specKey){
-    var placeholderId = 'marketRefSlot';
-    area.innerHTML += '<div id="'+placeholderId+'"></div>';
-    fetchMarketPrice(specKey, function(mp){
-      var slot = document.getElementById(placeholderId);
-      if(!slot) return;  // 使用者已離開頁面
-      var card = document.createElement('div');
-      if(mp && mp.marketPrice > 0){
-        card.style.cssText = 'background:#FFF7ED;border:1.5px solid #FB923C;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px';
-        var memoLine = mp.memo ? '<span style="flex:1 1 100%;color:#78716C;font-size:11px;margin-top:2px">📝 '+mp.memo+'</span>' : '';
-        var metaLine = '<span style="flex:1 1 100%;color:#A8A29E;font-size:10px">'+(mp.source||'')+'　'+(mp.updatedBy||'?')+' 於 '+(mp.lastUpdate||'')+' 更新</span>';
-        card.innerHTML =
-          '<span style="color:#9A3412;font-weight:700">💡 行情建議售價</span>'+
-          '<strong style="color:#EA580C;font-size:18px">NT $'+Math.round(mp.marketPrice).toLocaleString()+'</strong>'+
-          memoLine + metaLine +
-          '<button class="mp-apply-btn" style="padding:6px 12px;background:#EA580C;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">套用此價</button>'+
-          (isMgr ? '<button class="mp-edit-btn" style="padding:6px 10px;background:#fff;color:#EA580C;border:1.5px solid #EA580C;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer">✏ 改</button>' : '');
-        slot.replaceWith(card);
-        card.querySelector('.mp-apply-btn').onclick = function(){ useMarketPrice(mp.marketPrice); };
-        var editBtn = card.querySelector('.mp-edit-btn');
-        if(editBtn) editBtn.onclick = function(){ openMarketPriceModal(specKey, RESULT, mp); };
-      }else if(isMgr){
-        // 管理員看到還沒設定的規格 → 顯示「設定行情價」按鈕
-        card.style.cssText = 'background:#F5F3FF;border:1.5px dashed #A78BFA;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:12px';
-        card.innerHTML =
-          '<span style="color:#6D28D9">📊 此規格尚未設定行情價</span>'+
-          '<span style="flex:1;color:#94A3B8;font-family:monospace;font-size:10px">'+specKey+'</span>'+
-          '<button class="mp-set-btn" style="padding:6px 12px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">📊 設定行情價</button>';
-        slot.replaceWith(card);
-        card.querySelector('.mp-set-btn').onclick = function(){ openMarketPriceModal(specKey, RESULT, null); };
-      }else{
-        slot.remove();  // 業務員看不到、規格沒設定 → 不顯示任何東西
-      }
-    });
+    area.innerHTML += '<div id="marketRefSlot"></div>';
   }
 
   if(!isMgr){
@@ -1671,6 +1639,47 @@ function updateTiers(){
       if(firstCard) firstCard.click();
     }
   }
+
+  // v9.29：行情卡渲染放最後 — 此時所有 area.innerHTML += 都做完了，
+  //   callback 不管同步(快取命中)或非同步都不會被後續 innerHTML 重設洗掉 onclick
+  if(specKey){
+    renderMarketCard(specKey, r);
+  }
+}
+
+// v9.29：行情參考卡渲染（從 updateTiers 抽出，確保在所有 innerHTML 操作之後執行）
+function renderMarketCard(specKey, r){
+  fetchMarketPrice(specKey, function(mp){
+    var slot = document.getElementById('marketRefSlot');
+    if(!slot) return;  // 使用者已離開頁面
+    var card = document.createElement('div');
+    if(mp && mp.marketPrice > 0){
+      card.style.cssText = 'background:#FFF7ED;border:1.5px solid #FB923C;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px';
+      var memoLine = mp.memo ? '<span style="flex:1 1 100%;color:#78716C;font-size:11px;margin-top:2px">📝 '+mp.memo+'</span>' : '';
+      var metaLine = '<span style="flex:1 1 100%;color:#A8A29E;font-size:10px">'+(mp.source||'')+'　'+(mp.updatedBy||'?')+' 於 '+(mp.lastUpdate||'')+' 更新</span>';
+      card.innerHTML =
+        '<span style="color:#9A3412;font-weight:700">💡 行情建議售價</span>'+
+        '<strong style="color:#EA580C;font-size:18px">NT $'+Math.round(mp.marketPrice).toLocaleString()+'</strong>'+
+        memoLine + metaLine +
+        '<button class="mp-apply-btn" style="padding:6px 12px;background:#EA580C;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">套用此價</button>'+
+        (isMgr ? '<button class="mp-edit-btn" style="padding:6px 10px;background:#fff;color:#EA580C;border:1.5px solid #EA580C;border-radius:6px;font-weight:600;font-size:12px;cursor:pointer">✏ 改</button>' : '');
+      slot.replaceWith(card);
+      card.querySelector('.mp-apply-btn').onclick = function(){ useMarketPrice(mp.marketPrice); };
+      var editBtn = card.querySelector('.mp-edit-btn');
+      if(editBtn) editBtn.onclick = function(){ openMarketPriceModal(specKey, RESULT, mp); };
+    }else if(isMgr){
+      // 管理員看到還沒設定的規格 → 顯示「設定行情價」按鈕
+      card.style.cssText = 'background:#F5F3FF;border:1.5px dashed #A78BFA;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;font-size:12px';
+      card.innerHTML =
+        '<span style="color:#6D28D9">📊 此規格尚未設定行情價</span>'+
+        '<span style="flex:1;color:#94A3B8;font-family:monospace;font-size:10px">'+specKey+'</span>'+
+        '<button class="mp-set-btn" style="padding:6px 12px;background:#7C3AED;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer">📊 設定行情價</button>';
+      slot.replaceWith(card);
+      card.querySelector('.mp-set-btn').onclick = function(){ openMarketPriceModal(specKey, RESULT, null); };
+    }else{
+      slot.remove();  // 業務員看不到、規格沒設定 → 不顯示任何東西
+    }
+  });
 }
 
 // ══════════════════════════════════════════
