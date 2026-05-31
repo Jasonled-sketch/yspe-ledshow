@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.27</title>
+<title>USLED 快速報價 v9.28</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.27</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.28</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -3356,31 +3356,38 @@ function fetchAllMarketPrices(forceRefresh, cb){
   fetch(url, { headers: route.headers })
     .then(function(r){ return r.text(); })
     .then(function(text){
+      console.log('[行情價] ⬇ Ragic 原始回應（前 1200 字）:\n', text.slice(0,1200));
       var json;
       try{ json = JSON.parse(text); }catch(e){ console.error('[行情價] 回應不是 JSON:', text.slice(0,300)); json = {}; }
+      // debug：印出第一筆 record 的結構，看欄位 key 長怎樣
+      try{
+        var dbgKeys = Object.keys(json).filter(function(k){return typeof json[k]==='object' && json[k];});
+        if(dbgKeys.length>0){ console.log('[行情價] 第一筆 record 結構:', dbgKeys[0], '→', json[dbgKeys[0]]); }
+      }catch(e){}
       // 偵測「被當健康檢查攔截」或「未授權」的情況
       if(json && json.service){ console.error('[行情價] ⚠ 收到健康檢查 JSON（Worker 攔截 bug 未修或未部署）:', json); }
       if(json && json.status === 'UNAUTHORIZED'){ console.error('[行情價] ⚠ 未授權（Google token 問題）:', json); }
       if(json && json.status === 'FORBIDDEN'){ console.error('[行情價] ⚠ 帳號不在白名單:', json); }
       var byKey = {};
       var F = RAGIC_FIELD_IDS_SHEET18;
-      // Ragic 回傳格式 { "1234.0": {...}, "1235.0": {...} } 或 []
+      // v9.28：健壯解析 — 不管 key 是數字還是別的，只要值是物件且含 spec_key 欄位就算一筆
+      // 同時支援欄位用 ID（naming=fid）或中文名（萬一 naming 沒生效）
       if(json && typeof json === 'object'){
-        var keys = Array.isArray(json) ? Object.keys(json) : Object.keys(json).filter(function(k){ return /^\d/.test(k); });
-        keys.forEach(function(k){
+        Object.keys(json).forEach(function(k){
           var rec = json[k];
           if(!rec || typeof rec !== 'object') return;
-          var specKey = rec[F.specKey];
+          // spec_key 可能在 '1002851'（fid）或 'spec_key'（中文/英文名）
+          var specKey = rec[F.specKey] || rec['spec_key'] || rec['specKey'];
           if(!specKey) return;
           byKey[specKey] = {
-            ragicId:     rec._ragicId || k,
+            ragicId:     rec._ragicId || rec['_ragicId'] || k,
             recordIdx:   k,
             specKey:     specKey,
-            marketPrice: parseFloat(rec[F.marketPrice] || 0),
-            memo:        rec[F.memo] || '',
-            source:      rec[F.source] || '',
-            lastUpdate:  rec[F.lastUpdate] || '',
-            updatedBy:   rec[F.updatedBy] || ''
+            marketPrice: parseFloat(rec[F.marketPrice] || rec['建議行情售價'] || 0),
+            memo:        rec[F.memo] || rec['備註'] || '',
+            source:      rec[F.source] || rec['來源'] || '',
+            lastUpdate:  rec[F.lastUpdate] || rec['上次更新'] || '',
+            updatedBy:   rec[F.updatedBy] || rec['更新者'] || ''
           };
         });
       }
