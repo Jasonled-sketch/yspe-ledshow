@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.26</title>
+<title>USLED 快速報價 v9.27</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.26</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.27</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -3322,14 +3322,18 @@ function computeSpecKey(r){
 // 一次撈 Sheet 18 全部，存 localStorage，1 小時 cache
 // 為什麼不用 where filter？Ragic where 在 URL encode 後逗號可能被吃掉，且 sheet 18 規格不會太多（< 500 筆）一次撈完更穩
 // 回傳 { specKey1: data1, specKey2: data2, ... }
+// v9.27：cache key 改 _v2（作廢舊版毒快取）；0 筆「不寫快取」避免失敗結果卡 1 小時
+var MARKET_CACHE_KEY = 'usled_market_all_v2';
 var _marketPriceInflight = null;  // 同時只能有一個 fetch 在跑
 function fetchAllMarketPrices(forceRefresh, cb){
-  // localStorage cache 檢查
+  // localStorage cache 檢查（只有「非空」的快取才採用）
   if(!forceRefresh){
     try{
-      var cached = JSON.parse(localStorage.getItem('usled_market_all')||'null');
-      if(cached && cached.ts && (Date.now() - cached.ts) < 60*60*1000){
-        cb(cached.data || {}); return;
+      var cached = JSON.parse(localStorage.getItem(MARKET_CACHE_KEY)||'null');
+      if(cached && cached.ts && (Date.now() - cached.ts) < 60*60*1000
+         && cached.data && Object.keys(cached.data).length > 0){
+        console.log('[行情價] 用快取', Object.keys(cached.data).length, '筆');
+        cb(cached.data); return;
       }
     }catch(e){}
   }
@@ -3341,17 +3345,23 @@ function fetchAllMarketPrices(forceRefresh, cb){
 
   var route = getApiRoute();
   if(route.mode !== 'worker'){
+    console.warn('[行情價] 非 Worker 模式（未登入 Google 或 token 過期），無法讀行情價。route=', route.reason||route.mode);
     var queue = _marketPriceInflight; _marketPriceInflight = null;
     queue.forEach(function(c){ c({}); });
     return;
   }
   // Worker URL ?sheet=18&naming=fid&limit=1000（單次最大）
   var url = WORKER_URL.replace(/\/$/,'') + '/?sheet=18&naming=fid&limit=1000';
+  console.log('[行情價] 開始撈 Sheet 18 →', url);
   fetch(url, { headers: route.headers })
     .then(function(r){ return r.text(); })
     .then(function(text){
       var json;
-      try{ json = JSON.parse(text); }catch(e){ console.warn('Sheet 18 回應不是 JSON:', text.slice(0,200)); json = {}; }
+      try{ json = JSON.parse(text); }catch(e){ console.error('[行情價] 回應不是 JSON:', text.slice(0,300)); json = {}; }
+      // 偵測「被當健康檢查攔截」或「未授權」的情況
+      if(json && json.service){ console.error('[行情價] ⚠ 收到健康檢查 JSON（Worker 攔截 bug 未修或未部署）:', json); }
+      if(json && json.status === 'UNAUTHORIZED'){ console.error('[行情價] ⚠ 未授權（Google token 問題）:', json); }
+      if(json && json.status === 'FORBIDDEN'){ console.error('[行情價] ⚠ 帳號不在白名單:', json); }
       var byKey = {};
       var F = RAGIC_FIELD_IDS_SHEET18;
       // Ragic 回傳格式 { "1234.0": {...}, "1235.0": {...} } 或 []
@@ -3359,7 +3369,7 @@ function fetchAllMarketPrices(forceRefresh, cb){
         var keys = Array.isArray(json) ? Object.keys(json) : Object.keys(json).filter(function(k){ return /^\d/.test(k); });
         keys.forEach(function(k){
           var rec = json[k];
-          if(!rec) return;
+          if(!rec || typeof rec !== 'object') return;
           var specKey = rec[F.specKey];
           if(!specKey) return;
           byKey[specKey] = {
@@ -3374,18 +3384,30 @@ function fetchAllMarketPrices(forceRefresh, cb){
           };
         });
       }
-      console.log('[行情價] Sheet 18 載入', Object.keys(byKey).length, '筆規格', byKey);
-      // 寫入 cache
-      try{ localStorage.setItem('usled_market_all', JSON.stringify({ts: Date.now(), data: byKey})); }catch(e){}
+      var n = Object.keys(byKey).length;
+      console.log('[行情價] Sheet 18 載入', n, '筆規格', byKey);
+      // v9.27：只有「有資料」才寫快取，0 筆不寫（避免失敗/空結果卡住 1 小時）
+      if(n > 0){
+        try{ localStorage.setItem(MARKET_CACHE_KEY, JSON.stringify({ts: Date.now(), data: byKey})); }catch(e){}
+      }
       var queue = _marketPriceInflight; _marketPriceInflight = null;
       queue.forEach(function(c){ c(byKey); });
     })
     .catch(function(e){
-      console.warn('[行情價] fetchAllMarketPrices failed:', e);
+      console.error('[行情價] fetchAllMarketPrices 失敗:', e);
       var queue = _marketPriceInflight; _marketPriceInflight = null;
       queue.forEach(function(c){ c({}); });
     });
 }
+
+// 手動強制重抓（F12 可呼叫 window.refreshMarketPrices()）
+window.refreshMarketPrices = function(){
+  try{ localStorage.removeItem(MARKET_CACHE_KEY); localStorage.removeItem('usled_market_all'); }catch(e){}
+  fetchAllMarketPrices(true, function(all){
+    console.log('[行情價] 強制重抓完成', Object.keys(all).length, '筆', all);
+    if(typeof updateTiers==='function') updateTiers();
+  });
+};
 
 // 單筆查詢 — 對外 API（updateTiers 用）
 function fetchMarketPrice(specKey, cb){
@@ -3397,7 +3419,7 @@ function fetchMarketPrice(specKey, cb){
 
 // 管理員儲存後 invalidate cache
 function invalidateMarketCache(){
-  try{ localStorage.removeItem('usled_market_all'); }catch(e){}
+  try{ localStorage.removeItem(MARKET_CACHE_KEY); localStorage.removeItem('usled_market_all'); }catch(e){}
 }
 
 // 管理員寫入/更新行情價到 Sheet 18
