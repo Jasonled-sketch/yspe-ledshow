@@ -119,6 +119,7 @@ nav{background:#fff;border-bottom:1px solid #E2DED7;display:flex;overflow-x:auto
   <div class="nt" id="n-sc"    onclick="GT('sc')">⑦ 積分規則</div>
   <div class="nt" id="n-cfg"   onclick="GT('cfg')">⑧ 配置計算</div>
   <div class="nt" id="n-tier"  onclick="GT('tier')">⑨ 報價等級</div>
+  <div class="nt" id="n-quick" onclick="GT('quick')">⑩ 快速報價單字單價</div>
   <div class="nt" id="n-exp"   onclick="GT('exp')">📋 摘要</div>
 </nav>
 <div class="wrap">
@@ -386,6 +387,18 @@ nav{background:#fff;border-bottom:1px solid #E2DED7;display:flex;overflow-x:auto
   </div>
 </div>
 
+<!-- ⑩ 快速報價單字單價（PWA 管理者頁頂部「🧮 快速報價參考」用） -->
+<div id="t-quick" class="tc">
+  <div class="notice">公式：每字單價 × 字數 = 心算參考價。空白 = 該模組顯示「未設定參考價」。<br>業務員看不到此區，僅管理者模式顯示在報價等級頁頂部。</div>
+  <div class="st">快速報價單字單價（管理者心算用）</div>
+  <div class="card">
+    <table class="tbl">
+      <thead><tr><th>模組</th><th>用途</th><th>每字單價（NT$）</th><th>說明</th></tr></thead>
+      <tbody id="quickTb"></tbody>
+    </table>
+  </div>
+</div>
+
 <!-- 摘要 -->
 <div id="t-exp" class="tc">
   <div class="st">產生摘要 → 複製給 Claude</div>
@@ -490,15 +503,19 @@ var CTRL=[
   {id:"RHX-8C1",  desc:"16×768低灰",  wg:13, price:57,src:"rmb",rmb:12}
 ];
 
+// v4.10：加「活動促銷 55%」「特價優惠 50%」對應 PWA v9.16+ 的新 tier
+// 注意：cfgKey = 編輯器 index = PWA 的 cfgKey，活動促銷=8 / 特價優惠=9 是 PWA TIERS 的 cfgKey 對應
 var TIERS=[
-  {name:"快速報價",note:"每字×$205",fixed:6560,margin:0},
-  {name:"標價未稅",note:"官網/現場",margin:0.60},
-  {name:"當月活動",note:"限時促銷", margin:0.445},
-  {name:"特別會員",note:"VIP老客戶",margin:0.40},
-  {name:"蝦皮訂製",note:"電商訂製", margin:0.345},
-  {name:"蝦皮常規",note:"電商日常", margin:0.27},
-  {name:"自取最底",note:"少量自取", margin:0.182},
-  {name:"特殊/經銷",note:"代理批量",margin:0.133}
+  {name:"快速報價",note:"每字×$205",fixed:6560,margin:0},        // 0
+  {name:"標價未稅",note:"官網/現場",margin:0.60},                // 1
+  {name:"當月活動",note:"限時促銷", margin:0.445},               // 2
+  {name:"特別會員",note:"VIP老客戶",margin:0.40},                // 3
+  {name:"蝦皮訂製",note:"電商訂製", margin:0.345},               // 4
+  {name:"蝦皮常規",note:"電商日常", margin:0.27},                // 5
+  {name:"自取最底",note:"少量自取", margin:0.182},               // 6
+  {name:"特殊/經銷",note:"代理批量",margin:0.133},               // 7
+  {name:"活動促銷",note:"55% 中等促銷（避免外顯敏感字眼）",margin:0.55},  // 8 - v4.10
+  {name:"特價優惠",note:"50% 特價",margin:0.50}                  // 9 - v4.10
 ];
 
 var mSrc={},pSrc={},cSrc={};
@@ -599,6 +616,19 @@ function BUILD(){
   h="";
   TIERS.forEach(function(t,i){var inp=t.fixed?"<span class='sm'>每字×$205 固定</span>":"<input type='number' id='ti_"+i+"' value='"+(t.margin*100).toFixed(1)+"' step='0.5' min='0' max='99' style='width:68px' oninput='CALC()'>";h+="<tr><td style='font-weight:700'>"+t.name+"</td><td class='sm'>"+t.note+"</td><td>"+inp+"</td><td id='tp_"+i+"' style='text-align:right;font-weight:700;color:#185FA5'>—</td><td id='tm_"+i+"' style='text-align:right;font-size:10px;color:#6B6761'>—</td></tr>";});
   document.getElementById("tierTb").innerHTML=h;
+
+  // v4.10：快速報價單字單價（QUICK_REF_PER_CHAR）
+  // 預設給已知模組，業務員手 key 過的就保留；其他空白
+  var QUICK_DEFAULTS = { P10C: 550 };  // PWA 內建只有 P10C，其他待 Jason 補
+  h="";
+  MODS.forEach(function(m){
+    var def = QUICK_DEFAULTS[m.id] != null ? QUICK_DEFAULTS[m.id] : '';
+    var use = m.water === '全戶外' ? '戶外（招牌/燈箱）' : m.water === '半戶外' ? '半戶外' : '室內（小型字幕）';
+    h+="<tr><td class='nm'>"+m.id+"</td><td class='sm'>"+use+"</td>"+
+       "<td><input type='number' id='qr_"+m.id+"' value='"+def+"' step='10' min='0' placeholder='—' style='width:80px'></td>"+
+       "<td class='sm'>"+m.ch+"H×"+m.cw+"W/片　"+m.mh+"×"+m.ml+"cm</td></tr>";
+  });
+  document.getElementById("quickTb").innerHTML=h;
 
   var ms=document.getElementById("cfgMod");
   MODS.forEach(function(m){var o=document.createElement("option");o.value=m.id;o.textContent=m.id+" | "+m.ch+"H×"+m.cw+"W/片";o.dataset.ch=m.ch;o.dataset.cw=m.cw;o.dataset.mh=m.mh;o.dataset.ml=m.ml;o.dataset.q=m.q;ms.appendChild(o);});
@@ -907,7 +937,7 @@ function BUILD_CFG_OBJECT(){
   var cfg={
     _version:"4.9",
     _exported:new Date().toISOString().slice(0,16).replace("T"," "),
-    base:{},mods:{},frms:{},pwrs:{},ctrl:{},parts:{},tiers:{}
+    base:{},mods:{},frms:{},pwrs:{},ctrl:{},parts:{},tiers:{},quickRef:{}
   };
   // 基礎
   ["rate","wage","sp","sal","shipRate","cap","tax","risk","pft",
@@ -941,6 +971,13 @@ function BUILD_CFG_OBJECT(){
   });
   // 報價等級
   TIERS.forEach(function(t,i){if(t.margin>0){var el=document.getElementById("ti_"+i);if(el)cfg.tiers[i]=parseFloat(el.value);}});
+  // v4.10：快速報價單字單價（空值不寫進 cfg，避免覆蓋 PWA 預設）
+  MODS.forEach(function(m){
+    var el=document.getElementById("qr_"+m.id);
+    if(el && el.value !== '' && parseFloat(el.value) > 0){
+      cfg.quickRef[m.id] = parseFloat(el.value);
+    }
+  });
   return cfg;
 }
 
@@ -1042,6 +1079,11 @@ function IMPORT_CFG(input){
       }
       // 報價等級
       if(cfg.tiers)Object.keys(cfg.tiers).forEach(function(i){var el=document.getElementById("ti_"+i);if(el)el.value=cfg.tiers[i];});
+      // v4.10：快速報價單字單價
+      if(cfg.quickRef)Object.keys(cfg.quickRef).forEach(function(mid){
+        var el=document.getElementById("qr_"+mid);
+        if(el) el.value = cfg.quickRef[mid];
+      });
       CALC();
       var ver=cfg._version||"?";var exp=cfg._exported||"";
       alert("✅ 設定載入完成！\n版本："+ver+"　匯出時間："+exp);
