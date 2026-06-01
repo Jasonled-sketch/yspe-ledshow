@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.29</title>
+<title>USLED 快速報價 v9.30</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.29</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.30</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -350,6 +350,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
   <div class="tab on" id="tab1" onclick="goPage(1)"><span class="tab-icon">📋</span>客戶</div>
   <div class="tab" id="tab2" onclick="goPage(2)"><span class="tab-icon">📺</span>產品</div>
   <div class="tab" id="tab_cost" onclick="goPage('cost')" style="display:none"><span class="tab-icon">📊</span>成本</div>
+  <div class="tab" id="tab_analytics" onclick="goPage('analytics')" style="display:none"><span class="tab-icon">📈</span>戰情</div>
   <div class="tab" id="tab3" onclick="goPage(3)"><span class="tab-icon">💰</span>報價</div>
   <div class="tab" id="tab4" onclick="goPage(4)"><span class="tab-icon">📄</span>預覽</div>
   <div class="tab" id="tab5" onclick="goPage(5)"><span class="tab-icon">📚</span>歷史</div>
@@ -501,6 +502,24 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
     <div class="sec-label">🎯 積分點</div>
     <div id="kpiDetail" style="padding:8px;font-size:13px"></div>
   </div>
+</div>
+
+<!-- ══ Page 戰情分析（管理員專屬）══ -->
+<div id="pg_analytics" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:16px;font-weight:800;color:#1A3A6B">📈 戰情分析</div>
+    <div style="display:flex;gap:6px;align-items:center">
+      <select id="anaRange" onchange="renderAnalytics()" style="padding:6px 8px;border:1.5px solid #cbd5e1;border-radius:7px;font-size:12px">
+        <option value="0">全部期間</option>
+        <option value="30">近 30 天</option>
+        <option value="90" selected>近 90 天</option>
+        <option value="180">近 180 天</option>
+        <option value="365">近 1 年</option>
+      </select>
+      <button onclick="renderAnalytics(true)" style="padding:6px 10px;background:#2563EB;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">↻ 重抓</button>
+    </div>
+  </div>
+  <div id="anaBody"><div style="text-align:center;color:var(--sub);padding:40px 0">載入中…</div></div>
 </div>
 
 <!-- ══ Page 3: 報價 ══ -->
@@ -1690,9 +1709,9 @@ function goPage(n){
   if(n==='cost'){
     if(!isMgr){toast('需要管理者權限');return;}
     curPage='cost';
-    ['1','2','cost','3','4','5'].forEach(function(pn){
-      var pg=document.getElementById(pn==='cost'?'pg_cost':'pg'+pn);
-      var tb=document.getElementById(pn==='cost'?'tab_cost':'tab'+pn);
+    ['1','2','cost','analytics','3','4','5'].forEach(function(pn){
+      var pg=document.getElementById(pn==='cost'?'pg_cost':pn==='analytics'?'pg_analytics':'pg'+pn);
+      var tb=document.getElementById(pn==='cost'?'tab_cost':pn==='analytics'?'tab_analytics':'tab'+pn);
       if(pg)pg.classList.toggle('on',pn==='cost');
       if(tb)tb.classList.toggle('on',pn==='cost');
     });
@@ -1700,11 +1719,25 @@ function goPage(n){
     renderCostPage();
     return;
   }
+  // 戰情分析頁：管理者才能進
+  if(n==='analytics'){
+    if(!isMgr){toast('需要管理者權限');return;}
+    curPage='analytics';
+    ['1','2','cost','analytics','3','4','5'].forEach(function(pn){
+      var pg=document.getElementById(pn==='cost'?'pg_cost':pn==='analytics'?'pg_analytics':'pg'+pn);
+      var tb=document.getElementById(pn==='cost'?'tab_cost':pn==='analytics'?'tab_analytics':'tab'+pn);
+      if(pg)pg.classList.toggle('on',pn==='analytics');
+      if(tb)tb.classList.toggle('on',pn==='analytics');
+    });
+    document.getElementById('bbar').style.display='none';
+    renderAnalytics();
+    return;
+  }
   if(n===5){
     curPage=n;
-    ['1','2','cost','3','4','5'].forEach(function(pn){
-      var pg=document.getElementById(pn==='cost'?'pg_cost':'pg'+pn);
-      var tb=document.getElementById(pn==='cost'?'tab_cost':'tab'+pn);
+    ['1','2','cost','analytics','3','4','5'].forEach(function(pn){
+      var pg=document.getElementById(pn==='cost'?'pg_cost':pn==='analytics'?'pg_analytics':'pg'+pn);
+      var tb=document.getElementById(pn==='cost'?'tab_cost':pn==='analytics'?'tab_analytics':'tab'+pn);
       if(pg)pg.classList.toggle('on',String(pn)===String(n));
       if(tb)tb.classList.toggle('on',String(pn)===String(n));
     });
@@ -1714,9 +1747,9 @@ function goPage(n){
   }
   if(n>1&&n<5&&MODS.length===0){toast('請先載入設定檔');return;}
   curPage=n;
-  ['1','2','cost','3','4','5'].forEach(function(pn){
-    var pg=document.getElementById(pn==='cost'?'pg_cost':'pg'+pn);
-    var tb=document.getElementById(pn==='cost'?'tab_cost':'tab'+pn);
+  ['1','2','cost','analytics','3','4','5'].forEach(function(pn){
+    var pg=document.getElementById(pn==='cost'?'pg_cost':pn==='analytics'?'pg_analytics':'pg'+pn);
+    var tb=document.getElementById(pn==='cost'?'tab_cost':pn==='analytics'?'tab_analytics':'tab'+pn);
     if(pg)pg.classList.toggle('on',String(pn)===String(n));
     if(tb)tb.classList.toggle('on',String(pn)===String(n));
   });
@@ -1782,6 +1815,8 @@ function applyRole(){
   }
 
   if(costTab) costTab.style.display=isMgr?'':'none';
+  var aTab=document.getElementById('tab_analytics');
+  if(aTab) aTab.style.display=isMgr?'':'none';
   updateTiers();
 }
 
@@ -3604,6 +3639,246 @@ function openMarketPriceModal(specKey, r, existing){
       }
     });
   };
+}
+
+// ══════════════════════════════════════════
+// ══ v9.30：戰情分析（讀 Sheet 8 正式報價單）══
+// ══════════════════════════════════════════
+// 進度欄漏斗：草稿(排除) → 已報(分母) → 進行/待款/結案(成交) → 逾期(流失)
+// 成交率 = (進行+待款+結案) / (已報+進行+待款+結案+逾期)
+var QUOTES_CACHE_KEY = 'usled_quotes_s8_v1';
+var _quotesInflight = null;
+function fetchAllQuotes(forceRefresh, cb){
+  if(!forceRefresh){
+    try{
+      var c = JSON.parse(localStorage.getItem(QUOTES_CACHE_KEY)||'null');
+      if(c && c.ts && (Date.now()-c.ts) < 10*60*1000 && c.data && c.data.length){
+        cb(c.data); return;
+      }
+    }catch(e){}
+  }
+  if(_quotesInflight){ _quotesInflight.push(cb); return; }
+  _quotesInflight = [cb];
+  var route = getApiRoute();
+  if(route.mode !== 'worker'){
+    var q0=_quotesInflight; _quotesInflight=null; q0.forEach(function(c){ c(null); });  // null = 未登入
+    return;
+  }
+  var url = WORKER_URL.replace(/\/$/,'') + '/?sheet=8&naming=fid&limit=1000';
+  fetch(url, { headers: route.headers })
+    .then(function(r){ return r.text(); })
+    .then(function(text){
+      var json; try{ json=JSON.parse(text); }catch(e){ json={}; }
+      if(json && (json.service || json.status==='UNAUTHORIZED' || json.status==='FORBIDDEN')){
+        console.error('[戰情] 讀 Sheet 8 失敗:', json);
+        var qE=_quotesInflight; _quotesInflight=null; qE.forEach(function(c){ c(null); });
+        return;
+      }
+      var F = RAGIC_FIELD_IDS_SHEET8;
+      var list = [];
+      Object.keys(json).forEach(function(k){
+        var rec = json[k];
+        if(!rec || typeof rec!=='object') return;
+        var prog = rec[F.progress] || rec['進度欄'] || '';
+        if(!prog) return;  // 沒進度欄的略過
+        var amtRaw = rec[F.cashTotal] || rec['現金未稅總計'] || '0';
+        list.push({
+          progress: prog,
+          category: rec[F.category] || rec['產品類別'] || '未分類',
+          amount: parseFloat(String(amtRaw).replace(/[,\s]/g,'')) || 0,
+          initial: rec[F.firstContact] || rec['首洽'] || '?',
+          followUp: rec['1001192'] || rec['跟單'] || '',
+          date: rec[F.quoteDate] || rec['報價日期'] || '',
+          customer: rec[F.customer] || rec['客戶名稱'] || ''
+        });
+      });
+      console.log('[戰情] Sheet 8 載入', list.length, '筆');
+      if(list.length){
+        try{ localStorage.setItem(QUOTES_CACHE_KEY, JSON.stringify({ts:Date.now(), data:list})); }catch(e){}
+      }
+      var q=_quotesInflight; _quotesInflight=null; q.forEach(function(c){ c(list); });
+    })
+    .catch(function(e){
+      console.error('[戰情] fetchAllQuotes 失敗:', e);
+      var q=_quotesInflight; _quotesInflight=null; q.forEach(function(c){ c(null); });
+    });
+}
+
+// 進度欄字串 → 分類
+function quoteStage(prog){
+  if(prog.indexOf('草稿')>=0) return 'draft';
+  if(prog.indexOf('已報')>=0) return 'reported';
+  if(prog.indexOf('進行')>=0 || prog.indexOf('待款')>=0 || prog.indexOf('結案')>=0) return 'won';
+  if(prog.indexOf('逾期')>=0) return 'lost';
+  return 'other';
+}
+// Ragic 日期 'YYYY/MM/DD' → Date（失敗回 null）
+function parseRagicDate(s){
+  if(!s) return null;
+  var m = String(s).match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if(!m) return null;
+  return new Date(parseInt(m[1]), parseInt(m[2])-1, parseInt(m[3]));
+}
+// 簡單水平長條
+function anaBar(label, won, total, extra){
+  var rate = total>0 ? (won/total*100) : 0;
+  var color = rate>=50?'#10B981':rate>=30?'#F59E0B':'#EF4444';
+  return '<div style="margin-bottom:8px">'+
+    '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">'+
+      '<span style="font-weight:600">'+label+'</span>'+
+      '<span style="color:#64748b">'+won+'/'+total+'　<strong style="color:'+color+'">'+rate.toFixed(0)+'%</strong>'+(extra?'　'+extra:'')+'</span>'+
+    '</div>'+
+    '<div style="background:#E5E7EB;border-radius:5px;height:9px;overflow:hidden">'+
+      '<div style="width:'+Math.min(rate,100)+'%;height:100%;background:'+color+'"></div>'+
+    '</div>'+
+  '</div>';
+}
+
+function renderAnalytics(forceRefresh){
+  var body = document.getElementById('anaBody');
+  if(!body) return;
+  body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:40px 0">載入中…</div>';
+  fetchAllQuotes(!!forceRefresh, function(all){
+    if(all === null){
+      body.innerHTML = '<div style="text-align:center;color:#EF4444;padding:30px 0">⚠ 讀取失敗（請確認已用 Google 登入、且是白名單帳號）</div>';
+      return;
+    }
+    if(!all.length){
+      body.innerHTML = '<div style="text-align:center;color:var(--sub);padding:30px 0">Sheet 8 還沒有資料</div>';
+      return;
+    }
+    // 日期區間過濾
+    var days = parseInt((document.getElementById('anaRange')||{}).value || '0', 10);
+    var since = days>0 ? (Date.now() - days*24*60*60*1000) : 0;
+    var rows = all.filter(function(r){
+      if(!since) return true;
+      var d = parseRagicDate(r.date);
+      return d ? d.getTime() >= since : true;  // 沒日期的保留
+    });
+
+    // 統計容器
+    var stage = {draft:0, reported:0, won:0, lost:0, other:0};
+    var wonAmount = 0, wonCount = 0, reportedCount = 0, lostCount = 0;
+    var byPerson = {}, byCat = {}, byBand = {}, byMonth = {};
+    var BANDS = [['< 1萬',0,10000],['1-3萬',10000,30000],['3-5萬',30000,50000],['5-10萬',50000,100000],['10萬+',100000,1e12]];
+    BANDS.forEach(function(b){ byBand[b[0]]={won:0,total:0}; });
+
+    rows.forEach(function(r){
+      var st = quoteStage(r.progress);
+      stage[st] = (stage[st]||0)+1;
+      if(st==='draft' || st==='other') return;  // 不計入成交率
+      var isWon = (st==='won');
+      if(isWon){ wonCount++; wonAmount += r.amount; }
+      if(st==='reported') reportedCount++;
+      if(st==='lost') lostCount++;
+
+      // 業務（首洽）
+      var p = r.initial||'?';
+      byPerson[p] = byPerson[p] || {won:0,total:0,amount:0};
+      byPerson[p].total++; if(isWon){ byPerson[p].won++; byPerson[p].amount += r.amount; }
+      // 產品類別
+      var c = r.category||'未分類';
+      byCat[c] = byCat[c] || {won:0,total:0,amount:0};
+      byCat[c].total++; if(isWon){ byCat[c].won++; byCat[c].amount += r.amount; }
+      // 價格帶（用成交額；未成交用報價額 amount 也算進 total 的分母）
+      for(var i=0;i<BANDS.length;i++){
+        if(r.amount>=BANDS[i][1] && r.amount<BANDS[i][2]){
+          byBand[BANDS[i][0]].total++; if(isWon) byBand[BANDS[i][0]].won++; break;
+        }
+      }
+      // 月份趨勢
+      var d = parseRagicDate(r.date);
+      if(d){
+        var mk = d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2);
+        byMonth[mk] = byMonth[mk] || {total:0,won:0,amount:0};
+        byMonth[mk].total++; if(isWon){ byMonth[mk].won++; byMonth[mk].amount += r.amount; }
+      }
+    });
+
+    var denom = reportedCount + wonCount + lostCount;  // 排除草稿
+    var winRate = denom>0 ? (wonCount/denom*100) : 0;
+    var avgWon = wonCount>0 ? Math.round(wonAmount/wonCount) : 0;
+    var capped = all.length>=1000 ? '<div style="font-size:11px;color:#EF4444;margin-top:6px">⚠ 已達單次上限 1000 筆，更早的資料未納入（之後可加分頁）</div>' : '';
+
+    function sortToArr(obj){ return Object.keys(obj).map(function(k){return {k:k,v:obj[k]};}).sort(function(a,b){return b.v.total-a.v.total;}); }
+    function money(n){ return '$'+Math.round(n).toLocaleString(); }
+
+    var h = '';
+    // 大數字 KPI
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+
+      '<div style="flex:1;min-width:90px;background:linear-gradient(135deg,#1A3A6B,#2563EB);color:#fff;padding:12px;border-radius:10px">'+
+        '<div style="font-size:11px;opacity:.85">成交率</div><div style="font-size:24px;font-weight:900">'+winRate.toFixed(0)+'%</div>'+
+        '<div style="font-size:10px;opacity:.8">'+wonCount+' 成交 / '+denom+' 報價</div></div>'+
+      '<div style="flex:1;min-width:90px;background:linear-gradient(135deg,#1D9E75,#10B981);color:#fff;padding:12px;border-radius:10px">'+
+        '<div style="font-size:11px;opacity:.85">成交總額</div><div style="font-size:22px;font-weight:900">'+money(wonAmount)+'</div>'+
+        '<div style="font-size:10px;opacity:.8">未稅</div></div>'+
+      '<div style="flex:1;min-width:90px;background:linear-gradient(135deg,#F59E0B,#EA580C);color:#fff;padding:12px;border-radius:10px">'+
+        '<div style="font-size:11px;opacity:.85">平均客單</div><div style="font-size:22px;font-weight:900">'+money(avgWon)+'</div>'+
+        '<div style="font-size:10px;opacity:.8">每筆成交</div></div>'+
+    '</div>';
+
+    // 漏斗
+    h += '<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
+      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:8px">📊 報價漏斗</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;font-size:12px">'+
+        '<span style="background:#E0E7FF;padding:4px 8px;border-radius:6px">✉︎ 已報 '+stage.reported+'</span>'+
+        '<span style="background:#D1FAE5;padding:4px 8px;border-radius:6px">▶︎ 進行/待款/結案 '+stage.won+'</span>'+
+        '<span style="background:#FEE2E2;padding:4px 8px;border-radius:6px">✖︎ 逾期 '+stage.lost+'</span>'+
+        '<span style="background:#F1F5F9;padding:4px 8px;border-radius:6px;color:#94a3b8">✎ 草稿 '+stage.draft+'（不計）</span>'+
+      '</div>'+capped+'</div>';
+
+    // 業務戰績
+    var persons = sortToArr(byPerson);
+    h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
+      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">👤 業務戰績（依首洽）</div>';
+    persons.forEach(function(x){
+      h += anaBar(x.k, x.v.won, x.v.total, money(x.v.amount));
+    });
+    h += '</div>';
+
+    // 產品類別
+    var cats = sortToArr(byCat);
+    h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
+      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">📦 產品類別成交率</div>';
+    cats.forEach(function(x){
+      var avg = x.v.won>0 ? money(Math.round(x.v.amount/x.v.won)) : '—';
+      h += anaBar(x.k, x.v.won, x.v.total, '均 '+avg);
+    });
+    h += '</div>';
+
+    // 價格帶
+    h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
+      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">💵 價格帶成交率</div>';
+    BANDS.forEach(function(b){
+      var v = byBand[b[0]];
+      if(v.total>0) h += anaBar(b[0], v.won, v.total, '');
+    });
+    h += '</div>';
+
+    // 月趨勢
+    var months = Object.keys(byMonth).sort().slice(-6);
+    if(months.length){
+      var maxAmt = Math.max.apply(null, months.map(function(m){return byMonth[m].amount;}).concat([1]));
+      h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
+        '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">📅 近月成交額趨勢</div>';
+      months.forEach(function(m){
+        var v = byMonth[m];
+        var w = Math.round(v.amount/maxAmt*100);
+        h += '<div style="margin-bottom:8px">'+
+          '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">'+
+            '<span style="font-weight:600">'+m+'</span>'+
+            '<span style="color:#64748b">'+v.won+'/'+v.total+' 成交　'+money(v.amount)+'</span>'+
+          '</div>'+
+          '<div style="background:#E5E7EB;border-radius:5px;height:9px;overflow:hidden"><div style="width:'+w+'%;height:100%;background:#2563EB"></div></div>'+
+        '</div>';
+      });
+      h += '</div>';
+    }
+
+    h += '<div style="font-size:11px;color:#94a3b8;text-align:center;padding:6px 0">資料來源：Ragic 正式報價單（Sheet 8）｜每 10 分鐘快取，按「↻ 重抓」更新</div>';
+
+    body.innerHTML = h;
+  });
 }
 
 function toast(msg){
