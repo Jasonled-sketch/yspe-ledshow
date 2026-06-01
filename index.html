@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.37</title>
+<title>USLED 快速報價 v9.38</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.37</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.38</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -360,7 +360,13 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 <div id="pg1" class="page on">
   <div class="card">
     <div class="sec-label">客戶資訊</div>
-    <div class="frow"><label>客戶名稱 *</label><input id="c_name" type="text" placeholder="輸入客戶或公司名稱" autocomplete="off"></div>
+    <div class="frow"><label>客戶名稱 *</label>
+      <div style="display:flex;gap:6px">
+        <input id="c_name" type="text" placeholder="輸入客戶或公司名稱" autocomplete="off" style="flex:1">
+        <button type="button" onclick="lookupCustomer()" style="padding:0 14px;background:#2563EB;color:#fff;border:none;border-radius:6px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap">🔍 查客戶</button>
+      </div>
+    </div>
+    <div id="custResult"></div>
     <div class="g2">
       <div class="frow"><label>聯絡電話</label><input id="c_phone" type="tel" placeholder="09xx-xxxxxx"></div>
       <div class="frow"><label>報價日期</label><input id="c_date" type="date"></div>
@@ -3981,6 +3987,98 @@ function renderAnalytics(forceRefresh){
 
     body.innerHTML = h;
   });
+}
+
+// ══════════════════════════════════════════
+// ══ v9.38：客戶自動帶入（讀客戶主檔 ragicsales-order-management/20004）══
+// ══════════════════════════════════════════
+// 讀取用中文名（不需欄位 ID）。fetch 全部客戶（<1000 筆）快取 10 分鐘，前端比對。
+var CUST_CACHE_KEY = 'usled_customers_v1';
+var _custInflight = null;
+function fetchAllCustomers(forceRefresh, cb){
+  if(!forceRefresh){
+    try{ var c=JSON.parse(localStorage.getItem(CUST_CACHE_KEY)||'null');
+      if(c && c.ts && (Date.now()-c.ts)<10*60*1000 && c.data && c.data.length){ cb(c.data); return; } }catch(e){}
+  }
+  if(_custInflight){ _custInflight.push(cb); return; }
+  _custInflight=[cb];
+  var route=getApiRoute();
+  if(route.mode!=='worker'){ console.warn('[客戶] 非 Worker 模式（需 Google 登入）'); var q0=_custInflight;_custInflight=null;q0.forEach(function(c){c(null);}); return; }
+  var url=WORKER_URL.replace(/\/$/,'')+'/?sheet=cust&limit=1000';
+  fetch(url,{headers:route.headers}).then(function(r){return r.text();}).then(function(text){
+    var json; try{json=JSON.parse(text);}catch(e){json={};}
+    if(json && (json.service||json.status==='UNAUTHORIZED'||json.status==='FORBIDDEN')){
+      console.error('[客戶] 讀取失敗:',json); var qE=_custInflight;_custInflight=null;qE.forEach(function(c){c(null);}); return;
+    }
+    var list=[];
+    Object.keys(json).forEach(function(k){ if(/^_/.test(k))return; var rec=json[k]; if(rec&&typeof rec==='object'&&rec['客戶簡稱']) list.push(rec); });
+    console.log('[客戶] 載入',list.length,'筆');
+    if(list.length){ try{localStorage.setItem(CUST_CACHE_KEY,JSON.stringify({ts:Date.now(),data:list}));}catch(e){} }
+    var q=_custInflight;_custInflight=null;q.forEach(function(c){c(list);});
+  }).catch(function(e){ console.error('[客戶] fetch 失敗:',e); var q=_custInflight;_custInflight=null;q.forEach(function(c){c(null);}); });
+}
+function _digits(s){ return String(s||'').replace(/\D/g,''); }
+function _setVal(id,v){ var e=document.getElementById(id); if(e) e.value=v; }
+
+function lookupCustomer(){
+  var box=document.getElementById('custResult');
+  var nameQ=(GS('c_name')||'').trim();
+  var phoneQ=_digits(GS('c_phone'));
+  if(!nameQ && phoneQ.length<6){ box.innerHTML='<div style="font-size:12px;color:var(--sub);margin:6px 0">請先輸入客戶名稱或電話再查</div>'; return; }
+  box.innerHTML='<div style="font-size:12px;color:var(--sub);margin:6px 0">🔍 查詢中…</div>';
+  fetchAllCustomers(false, function(all){
+    if(all===null){ box.innerHTML='<div style="font-size:12px;color:#EF4444;margin:6px 0">⚠ 查詢失敗（請確認已用 Google 登入、白名單帳號）</div>'; return; }
+    var matches=all.filter(function(c){
+      var nm=c['客戶簡稱']||'';
+      var phs=_digits(c['連絡手機'])+' '+_digits(c['電話號碼'])+' '+_digits(c['窗口手機']);
+      var byName = nameQ && nm.indexOf(nameQ)>=0;
+      var byPhone = phoneQ.length>=6 && phs.indexOf(phoneQ)>=0;
+      return byName||byPhone;
+    }).slice(0,8);
+    if(matches.length===0){
+      box.innerHTML='<div style="background:#FEF9C3;border:1px solid #FACC15;border-radius:8px;padding:10px;font-size:13px;margin:6px 0">🆕 查無此客戶 — 當「新客戶」處理（資料照常填，推送報價單即可）</div>';
+      return;
+    }
+    window.__custMatches=matches;
+    var h='<div style="margin:6px 0">';
+    matches.forEach(function(c,i){
+      h+='<div onclick="applyCustomer('+i+')" style="cursor:pointer;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 10px;margin-bottom:4px;font-size:13px">'+
+         '<b>'+(c['客戶簡稱']||'—')+'</b>'+
+         (c['客戶全名（抬頭）']?' ｜ '+c['客戶全名（抬頭）']:'')+
+         '<span style="float:right;color:#2563EB">帶入 ▸</span>'+
+         '<div style="font-size:11px;color:#64748b;margin-top:2px">'+
+           (c['連絡手機']||c['電話號碼']||c['窗口手機']||'無電話')+
+           '　'+(c['矩陣分類']||'')+'　成交'+(c['成交次數']||0)+'次</div>'+
+         '</div>';
+    });
+    h+='</div>';
+    box.innerHTML=h;
+  });
+}
+
+function applyCustomer(i){
+  var c=(window.__custMatches||[])[i]; if(!c)return;
+  if(c['客戶簡稱'] && !(GS('c_name')||'').trim()) _setVal('c_name', c['客戶簡稱']);
+  if(c['客戶全名（抬頭）']) _setVal('c_company', c['客戶全名（抬頭）']);
+  if(c['統一編號']) _setVal('c_taxid', c['統一編號']);
+  var addr=c['送貨完整地址']||c['送貨地址']||'';
+  if(addr) _setVal('c_address', addr);
+  var ph=c['連絡手機']||c['電話號碼']||c['窗口手機']||'';
+  if(ph && !(GS('c_phone')||'').trim()) _setVal('c_phone', ph);
+  var rate=c['預估成交率']?(parseFloat(c['預估成交率'])*100).toFixed(0)+'%':'—';
+  var box=document.getElementById('custResult');
+  box.innerHTML='<div style="background:#ECFDF5;border:1.5px solid #6EE7B7;border-radius:8px;padding:10px 12px;font-size:12px;margin:6px 0">'+
+    '<div style="font-weight:700;color:#065F46;margin-bottom:5px">✅ 已帶入：'+(c['客戶簡稱']||'')+'</div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap;color:#334155;line-height:1.8">'+
+      '<span>📊 '+(c['矩陣分類']||'—')+'</span>'+
+      '<span>🎯 預估成交 '+rate+'</span>'+
+      '<span>💳 '+(c['付款方式']||'—')+'</span>'+
+      '<span>🚚 '+(c['取貨方式']||'—')+'</span>'+
+      '<span>🛒 '+(c['來源子類']||'—')+'</span>'+
+      '<span>🤝 首洽 '+(c['首次接洽業務']||'—')+'</span>'+
+      '<span>📦 成交 '+(c['成交次數']||0)+' 次</span>'+
+      '<span>💰 累計 $'+Math.round(parseFloat(c['至今累計消費']||0)).toLocaleString()+'</span>'+
+    '</div></div>';
 }
 
 function toast(msg){
