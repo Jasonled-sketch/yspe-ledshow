@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.34</title>
+<title>USLED 快速報價 v9.35</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.34</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.35</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -3294,36 +3294,41 @@ function buildSheet8Payload(){
   fd.append(F.progress, '✉︎已報');
   fd.append(F.firstContact, initial);
 
-  // 子表（產品明細）— A1 = 列 -1，用真欄位 ID（小計是公式自動算）
+  // 子表（產品明細）— 先收集成陣列（產品在前、施工在後），再分配列號
+  // v9.35：列號用 -(n)..-1，第一筆最負 → Ragic 升序排，產品排最前（修正施工跑前面）
   var spec = buildSpecText(r).join('\n');
-  fd.append(S.item +'_-1', typeCode+' '+(r.dual>1?'雙面':'單面'));  // 項目（已改自由輸入）
-  fd.append(S.spec +'_-1', spec);                                    // 規格內容（完整 13 行）
-  fd.append(S.qty  +'_-1', r.qty||1);                                // 數量
-  fd.append(S.price+'_-1', r.unitPrice||0);                          // 單價
-  fd.append(S.unit +'_-1', '台');                                    // 單位
-  if(isMgr && r.matSub) fd.append(S.matCost+'_-1', Math.round(r.matSub)); // 主機成本（管理者）
+  var subRows = [{
+    item: typeCode+' '+(r.dual>1?'雙面':'單面'),
+    spec: spec, qty: r.qty||1, price: r.unitPrice||0, unit: '台',
+    mat: (isMgr && r.matSub) ? Math.round(r.matSub) : null
+  }];
 
-  // 施工(B1) → 併入同一子表 -2/-3…；現金未稅總計(公式)會自動加總
   var grand = (r.totalPrice||0);
   if(r.installation && r.installation.detail){
-    var d=r.installation.detail, ins=r.installation, idx=-2;
-    function addRow(label, detail, amount){
+    var d=r.installation.detail, ins=r.installation;
+    function addI(label, detail, amount){
       if(!amount || amount<=0) return;
-      fd.append(S.item +'_'+idx, label);
-      fd.append(S.spec +'_'+idx, detail||label);
-      fd.append(S.qty  +'_'+idx, 1);
-      fd.append(S.price+'_'+idx, amount);
-      fd.append(S.unit +'_'+idx, '式');
-      idx--;
+      subRows.push({ item:label, spec:detail||label, qty:1, price:amount, unit:'式', mat:null });
     }
-    addRow('施工-出車油資', '出車油資', d.transport);
-    addRow('施工-基本工資', (ins.inputs && ins.inputs.crew ? ins.inputs.crew.master+'師+'+ins.inputs.crew.assistant+'助' : '基本工資'), d.labor);
-    addRow('施工-高度加級', '高度加級', d.height);
-    addRow('施工-急件加級', '急件加級', d.urgent);
-    addRow('施工-夜間加級', '夜間加級(含出車)', d.night);
-    addRow('施工-結構鐵架', '結構鐵架', d.parts);
+    addI('施工-出車油資', '出車油資', d.transport);
+    addI('施工-基本工資', (ins.inputs && ins.inputs.crew ? ins.inputs.crew.master+'師+'+ins.inputs.crew.assistant+'助' : '基本工資'), d.labor);
+    addI('施工-高度加級', '高度加級', d.height);
+    addI('施工-急件加級', '急件加級', d.urgent);
+    addI('施工-夜間加級', '夜間加級(含出車)', d.night);
+    addI('施工-結構鐵架', '結構鐵架', d.parts);
     grand += (ins.serviceFee||0);
   }
+
+  var nRows = subRows.length;
+  subRows.forEach(function(row, i){
+    var rid = '_-' + (nRows - i);   // i=0(產品)→最負→排最前；最後一筆→-1
+    fd.append(S.item  + rid, row.item);
+    fd.append(S.spec  + rid, row.spec);
+    fd.append(S.qty   + rid, row.qty);
+    fd.append(S.price + rid, row.price);
+    fd.append(S.unit  + rid, row.unit);
+    if(row.mat) fd.append(S.matCost + rid, row.mat);
+  });
   return {fd:fd, summary:{customer:customerName, total:grand, category:category, initial:initial}};
 }
 
