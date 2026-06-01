@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.33</title>
+<title>USLED 快速報價 v9.34</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.33</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.34</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -2386,9 +2386,36 @@ var RAGIC_FIELD_IDS_SHEET8 = {
   workLevel:   '1001449',  // 工務等級
   memo:        '1001191'   // 其他備註 ← v9.15 新增
 };
-// Sheet 8 子表 ID + 欄位
+// Sheet 8 子表 ID + 欄位（舊表，保留參考）
 var RAGIC_SHEET8_SUBTABLE_PRODUCT  = '1000655';  // 產品明細
 var RAGIC_SHEET8_SUBTABLE_ADDITION = '1000681';  // 附加項目
+
+// ══ v9.34：Sheet 19「字幕機報價單」專用表（取代 sheet 8 給字幕機用）══
+// 欄位 ID 由 API 探測確認（2026-06）。現金未稅總計/案件敘述/小計 都是公式，不寫。
+var RAGIC_FIELD_IDS_SHEET19 = {
+  quoteDate:    '1002969',  // 報價日期（日期）
+  customer:     '1002970',  // 客戶名稱
+  phone:        '1002976',  // 連絡電話
+  productBrief: '1002971',  // 產品簡要
+  category:     '1002980',  // 產品類別（選單，自動歸類）
+  progress:     '1002966',  // 進度欄（選單）
+  firstContact: '1002968',  // 首洽
+  address:      '1002991',  // 抵達地址
+  taxId:        '1003021',  // 統編
+  companyName:  '1003022',  // 抬頭
+  memo:         '1002992'   // 其他備註
+  // 現金未稅總計=公式自動加總子表小計，不寫；案件敘述=公式，不寫
+};
+// Sheet 19 子表（產品明細）— 寫入格式：<欄位ID>_-<列號>
+var RAGIC_SHEET19_SUB = {
+  item:    '1002995',  // 項目（已改自由輸入）
+  spec:    '1002996',  // 規格內容
+  qty:     '1002997',  // 數量
+  price:   '1002998',  // 單價
+  unit:    '1003002',  // 單位
+  matCost: '1003003'   // 主機成本（管理者用）
+  // 小計 1002999 = 公式自動算
+};
 
 // v9.24：Sheet 18 字幕機行情參考 — 管理員 key、業務員看
 var RAGIC_FIELD_IDS_SHEET18 = {
@@ -3229,11 +3256,14 @@ function updateSheet8Button(){
   if(btn) btn.style.display = isSheet8Enabled() ? '' : 'none';
 }
 
-// 把 PWA 報價內容轉成 sheet 8 的 FormData payload
+// 把 PWA 報價內容轉成 sheet 19（字幕機報價單）的 FormData payload
+// v9.34：改寫 sheet 19，欄位用 API 探測出的真 ID；現金未稅總計/案件敘述/小計都是公式（不寫）；
+//         施工(B1)併入同一子表的 -2/-3… 列，現金未稅總計(公式)自動加總含施工。
 function buildSheet8Payload(){
   var r=RESULT;
   if(!r.mid) return null;
-  var F=RAGIC_FIELD_IDS_SHEET8;
+  var F=RAGIC_FIELD_IDS_SHEET19;
+  var S=RAGIC_SHEET19_SUB;
   var customerName = (GS('c_name')||'').trim() || '—';
   var phone        = (GS('c_phone')||'').trim();
   var address      = (GS('c_address')||'').trim();
@@ -3250,8 +3280,7 @@ function buildSheet8Payload(){
                      (r.fid?'-'+r.fid:'') + (r.pid||'');
 
   var fd=new FormData();
-  // 主表
-  fd.append(F.caseDesc,     (dateRagic||'未填日期')+'-'+customerName+'-'+(r.m && r.m.water?r.m.water:'LED')+'顯示');
+  // 主表（案件敘述、現金未稅總計 都是公式，不寫）
   if(dateRagic) fd.append(F.quoteDate, dateRagic);
   fd.append(F.customer,     customerName);
   if(phone)    fd.append(F.phone,       phone);
@@ -3259,49 +3288,41 @@ function buildSheet8Payload(){
   if(taxId)    fd.append(F.taxId,       taxId);
   if(company)  fd.append(F.companyName, company);
   if(memo)     fd.append(F.memo,        memo);
-  // v9.17：產品簡要從客戶頁 memo 抓首句 / 沒填就用模組 ID；不再硬編「LED 顯示看板」
   var productBriefAuto = memo ? memo.split(/[\n。.]/)[0].slice(0,30) : (r.mid || '');
   if(productBriefAuto) fd.append(F.productBrief, productBriefAuto);
   fd.append(F.category, category);
   fd.append(F.progress, '✉︎已報');
   fd.append(F.firstContact, initial);
-  // 金額：A1 + B1（若有）
-  var grand = (r.totalPrice||0) + (r.installation ? r.installation.serviceFee : 0);
-  fd.append(F.cashTotal, grand);
 
-  // 子表 — 產品明細（A1）
-  // ✅ v9.32 修正：Ragic 官方子表格式是「欄位ID_-列號=值」(www.ragic.com/intl/zh-TW/doc-api/26)。
-  //    原本用 1000655_中文名_-1 是錯的（1000655 是子表容器 ID，不是欄位 ID）→ 資料根本沒寫進去。
-  //    A1 真欄位 ID：1000649=項目（連結欄，API 寫文字會存顯示值）1000650=規格內容 1000651=數量 1000652=單價；小計=公式自動算。
-  // v9.33：用與預覽相同的 buildSpecText（完整 13 行），不再手寫簡化版
+  // 子表（產品明細）— A1 = 列 -1，用真欄位 ID（小計是公式自動算）
   var spec = buildSpecText(r).join('\n');
+  fd.append(S.item +'_-1', typeCode+' '+(r.dual>1?'雙面':'單面'));  // 項目（已改自由輸入）
+  fd.append(S.spec +'_-1', spec);                                    // 規格內容（完整 13 行）
+  fd.append(S.qty  +'_-1', r.qty||1);                                // 數量
+  fd.append(S.price+'_-1', r.unitPrice||0);                          // 單價
+  fd.append(S.unit +'_-1', '台');                                    // 單位
+  if(isMgr && r.matSub) fd.append(S.matCost+'_-1', Math.round(r.matSub)); // 主機成本（管理者）
 
-  fd.append('1000649_-1', typeCode+' '+(r.dual>1?'雙面':'單面'));  // 項目
-  fd.append('1000650_-1', spec);                                   // 規格內容
-  fd.append('1000651_-1', r.qty||1);                               // 數量
-  fd.append('1000652_-1', r.unitPrice||0);                         // 單價（純數字，金額格式由欄位處理）
-
-  // 子表 — 附加項目（B1，施工拆多 row）
-  // ⚠ v9.32 待修：B1 欄位 ID 還沒拿到（同樣不能用 1000681_中文名_idx，要用真欄位 ID）。
-  //    目前先沿用舊格式（Ragic 會忽略 → 不會寫入但不報錯）；等 Jason 給 B1 子表欄位 ID 再改。
+  // 施工(B1) → 併入同一子表 -2/-3…；現金未稅總計(公式)會自動加總
+  var grand = (r.totalPrice||0);
   if(r.installation && r.installation.detail){
-    console.warn('[Sheet8] B1 施工子表欄位 ID 待確認，本次施工明細可能未寫入。請提供附加項目子表的欄位 ID。');
-    var d=r.installation.detail, idx=-2;
-    function addRow(kind, label, amount){
+    var d=r.installation.detail, ins=r.installation, idx=-2;
+    function addRow(label, detail, amount){
       if(!amount || amount<=0) return;
-      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_附加項目_'+idx, kind);
-      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_詳細內容_'+idx, label);
-      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_數量_'+idx,   '1');
-      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_單位_'+idx,   '式');
-      fd.append(RAGIC_SHEET8_SUBTABLE_ADDITION+'_單價_'+idx,   amount);
+      fd.append(S.item +'_'+idx, label);
+      fd.append(S.spec +'_'+idx, detail||label);
+      fd.append(S.qty  +'_'+idx, 1);
+      fd.append(S.price+'_'+idx, amount);
+      fd.append(S.unit +'_'+idx, '式');
       idx--;
     }
-    addRow('施工安裝', '出車油資', d.transport);
-    addRow('施工安裝', '基本工資（'+(r.installation.inputs && r.installation.inputs.crew ? r.installation.inputs.crew.master+'師+'+r.installation.inputs.crew.assistant+'助':'')+'）', d.labor);
-    addRow('施工安裝', '高度加級', d.height);
-    addRow('施工安裝', '急件加級', d.urgent);
-    addRow('施工安裝', '夜間加級（含出車）', d.night);
-    addRow('配件',     '配件總額', d.parts);
+    addRow('施工-出車油資', '出車油資', d.transport);
+    addRow('施工-基本工資', (ins.inputs && ins.inputs.crew ? ins.inputs.crew.master+'師+'+ins.inputs.crew.assistant+'助' : '基本工資'), d.labor);
+    addRow('施工-高度加級', '高度加級', d.height);
+    addRow('施工-急件加級', '急件加級', d.urgent);
+    addRow('施工-夜間加級', '夜間加級(含出車)', d.night);
+    addRow('施工-結構鐵架', '結構鐵架', d.parts);
+    grand += (ins.serviceFee||0);
   }
   return {fd:fd, summary:{customer:customerName, total:grand, category:category, initial:initial}};
 }
@@ -3318,7 +3339,7 @@ function pushSheet8Now(){
   var built=buildSheet8Payload();
   if(!built){ toast('⚠ 資料準備失敗'); return; }
   var s=built.summary;
-  var msg='即將推送到 Ragic 正式報價單（sheet 8）：\n\n'+
+  var msg='即將推送到 Ragic 字幕機報價單（sheet 19）：\n\n'+
           '客戶：'+s.customer+'\n'+
           '類別：'+s.category+'\n'+
           '報價人：'+s.initial+'\n'+
@@ -3329,8 +3350,8 @@ function pushSheet8Now(){
   var btn=document.getElementById('btnPushSheet8');
   if(btn){btn.disabled=true; btn.textContent='⏳ 推送中...';}
 
-  // 用 Worker URL + ?sheet=8 路由；doFormula=true 讓小計/稅額等公式欄位即時重算
-  var postUrl = WORKER_URL.replace(/\/$/,'') + '/?sheet=8&doFormula=true';
+  // 用 Worker URL + ?sheet=19 路由；doFormula=true 讓小計/現金未稅總計等公式欄位即時重算
+  var postUrl = WORKER_URL.replace(/\/$/,'') + '/?sheet=19&doFormula=true';
   fetch(postUrl, {
     method:'POST',
     headers:{'X-Google-Token': currentUser.idToken},
@@ -3340,9 +3361,9 @@ function pushSheet8Now(){
       var parsed=null, ragicId='', status='';
       try{parsed=JSON.parse(res.body); ragicId=parsed.ragicId||''; status=parsed.status||'';}catch(e){}
       if(res.ok && status==='SUCCESS' && ragicId){
-        var url='https://ap10.ragic.com/Fan28/ragicproject-management/8/'+ragicId;
+        var url='https://ap10.ragic.com/Fan28/ragicproject-management/19/'+ragicId;
         toast('✅ 推送成功！ragicId='+ragicId);
-        if(confirm('✅ 已寫入 Ragic 正式報價單（sheet 8）\nragicId = '+ragicId+'\n\n要立刻打開 Ragic 看嗎？')){
+        if(confirm('✅ 已寫入 Ragic 字幕機報價單（sheet 19）\nragicId = '+ragicId+'\n\n要立刻打開 Ragic 看嗎？')){
           window.open(url, '_blank');
         }
       }else{
@@ -3657,7 +3678,9 @@ function openMarketPriceModal(specKey, r, existing){
 // ══════════════════════════════════════════
 // 進度欄漏斗：草稿(排除) → 已報(分母) → 進行/待款/結案(成交) → 逾期(流失)
 // 成交率 = (進行+待款+結案) / (已報+進行+待款+結案+逾期)
-var QUOTES_CACHE_KEY = 'usled_quotes_s8_v1';
+// v9.34：改讀 sheet 19（字幕機報價單）。用「中文名」讀（不加 naming=fid），
+//         因為 sheet 19 是新表、欄位 ID 不同，用中文名最穩；快取 key 也換版作廢舊的。
+var QUOTES_CACHE_KEY = 'usled_quotes_s19_v1';
 var _quotesInflight = null;
 function fetchAllQuotes(forceRefresh, cb){
   if(!forceRefresh){
@@ -3675,35 +3698,36 @@ function fetchAllQuotes(forceRefresh, cb){
     var q0=_quotesInflight; _quotesInflight=null; q0.forEach(function(c){ c(null); });  // null = 未登入
     return;
   }
-  var url = WORKER_URL.replace(/\/$/,'') + '/?sheet=8&naming=fid&limit=1000';
+  // 不加 naming=fid → 回應用中文欄位名為 key
+  var url = WORKER_URL.replace(/\/$/,'') + '/?sheet=19&limit=1000';
   fetch(url, { headers: route.headers })
     .then(function(r){ return r.text(); })
     .then(function(text){
       var json; try{ json=JSON.parse(text); }catch(e){ json={}; }
       if(json && (json.service || json.status==='UNAUTHORIZED' || json.status==='FORBIDDEN')){
-        console.error('[戰情] 讀 Sheet 8 失敗:', json);
+        console.error('[戰情] 讀 Sheet 19 失敗:', json);
         var qE=_quotesInflight; _quotesInflight=null; qE.forEach(function(c){ c(null); });
         return;
       }
-      var F = RAGIC_FIELD_IDS_SHEET8;
       var list = [];
       Object.keys(json).forEach(function(k){
+        if(/^_/.test(k)) return;
         var rec = json[k];
         if(!rec || typeof rec!=='object') return;
-        var prog = rec[F.progress] || rec['進度欄'] || '';
+        var prog = rec['進度欄'] || '';
         if(!prog) return;  // 沒進度欄的略過
-        var amtRaw = rec[F.cashTotal] || rec['現金未稅總計'] || '0';
+        var amtRaw = rec['現金未稅總計'] || '0';
         list.push({
           progress: prog,
-          category: rec[F.category] || rec['產品類別'] || '未分類',
+          category: rec['產品類別'] || '未分類',
           amount: parseFloat(String(amtRaw).replace(/[,\s]/g,'')) || 0,
-          initial: rec[F.firstContact] || rec['首洽'] || '?',
-          followUp: rec['1001192'] || rec['跟單'] || '',
-          date: rec[F.quoteDate] || rec['報價日期'] || '',
-          customer: rec[F.customer] || rec['客戶名稱'] || ''
+          initial: rec['首洽'] || '?',
+          followUp: rec['跟單'] || '',
+          date: rec['報價日期'] || '',
+          customer: rec['客戶名稱'] || ''
         });
       });
-      console.log('[戰情] Sheet 8 載入', list.length, '筆');
+      console.log('[戰情] Sheet 19 載入', list.length, '筆');
       if(list.length){
         try{ localStorage.setItem(QUOTES_CACHE_KEY, JSON.stringify({ts:Date.now(), data:list})); }catch(e){}
       }
@@ -3927,7 +3951,7 @@ function renderAnalytics(forceRefresh){
       h += '</div>';
     }
 
-    h += '<div style="font-size:11px;color:#94a3b8;text-align:center;padding:6px 0">資料來源：Ragic 正式報價單（Sheet 8）｜每 10 分鐘快取，按「↻ 重抓」更新</div>';
+    h += '<div style="font-size:11px;color:#94a3b8;text-align:center;padding:6px 0">資料來源：Ragic 字幕機報價單（Sheet 19）｜每 10 分鐘快取，按「↻ 重抓」更新</div>';
 
     body.innerHTML = h;
   });
