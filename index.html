@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.35</title>
+<title>USLED 快速報價 v9.36</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.35</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.36</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -2403,11 +2403,15 @@ var RAGIC_FIELD_IDS_SHEET19 = {
   address:      '1002991',  // 抵達地址
   taxId:        '1003021',  // 統編
   companyName:  '1003022',  // 抬頭
-  memo:         '1002992'   // 其他備註
+  memo:         '1002992',  // 其他備註
+  valid:        '1002965',  // 有效欄（打勾選項：Green/X/Important，預設 Green）
+  deliverWay:   '1002979',  // 交貨方式（選單：門市自取/到府安裝）
+  modelStyle:   '1002981'   // 機型款式（多選連結；若不顯示需改自由輸入）
   // 現金未稅總計=公式自動加總子表小計，不寫；案件敘述=公式，不寫
 };
 // Sheet 19 子表（產品明細）— 寫入格式：<欄位ID>_-<列號>
 var RAGIC_SHEET19_SUB = {
+  seq:     '1002994',  // 序（數值）
   item:    '1002995',  // 項目（已改自由輸入）
   spec:    '1002996',  // 規格內容
   qty:     '1002997',  // 數量
@@ -3293,6 +3297,11 @@ function buildSheet8Payload(){
   fd.append(F.category, category);
   fd.append(F.progress, '✉︎已報');
   fd.append(F.firstContact, initial);
+  // v9.36：有效欄預設綠色（有效）、交貨方式依施工自動帶、機型款式帶型號
+  fd.append(F.valid, 'Green');
+  fd.append(F.deliverWay, (r.installation && r.installation.serviceFee) ? '到府安裝' : '門市自取');
+  var modelStyle = (r.mid||'') + (r.rows<10?'0':'')+(r.rows||0) + (r.cols<10?'0':'')+(r.cols||0) + (r.fid?'-'+r.fid:'') + (r.pid||'');
+  fd.append(F.modelStyle, modelStyle);  // 機型款式（多選連結；若沒顯示請在 Ragic 把此欄改自由輸入）
 
   // 子表（產品明細）— 先收集成陣列（產品在前、施工在後），再分配列號
   // v9.35：列號用 -(n)..-1，第一筆最負 → Ragic 升序排，產品排最前（修正施工跑前面）
@@ -3322,6 +3331,7 @@ function buildSheet8Payload(){
   var nRows = subRows.length;
   subRows.forEach(function(row, i){
     var rid = '_-' + (nRows - i);   // i=0(產品)→最負→排最前；最後一筆→-1
+    fd.append(S.seq   + rid, i+1);  // 序號 1,2,3…
     fd.append(S.item  + rid, row.item);
     fd.append(S.spec  + rid, row.spec);
     fd.append(S.qty   + rid, row.qty);
