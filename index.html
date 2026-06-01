@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.31</title>
+<title>USLED 快速報價 v9.32</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.31</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.32</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -3256,8 +3256,10 @@ function buildSheet8Payload(){
   var grand = (r.totalPrice||0) + (r.installation ? r.installation.serviceFee : 0);
   fd.append(F.cashTotal, grand);
 
-  // 子表 1000655 — 產品明細（A1）
-  // Ragic 子表寫入語法：<子表ID>_<欄位名>_<列ID> = 值；新建用負數列 ID
+  // 子表 — 產品明細（A1）
+  // ✅ v9.32 修正：Ragic 官方子表格式是「欄位ID_-列號=值」(www.ragic.com/intl/zh-TW/doc-api/26)。
+  //    原本用 1000655_中文名_-1 是錯的（1000655 是子表容器 ID，不是欄位 ID）→ 資料根本沒寫進去。
+  //    A1 真欄位 ID：1000649=項目（連結欄，API 寫文字會存顯示值）1000650=規格內容 1000651=數量 1000652=單價；小計=公式自動算。
   var spec='規格:電子顯示看板-'+typeCode+' '+(r.dual>1?'雙面':'單面')+'\n'+
            '顯示字數:(H)'+(r.rows<10?'0':'')+r.rows+'字*(W)'+(r.cols<10?'0':'')+r.cols+'字\n'+
            '解析點數:(H)'+(r.ptH||'—')+'點 * (W)'+(r.ptW||'—')+'點\n'+
@@ -3267,14 +3269,16 @@ function buildSheet8Payload(){
            '平均功率:'+(r.totalW?Math.round(r.totalW*0.3):'-')+' W/hr(參考)\n'+
            '機體重量:約'+(r.totalKg?r.totalKg.toFixed(2):'-')+'kg ± 5%';
 
-  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_項目_-1',     typeCode+' '+(r.dual>1?'雙面':'單面'));
-  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_規格內容_-1', spec);
-  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_數量_-1',     r.qty||1);
-  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_單位_-1',     '台');
-  fd.append(RAGIC_SHEET8_SUBTABLE_PRODUCT+'_單價_-1',     r.unitPrice||0);
+  fd.append('1000649_-1', typeCode+' '+(r.dual>1?'雙面':'單面'));  // 項目
+  fd.append('1000650_-1', spec);                                   // 規格內容
+  fd.append('1000651_-1', r.qty||1);                               // 數量
+  fd.append('1000652_-1', r.unitPrice||0);                         // 單價（純數字，金額格式由欄位處理）
 
-  // 子表 1000681 — 附加項目（B1，若有施工就拆 row）
+  // 子表 — 附加項目（B1，施工拆多 row）
+  // ⚠ v9.32 待修：B1 欄位 ID 還沒拿到（同樣不能用 1000681_中文名_idx，要用真欄位 ID）。
+  //    目前先沿用舊格式（Ragic 會忽略 → 不會寫入但不報錯）；等 Jason 給 B1 子表欄位 ID 再改。
   if(r.installation && r.installation.detail){
+    console.warn('[Sheet8] B1 施工子表欄位 ID 待確認，本次施工明細可能未寫入。請提供附加項目子表的欄位 ID。');
     var d=r.installation.detail, idx=-2;
     function addRow(kind, label, amount){
       if(!amount || amount<=0) return;
