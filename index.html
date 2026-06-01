@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.32</title>
+<title>USLED 快速報價 v9.33</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.32</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.33</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -1904,6 +1904,31 @@ function loadJson(input){
 }
 
 // ══════════════════════════════════════════
+// ══ v9.33：規格內容共用函數 — 預覽 & Ragic 推送共用同一份，保證一致 ══
+// 回傳「行陣列」，預覽用 join('<br>')，推送 Ragic 用 join('\n')
+// ══════════════════════════════════════════
+function buildSpecText(r){
+  var mid=r.mid||'', fid=r.fid||'', pid=r.pid||'', cid=r.cid||'';
+  var rows2=parseInt(r.rows)||0, cols2=parseInt(r.cols)||0;
+  var typeCode=(mid)+(rows2<10?'0':'')+rows2+(cols2<10?'0':'')+cols2+(fid?'-'+fid:'')+(pid||'');
+  return [
+    '規格：電子顯示看板-'+typeCode+' '+(r.dual>1?'雙面':'單面'),
+    '顯示顏色：全彩256色(超亮)',
+    '顯示字數：(H)'+(r.rows<10?'0':'')+r.rows+'字*(W)'+(r.cols<10?'0':'')+r.cols+'字，'+(r.dual>1?'雙面':'單面')+'共計'+(r.chars||'—')+'字',
+    '解析點數：(H)'+(r.ptH||'—')+'點 * (W)'+(r.ptW||'—')+'點',
+    '總顯示點：'+(r.ptTotal?r.ptTotal.toLocaleString():'—')+' pot',
+    '顯示面積：(H)'+(r.dispH?(r.dispH.toFixed(1)):'-')+'cm * (W)'+(r.dispW?(r.dispW.toFixed(1)):'-')+'cm',
+    '含框尺寸：(H)'+(r.fh?(r.fh.toFixed(1)):'-')+'cm * (W)'+(r.fw?(r.fw.toFixed(1)):'-')+'cm(T)'+((FRAME_THICKNESS[r.fid]||0).toFixed(1))+'cm',
+    '使用電壓：'+((pid&&(pid.startsWith('HBM')||pid.startsWith('HBT')))?'AC 220V':'AC 110V')+' (面對機子右下側出線)',
+    '結構外框：'+((r.f&&r.f.grp!=='none')?'抗鏽加厚型雙層鋁合金':'輕型塑膠背板'),
+    '傳輸方式：手機APP傳輸'+(cid&&cid.startsWith('HD')?'(屏掌控)':cid&&cid.startsWith('RHX')?'(RHX)':''),
+    '平均功率：'+(r.totalW?Math.round(r.totalW*0.3):'-')+' W/hr(參考)',
+    '防水程度：'+(r.m&&r.m.water.includes('戶外')?'全戶外防雨':'室內防潮'),
+    '機體重量：約'+(r.totalKg?(r.totalKg.toFixed(2)):'-')+'kg±5%'
+  ];
+}
+
+// ══════════════════════════════════════════
 // ══ 建立報價單 ══
 // ══════════════════════════════════════════
 function buildQuote(){
@@ -1939,19 +1964,7 @@ function buildQuote(){
       '<div class="qs-item-row">'+
         '<div style="font-weight:800;color:#1A3A6B">A1</div>'+
         '<div class="qs-spec-txt">'+
-          '規格：電子顯示看板-'+typeCode+' '+(r.dual>1?'雙面':'單面')+'<br>'+
-          '顯示顏色：全彩256色(超亮)<br>'+
-          '顯示字數：(H)'+(r.rows<10?'0':'')+r.rows+'字*(W)'+(r.cols<10?'0':'')+r.cols+'字，'+(r.dual>1?'雙面':'單面')+'共計'+(r.chars||'—')+'字<br>'+
-          '解析點數：(H)'+(r.ptH||'—')+'點 * (W)'+(r.ptW||'—')+'點<br>'+
-          '總顯示點：'+(r.ptTotal?r.ptTotal.toLocaleString():'—')+' pot<br>'+
-          '顯示面積：(H)'+(r.dispH?(r.dispH.toFixed(1)):'-')+'cm * (W)'+(r.dispW?(r.dispW.toFixed(1)):'-')+'cm<br>'+
-          '含框尺寸：(H)'+(r.fh?(r.fh.toFixed(1)):'-')+'cm * (W)'+(r.fw?(r.fw.toFixed(1)):'-')+'cm(T)'+((FRAME_THICKNESS[r.fid]||0).toFixed(1))+'cm<br>'+
-          '使用電壓：'+((pid&&(pid.startsWith('HBM')||pid.startsWith('HBT')))?'AC 220V':'AC 110V')+' (面對機子右下側出線)<br>'+
-          '結構外框：'+((r.f&&r.f.grp!=='none')?'抗鏽加厚型雙層鋁合金':'輕型塑膠背板')+'<br>'+
-          '傳輸方式：手機APP傳輸'+(cid&&cid.startsWith('HD')?'(屏掌控)':cid&&cid.startsWith('RHX')?'(RHX)':'')+'<br>'+
-          '平均功率：'+(r.totalW?Math.round(r.totalW*0.3):'-')+' W/hr(參考)<br>'+
-          '防水程度：'+(r.m&&r.m.water.includes('戶外')?'全戶外防雨':'室內防潮')+'<br>'+
-          '機體重量：約'+(r.totalKg?(r.totalKg.toFixed(2)):'-')+'kg±5%'+
+          buildSpecText(r).join('<br>')+
         '</div>'+
         '<div style="text-align:center;font-weight:700">'+qty+'<br><span style="font-size:7px;color:#64748B">台</span></div>'+
         '<div style="text-align:right;font-weight:700;color:#2563EB">$'+price.toLocaleString()+'<br><span style="font-size:7px;color:#64748B">元</span></div>'+
@@ -3260,14 +3273,8 @@ function buildSheet8Payload(){
   // ✅ v9.32 修正：Ragic 官方子表格式是「欄位ID_-列號=值」(www.ragic.com/intl/zh-TW/doc-api/26)。
   //    原本用 1000655_中文名_-1 是錯的（1000655 是子表容器 ID，不是欄位 ID）→ 資料根本沒寫進去。
   //    A1 真欄位 ID：1000649=項目（連結欄，API 寫文字會存顯示值）1000650=規格內容 1000651=數量 1000652=單價；小計=公式自動算。
-  var spec='規格:電子顯示看板-'+typeCode+' '+(r.dual>1?'雙面':'單面')+'\n'+
-           '顯示字數:(H)'+(r.rows<10?'0':'')+r.rows+'字*(W)'+(r.cols<10?'0':'')+r.cols+'字\n'+
-           '解析點數:(H)'+(r.ptH||'—')+'點 * (W)'+(r.ptW||'—')+'點\n'+
-           '顯示面積:(H)'+(r.dispH?r.dispH.toFixed(1):'-')+'cm * (W)'+(r.dispW?r.dispW.toFixed(1):'-')+'cm\n'+
-           '含框尺寸:(H)'+(r.fh?r.fh.toFixed(1):'-')+'cm * (W)'+(r.fw?r.fw.toFixed(1):'-')+'cm(T)'+((FRAME_THICKNESS[r.fid]||0).toFixed(1))+'cm\n'+
-           '結構外框:'+((r.f&&r.f.grp!=='none')?'抗鏽加厚型雙層鋁合金':'輕型塑膠背板')+'\n'+
-           '平均功率:'+(r.totalW?Math.round(r.totalW*0.3):'-')+' W/hr(參考)\n'+
-           '機體重量:約'+(r.totalKg?r.totalKg.toFixed(2):'-')+'kg ± 5%';
+  // v9.33：用與預覽相同的 buildSpecText（完整 13 行），不再手寫簡化版
+  var spec = buildSpecText(r).join('\n');
 
   fd.append('1000649_-1', typeCode+' '+(r.dual>1?'雙面':'單面'));  // 項目
   fd.append('1000650_-1', spec);                                   // 規格內容
@@ -3322,8 +3329,8 @@ function pushSheet8Now(){
   var btn=document.getElementById('btnPushSheet8');
   if(btn){btn.disabled=true; btn.textContent='⏳ 推送中...';}
 
-  // 用 Worker URL + ?sheet=8 路由
-  var postUrl = WORKER_URL.replace(/\/$/,'') + '/?sheet=8';
+  // 用 Worker URL + ?sheet=8 路由；doFormula=true 讓小計/稅額等公式欄位即時重算
+  var postUrl = WORKER_URL.replace(/\/$/,'') + '/?sheet=8&doFormula=true';
   fetch(postUrl, {
     method:'POST',
     headers:{'X-Google-Token': currentUser.idToken},
