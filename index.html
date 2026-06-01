@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.41</title>
+<title>USLED 快速報價 v9.42</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.41</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.42</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -4077,13 +4077,14 @@ function _showCustMatches(matches, anyFail, box){
 
 function applyCustomer(i){
   var c=(window.__custMatches||[])[i]; if(!c)return;
-  if(c['客戶簡稱'] && !(GS('c_name')||'').trim()) _setVal('c_name', c['客戶簡稱']);
+  // v9.42：點「帶入」= 要這個客戶，一律覆蓋（修：原本名稱/電話有舊值就不更新，導致名稱對不上）
+  if(c['客戶簡稱']) _setVal('c_name', c['客戶簡稱']);
   if(c['客戶全名（抬頭）']) _setVal('c_company', c['客戶全名（抬頭）']);
   if(c['統一編號']) _setVal('c_taxid', c['統一編號']);
   var addr=c['送貨完整地址']||c['送貨地址']||'';
   if(addr) _setVal('c_address', addr);
   var ph=c['連絡手機']||c['電話號碼']||c['窗口手機']||'';
-  if(ph && !(GS('c_phone')||'').trim()) _setVal('c_phone', ph);
+  if(ph) _setVal('c_phone', ph);   // 一律帶入完整電話（覆蓋查詢時打的部分號碼）
   var rate=c['預估成交率']?(parseFloat(c['預估成交率'])*100).toFixed(0)+'%':'—';
   var box=document.getElementById('custResult');
   box.innerHTML='<div style="background:#ECFDF5;border:1.5px solid #6EE7B7;border-radius:8px;padding:10px 12px;font-size:12px;margin:6px 0">'+
