@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.40</title>
+<title>USLED 快速報價 v9.41</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.40</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.41</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -3992,46 +3992,63 @@ function renderAnalytics(forceRefresh){
 // ══════════════════════════════════════════
 // ══ v9.38：客戶自動帶入（讀客戶主檔 ragicsales-order-management/20004）══
 // ══════════════════════════════════════════
-// v9.40：改用 Ragic 全文搜尋 fts（伺服器端，不受 1000 筆限制；2 字即可、電話也搜）
-// 讀取用中文名（不需欄位 ID）。
+// v9.41：分頁抓全部客戶（突破 1000 筆）+ 前端部分比對（名稱 2 字 / 電話 4 碼即可）
+// 讀取用中文名（不需欄位 ID）。快取 10 分鐘。
 function _digits(s){ return String(s||'').replace(/\D/g,''); }
 function _setVal(id,v){ var e=document.getElementById(id); if(e) e.value=v; }
+var CUST_CACHE_KEY='usled_customers_v2';
+var _custInflight=null;
 
-// 單一關鍵字 → Ragic fts 搜尋，回傳客戶陣列（最多 30 筆）
-function ftsSearchCustomers(keyword, cb){
+// 分頁抓全部（offset 0,1000,2000… 直到某頁 <1000 或達上限）
+function fetchAllCustomers(forceRefresh, cb){
+  if(!forceRefresh){
+    try{ var c=JSON.parse(localStorage.getItem(CUST_CACHE_KEY)||'null');
+      if(c&&c.ts&&(Date.now()-c.ts)<10*60*1000&&c.data&&c.data.length){ cb(c.data); return; } }catch(e){}
+  }
+  if(_custInflight){ _custInflight.push(cb); return; }
+  _custInflight=[cb];
   var route=getApiRoute();
-  if(route.mode!=='worker'){ console.warn('[客戶] 非 Worker 模式（需 Google 登入）'); cb(null); return; }
-  var url=WORKER_URL.replace(/\/$/,'')+'/?sheet=cust&fts='+encodeURIComponent(keyword)+'&limit=30';
-  fetch(url,{headers:route.headers}).then(function(r){return r.text();}).then(function(text){
-    var json; try{json=JSON.parse(text);}catch(e){json={};}
-    if(json && (json.service||json.status==='UNAUTHORIZED'||json.status==='FORBIDDEN')){ console.error('[客戶] fts 失敗:',json); cb(null); return; }
-    var list=[];
-    Object.keys(json).forEach(function(k){ if(/^_/.test(k))return; var rec=json[k]; if(rec&&typeof rec==='object'&&rec['客戶簡稱']) list.push(rec); });
-    console.log('[客戶] fts「'+keyword+'」找到',list.length,'筆');
-    cb(list);
-  }).catch(function(e){ console.error('[客戶] fts error:',e); cb(null); });
+  if(route.mode!=='worker'){ var q0=_custInflight;_custInflight=null;q0.forEach(function(f){f(null);}); return; }
+  var base=WORKER_URL.replace(/\/$/,'');
+  var all=[], MAXPAGE=8;  // 上限 8000 筆
+  function page(offset, pageNo){
+    var url=base+'/?sheet=cust&limit=1000&offset='+offset;
+    fetch(url,{headers:route.headers}).then(function(r){return r.text();}).then(function(text){
+      var json; try{json=JSON.parse(text);}catch(e){json={};}
+      if(json&&(json.service||json.status==='UNAUTHORIZED'||json.status==='FORBIDDEN')){
+        console.error('[客戶] 讀取失敗:',json);
+        var qE=_custInflight;_custInflight=null;qE.forEach(function(f){f(null);}); return;
+      }
+      var n=0;
+      Object.keys(json).forEach(function(k){ if(/^_/.test(k))return; var rec=json[k]; if(rec&&typeof rec==='object'&&rec['客戶簡稱']){ all.push(rec); n++; } });
+      console.log('[客戶] 第'+pageNo+'頁 offset='+offset+' 取',n,'筆，累計',all.length);
+      if(n>=1000 && pageNo<MAXPAGE){ page(offset+1000, pageNo+1); }   // 還有下一頁
+      else {
+        if(all.length){ try{localStorage.setItem(CUST_CACHE_KEY,JSON.stringify({ts:Date.now(),data:all}));}catch(e){} }
+        var q=_custInflight;_custInflight=null;q.forEach(function(f){f(all);});
+      }
+    }).catch(function(e){ console.error('[客戶] fetch 失敗:',e); var q=_custInflight;_custInflight=null;q.forEach(function(f){f(null);}); });
+  }
+  page(0,1);
 }
 
 function lookupCustomer(){
   var box=document.getElementById('custResult');
   var nameQ=(GS('c_name')||'').trim();
   var phoneQ=_digits(GS('c_phone'));
-  // 電話優先（人員打單名字常不一樣，電話最準）；名稱 2 字即可
-  var queries=[];
-  if(phoneQ.length>=6) queries.push(phoneQ);
-  if(nameQ.length>=2)  queries.push(nameQ);
-  if(queries.length===0){ box.innerHTML='<div style="font-size:12px;color:var(--sub);margin:6px 0">請輸入「客戶名稱 2 個字以上」或「電話 6 碼以上」再查</div>'; return; }
-  box.innerHTML='<div style="font-size:12px;color:var(--sub);margin:6px 0">🔍 查詢中…</div>';
-  var merged=[], seen={}, pending=queries.length, anyFail=false;
-  queries.forEach(function(q){
-    ftsSearchCustomers(q, function(list){
-      if(list===null){ anyFail=true; }
-      else list.forEach(function(c){
-        var key=(c['客戶簡稱']||'')+'|'+_digits(c['連絡手機'])+_digits(c['電話號碼']);
-        if(!seen[key]){ seen[key]=1; merged.push(c); }
-      });
-      if(--pending===0) _showCustMatches(merged, anyFail, box);
+  if(nameQ.length<2 && phoneQ.length<4){ box.innerHTML='<div style="font-size:12px;color:var(--sub);margin:6px 0">請輸入「名稱 2 字以上」或「電話 4 碼以上」再查</div>'; return; }
+  box.innerHTML='<div style="font-size:12px;color:var(--sub);margin:6px 0">🔍 查詢中…（首次載入客戶庫稍久）</div>';
+  fetchAllCustomers(false, function(all){
+    if(all===null){ _showCustMatches([], true, box); return; }
+    var matches=all.filter(function(c){
+      var nm=(c['客戶簡稱']||'')+' '+(c['客戶全名（抬頭）']||'');
+      var phs=_digits(c['連絡手機'])+' '+_digits(c['電話號碼'])+' '+_digits(c['窗口手機']);
+      var byName = nameQ.length>=2 && nm.indexOf(nameQ)>=0;
+      var byPhone= phoneQ.length>=4 && phs.indexOf(phoneQ)>=0;  // 4 碼部分比對
+      return byName||byPhone;
     });
+    console.log('[客戶] 比對',all.length,'筆，命中',matches.length);
+    _showCustMatches(matches, false, box);
   });
 }
 
