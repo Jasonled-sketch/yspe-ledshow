@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.30</title>
+<title>USLED 快速報價 v9.31</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.30</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.31</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -3756,12 +3756,13 @@ function renderAnalytics(forceRefresh){
       return d ? d.getTime() >= since : true;  // 沒日期的保留
     });
 
-    // 統計容器
+    // 統計容器（rows = 受日期區間限制；月趨勢另用 all 全資料）
     var stage = {draft:0, reported:0, won:0, lost:0, other:0};
     var wonAmount = 0, wonCount = 0, reportedCount = 0, lostCount = 0;
-    var byPerson = {}, byCat = {}, byBand = {}, byMonth = {};
+    var uncategorized = 0;
+    var byPerson = {}, byCat = {}, byBand = {};
     var BANDS = [['< 1萬',0,10000],['1-3萬',10000,30000],['3-5萬',30000,50000],['5-10萬',50000,100000],['10萬+',100000,1e12]];
-    BANDS.forEach(function(b){ byBand[b[0]]={won:0,total:0}; });
+    BANDS.forEach(function(b){ byBand[b[0]]={won:0,total:0,amount:0}; });
 
     rows.forEach(function(r){
       var st = quoteStage(r.progress);
@@ -3776,23 +3777,31 @@ function renderAnalytics(forceRefresh){
       var p = r.initial||'?';
       byPerson[p] = byPerson[p] || {won:0,total:0,amount:0};
       byPerson[p].total++; if(isWon){ byPerson[p].won++; byPerson[p].amount += r.amount; }
-      // 產品類別
-      var c = r.category||'未分類';
-      byCat[c] = byCat[c] || {won:0,total:0,amount:0};
-      byCat[c].total++; if(isWon){ byCat[c].won++; byCat[c].amount += r.amount; }
-      // 價格帶（用成交額；未成交用報價額 amount 也算進 total 的分母）
+      // 產品類別（過濾未分類 — 舊資料很多沒分，只看字幕機那幾類）
+      var c = r.category||'';
+      if(c && c.indexOf('未分類')<0){
+        byCat[c] = byCat[c] || {won:0,total:0,amount:0};
+        byCat[c].total++; if(isWon){ byCat[c].won++; byCat[c].amount += r.amount; }
+      }else{
+        uncategorized++;
+      }
+      // 價格帶（長度用筆數，顏色用成交率）
       for(var i=0;i<BANDS.length;i++){
         if(r.amount>=BANDS[i][1] && r.amount<BANDS[i][2]){
-          byBand[BANDS[i][0]].total++; if(isWon) byBand[BANDS[i][0]].won++; break;
+          byBand[BANDS[i][0]].total++; if(isWon){ byBand[BANDS[i][0]].won++; byBand[BANDS[i][0]].amount += r.amount; } break;
         }
       }
-      // 月份趨勢
-      var d = parseRagicDate(r.date);
-      if(d){
-        var mk = d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2);
-        byMonth[mk] = byMonth[mk] || {total:0,won:0,amount:0};
-        byMonth[mk].total++; if(isWon){ byMonth[mk].won++; byMonth[mk].amount += r.amount; }
-      }
+    });
+
+    // 月趨勢：用「全部資料」近 12 月（看淡旺季要看整年，不受上方日期區間限制）
+    var byMonth = {};
+    all.forEach(function(r){
+      var st = quoteStage(r.progress);
+      if(st==='draft' || st==='other') return;
+      var d = parseRagicDate(r.date); if(!d) return;
+      var mk = d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2);
+      byMonth[mk] = byMonth[mk] || {total:0,won:0,amount:0};
+      byMonth[mk].total++; if(st==='won'){ byMonth[mk].won++; byMonth[mk].amount += r.amount; }
     });
 
     var denom = reportedCount + wonCount + lostCount;  // 排除草稿
@@ -3800,12 +3809,25 @@ function renderAnalytics(forceRefresh){
     var avgWon = wonCount>0 ? Math.round(wonAmount/wonCount) : 0;
     var capped = all.length>=1000 ? '<div style="font-size:11px;color:#EF4444;margin-top:6px">⚠ 已達單次上限 1000 筆，更早的資料未納入（之後可加分頁）</div>' : '';
 
-    function sortToArr(obj){ return Object.keys(obj).map(function(k){return {k:k,v:obj[k]};}).sort(function(a,b){return b.v.total-a.v.total;}); }
     function money(n){ return '$'+Math.round(n).toLocaleString(); }
+    function rateColor(rate){ return rate>=50?'#10B981':rate>=30?'#F59E0B':'#EF4444'; }
+    // 長度 = 量（金額或筆數的相對比例），顏色 = 成交率 → 兼具鑑別度與品質訊號
+    function anaRow(label, barPct, color, rightText){
+      return '<div style="margin-bottom:9px">'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;gap:8px">'+
+          '<span style="font-weight:600;white-space:nowrap">'+label+'</span>'+
+          '<span style="color:#64748b;text-align:right">'+rightText+'</span>'+
+        '</div>'+
+        '<div style="background:#E5E7EB;border-radius:5px;height:11px;overflow:hidden">'+
+          '<div style="width:'+Math.max(3,Math.min(barPct,100))+'%;height:100%;background:'+color+'"></div>'+
+        '</div>'+
+      '</div>';
+    }
+    function sortByAmt(obj){ return Object.keys(obj).map(function(k){return {k:k,v:obj[k]};}).sort(function(a,b){return b.v.amount-a.v.amount;}); }
 
     var h = '';
     // 大數字 KPI
-    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">'+
+    h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'+
       '<div style="flex:1;min-width:90px;background:linear-gradient(135deg,#1A3A6B,#2563EB);color:#fff;padding:12px;border-radius:10px">'+
         '<div style="font-size:11px;opacity:.85">成交率</div><div style="font-size:24px;font-weight:900">'+winRate.toFixed(0)+'%</div>'+
         '<div style="font-size:10px;opacity:.8">'+wonCount+' 成交 / '+denom+' 報價</div></div>'+
@@ -3827,49 +3849,68 @@ function renderAnalytics(forceRefresh){
         '<span style="background:#F1F5F9;padding:4px 8px;border-radius:6px;color:#94a3b8">✎ 草稿 '+stage.draft+'（不計）</span>'+
       '</div>'+capped+'</div>';
 
-    // 業務戰績
-    var persons = sortToArr(byPerson);
+    // 圖例
+    h += '<div style="font-size:10px;color:#94a3b8;margin-bottom:8px;line-height:1.5">長條長度＝<b>成交額</b>（看誰帶錢多）　顏色＝成交率（<span style="color:#10B981">綠≥50%</span> <span style="color:#F59E0B">橙≥30%</span> <span style="color:#EF4444">紅&lt;30%</span>）</div>';
+
+    // 業務戰績（長度=成交額）
+    var persons = sortByAmt(byPerson);
+    var maxP = Math.max.apply(null, persons.map(function(x){return x.v.amount;}).concat([1]));
     h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
       '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">👤 業務戰績（依首洽）</div>';
     persons.forEach(function(x){
-      h += anaBar(x.k, x.v.won, x.v.total, money(x.v.amount));
+      var rate = x.v.total>0 ? x.v.won/x.v.total*100 : 0;
+      h += anaRow(x.k, x.v.amount/maxP*100, rateColor(rate),
+        money(x.v.amount)+'　'+x.v.won+'/'+x.v.total+'　<b style="color:'+rateColor(rate)+'">'+rate.toFixed(0)+'%</b>');
     });
     h += '</div>';
 
-    // 產品類別
-    var cats = sortToArr(byCat);
+    // 產品類別（長度=成交額，已過濾未分類）
+    var cats = sortByAmt(byCat);
     h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
-      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">📦 產品類別成交率</div>';
-    cats.forEach(function(x){
-      var avg = x.v.won>0 ? money(Math.round(x.v.amount/x.v.won)) : '—';
-      h += anaBar(x.k, x.v.won, x.v.total, '均 '+avg);
-    });
+      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">📦 產品類別（字幕機）</div>';
+    if(cats.length===0){
+      h += '<div style="font-size:12px;color:#94a3b8">此區間沒有已分類的資料</div>';
+    }else{
+      var maxC = Math.max.apply(null, cats.map(function(x){return x.v.amount;}).concat([1]));
+      cats.forEach(function(x){
+        var rate = x.v.total>0 ? x.v.won/x.v.total*100 : 0;
+        var avg = x.v.won>0 ? money(Math.round(x.v.amount/x.v.won)) : '—';
+        h += anaRow(x.k, x.v.amount/maxC*100, rateColor(rate),
+          money(x.v.amount)+'　'+x.v.won+'/'+x.v.total+'　均'+avg);
+      });
+    }
+    if(uncategorized>0) h += '<div style="font-size:10px;color:#cbd5e1;margin-top:6px">（另有 '+uncategorized+' 筆未分類未列入）</div>';
     h += '</div>';
 
-    // 價格帶
+    // 價格帶（長度=筆數）
+    var maxBand = Math.max.apply(null, BANDS.map(function(b){return byBand[b[0]].total;}).concat([1]));
     h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
-      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">💵 價格帶成交率</div>';
+      '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">💵 價格帶（長度=報價筆數）</div>';
     BANDS.forEach(function(b){
       var v = byBand[b[0]];
-      if(v.total>0) h += anaBar(b[0], v.won, v.total, '');
+      if(v.total>0){
+        var rate = v.won/v.total*100;
+        h += anaRow(b[0], v.total/maxBand*100, rateColor(rate), v.won+'/'+v.total+'　<b style="color:'+rateColor(rate)+'">'+rate.toFixed(0)+'%</b>');
+      }
     });
     h += '</div>';
 
-    // 月趨勢
-    var months = Object.keys(byMonth).sort().slice(-6);
+    // 月趨勢（全部資料近 12 月，長度=成交額，看淡旺季）
+    var months = Object.keys(byMonth).sort().slice(-12);
     if(months.length){
       var maxAmt = Math.max.apply(null, months.map(function(m){return byMonth[m].amount;}).concat([1]));
       h += '<div style="background:#fff;border:1px solid #E2E8F0;border-radius:10px;padding:12px;margin-bottom:12px">'+
-        '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:10px">📅 近月成交額趨勢</div>';
+        '<div style="font-size:13px;font-weight:700;color:#1A3A6B;margin-bottom:4px">📅 近 12 月成交額趨勢（淡旺季）</div>'+
+        '<div style="font-size:10px;color:#94a3b8;margin-bottom:10px">全部資料，不受上方日期區間限制</div>';
       months.forEach(function(m){
         var v = byMonth[m];
         var w = Math.round(v.amount/maxAmt*100);
-        h += '<div style="margin-bottom:8px">'+
+        h += '<div style="margin-bottom:9px">'+
           '<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">'+
             '<span style="font-weight:600">'+m+'</span>'+
-            '<span style="color:#64748b">'+v.won+'/'+v.total+' 成交　'+money(v.amount)+'</span>'+
+            '<span style="color:#64748b">報 '+v.total+'　成 '+v.won+'　<b style="color:#2563EB">'+money(v.amount)+'</b></span>'+
           '</div>'+
-          '<div style="background:#E5E7EB;border-radius:5px;height:9px;overflow:hidden"><div style="width:'+w+'%;height:100%;background:#2563EB"></div></div>'+
+          '<div style="background:#E5E7EB;border-radius:5px;height:11px;overflow:hidden"><div style="width:'+Math.max(3,w)+'%;height:100%;background:linear-gradient(90deg,#2563EB,#1D9E75)"></div></div>'+
         '</div>';
       });
       h += '</div>';
