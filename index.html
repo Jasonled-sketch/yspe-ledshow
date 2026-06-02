@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.43</title>
+<title>USLED 快速報價 v9.44</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.43</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.44</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -4116,11 +4116,12 @@ var RAGIC_CUST = {
 function openCreateCustomer(){
   var old=document.getElementById('createCustModal'); if(old) old.remove();
   var initial = currentUser ? getUserInitial(currentUser.email) : '';
-  // 預帶：把客戶頁已填的帶進來
-  var pv={ name:(GS('c_name')||'').trim(), mobile:(GS('c_phone')||'').trim(),
-           company:(GS('c_company')||'').trim(), taxid:(GS('c_taxid')||'').trim(),
-           address:(GS('c_address')||'').trim() };
-  function inp(id,label,val,ph){ return '<div style="margin-bottom:8px"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">'+label+'</label><input id="cc_'+id+'" value="'+(val||'').replace(/"/g,'&quot;')+'" placeholder="'+(ph||'')+'" style="width:100%;padding:8px;border:1.5px solid #cbd5e1;border-radius:7px;font-size:14px;box-sizing:border-box"></div>'; }
+  // 預帶：把客戶頁已填的帶進來（過濾掉瀏覽器自動填的網址雜訊）
+  function clean(v){ v=(v||'').trim(); return /^https?:\/\//i.test(v) ? '' : v; }
+  var pv={ name:clean(GS('c_name')), mobile:clean(GS('c_phone')),
+           company:clean(GS('c_company')), taxid:clean(GS('c_taxid')),
+           address:clean(GS('c_address')) };
+  function inp(id,label,val,ph){ return '<div style="margin-bottom:8px"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">'+label+'</label><input id="cc_'+id+'" autocomplete="off" value="'+(val||'').replace(/"/g,'&quot;')+'" placeholder="'+(ph||'')+'" style="width:100%;padding:8px;border:1.5px solid #cbd5e1;border-radius:7px;font-size:14px;box-sizing:border-box"></div>'; }
   function sel(id,label,opts,def){ var o=opts.map(function(x){return '<option'+(x===def?' selected':'')+'>'+x+'</option>';}).join(''); return '<div style="margin-bottom:8px"><label style="font-size:12px;font-weight:600;display:block;margin-bottom:3px">'+label+'</label><select id="cc_'+id+'" style="width:100%;padding:8px;border:1.5px solid #cbd5e1;border-radius:7px;font-size:14px;box-sizing:border-box">'+o+'</select></div>'; }
 
   var m=document.createElement('div');
@@ -4155,7 +4156,7 @@ function submitCreateCustomer(){
   if(route.mode!=='worker'){ document.getElementById('ccErr').textContent='⚠ 需 Google 登入才能建檔'; return; }
   var F=RAGIC_CUST, fd=new FormData();
   fd.append(F.name, name);
-  function add(k,v){ if(v) fd.append(F[k], v); }
+  function add(k,v){ v=(v||'').trim(); if(/^https?:\/\//i.test(v)) v=''; if(v) fd.append(F[k], v); }
   add('mobile',g('mobile')); add('phone',g('phone')); add('company',g('company'));
   add('taxid',g('taxid')); add('address',g('address')); add('memo',g('memo'));
   add('status',g('status')); add('role',g('role')); add('pickup',g('pickup'));
