@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.47</title>
+<title>USLED 快速報價 v9.48</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.47</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.48</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -344,6 +344,16 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
     </div>
   </div>
 </header>
+
+<!-- ══ v9.48：登入閘門（未授權只看得到這個）══ -->
+<div id="authGate" style="position:fixed;inset:0;z-index:99999;background:linear-gradient(135deg,#1A3A6B,#2563EB);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px">
+  <div style="font-size:46px;margin-bottom:10px">🔒</div>
+  <div style="font-size:22px;font-weight:800;letter-spacing:1px">USLED 快速報價</div>
+  <div style="font-size:13px;opacity:.85;margin:8px 0 22px;line-height:1.7">此系統限<b>授權人員</b>使用<br>請用公司 Google 帳號登入</div>
+  <div id="gateBtn"></div>
+  <div id="gateErr" style="font-size:13px;color:#FCA5A5;margin-top:14px;min-height:18px;font-weight:600"></div>
+  <div style="font-size:11px;opacity:.6;margin-top:24px">需授權帳號 — 請洽管理員 Jason 加入白名單</div>
+</div>
 
 <!-- ══ Tabs ══ -->
 <div class="tabs">
@@ -836,7 +846,9 @@ var ROLE_WHITELIST = {
   // 管理員（看得到成本、所有報價等級）
   'covernself@gmail.com': 'mgr',
   // 業務員（只看 3 個報價等級，看不到成本）
-  'usled.tw@gmail.com': 'sales'
+  'usled.tw@gmail.com': 'sales',
+  'amaze2349@gmail.com': 'sales'
+  // 加新人：在這裡加一行 'email': 'sales'（或 'mgr'），並同步 Worker 的 ALLOWED_EMAILS
 };
 var currentUser = null;  // {email, name, role, picture}
 var isMgr = false;
@@ -976,6 +988,7 @@ var CTRL_META={
 window.onload = function(){
   initGoogleSignIn();
   loadSavedUser();
+  updateAuthGate();   // v9.48：開頁即檢查，未授權立刻顯示「請登入」閘門
 
   // v9.45：強制清掉瀏覽器自動填進客戶欄位的網址雜訊（Chrome 無視 autocomplete=off）
   (function(){
@@ -1833,6 +1846,7 @@ function applyRole(){
   var aTab=document.getElementById('tab_analytics');
   if(aTab) aTab.style.display=isMgr?'':'none';
   updateTiers();
+  updateAuthGate();   // v9.48：登入狀態變更時更新閘門
 }
 
 // ══ Settings ══
@@ -2811,6 +2825,7 @@ function initGoogleSignIn(){
         google.accounts.id.prompt();
       }
     }catch(e){}
+    updateAuthGate();   // v9.48：google 就緒後渲染閘門登入按鈕
   }
   tryInit();
 }
@@ -2839,7 +2854,9 @@ function handleGoogleSignIn(response){
     var email=(payload.email||'').toLowerCase();
     var role=ROLE_WHITELIST[email];
     if(!role){
-      alert('帳號 '+email+' 未經授權，請聯絡管理員加入白名單');
+      var ge=document.getElementById('gateErr');
+      if(ge) ge.textContent='⛔ 帳號 '+email+' 未授權，請洽管理員';
+      try{ if(google.accounts) google.accounts.id.disableAutoSelect(); }catch(e){}
       return;
     }
     // v9.2：保存原始 JWT (idToken) 給 Worker 驗證用；tokenExp 用來偵測過期
@@ -2883,6 +2900,29 @@ function googleSignOut(){
   localStorage.removeItem('usled_user');
   applyRole();
   toast('👋 已登出');
+}
+
+// ══ v9.48：存取閘門 — 只有授權帳號能看內容，否則全螢幕「請登入」══
+function isAuthed(){
+  return !!(currentUser && currentUser.email &&
+            (ROLE_WHITELIST[currentUser.email] || currentUser.email==='admin@local'));
+}
+function updateAuthGate(){
+  var gate=document.getElementById('authGate');
+  if(!gate) return;
+  if(isAuthed()){
+    gate.style.display='none';
+  }else{
+    gate.style.display='flex';
+    // 在閘門內渲染 Google 登入按鈕（google 載入後才能渲染）
+    var btn=document.getElementById('gateBtn');
+    if(btn && !btn.hasChildNodes() && typeof google!=='undefined' && google.accounts){
+      try{
+        google.accounts.id.renderButton(btn,{theme:'filled_blue',size:'large',text:'signin_with',shape:'pill',width:240});
+        google.accounts.id.prompt();  // 順便彈一次自動登入（登過的帳號直接進）
+      }catch(e){}
+    }
+  }
 }
 
 // ══════════════════════════════════════════
