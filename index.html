@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.44</title>
+<title>USLED 快速報價 v9.45</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.44</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.45</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -976,6 +976,15 @@ var CTRL_META={
 window.onload = function(){
   initGoogleSignIn();
   loadSavedUser();
+
+  // v9.45：強制清掉瀏覽器自動填進客戶欄位的網址雜訊（Chrome 無視 autocomplete=off）
+  (function(){
+    var ids=['c_name','c_phone','c_taxid','c_company','c_address'];
+    function clearJunk(){ ids.forEach(function(id){ var e=document.getElementById(id); if(e && /^https?:\/\//i.test((e.value||'').trim())) e.value=''; }); }
+    clearJunk();
+    setTimeout(clearJunk, 400); setTimeout(clearJunk, 1000);  // 等 Chrome 自動填完再清
+    ids.forEach(function(id){ var e=document.getElementById(id); if(e){ e.addEventListener('focus', function(){ if(/^https?:\/\//i.test((this.value||'').trim())) this.value=''; }); } });
+  })();
 
   var d=new Date();
   document.getElementById('c_date').value=d.toISOString().slice(0,10);
@@ -1939,7 +1948,8 @@ function buildSpecText(r){
 // ══════════════════════════════════════════
 function buildQuote(){
   var r=RESULT,client=GS('c_name')||'—',phone=GS('c_phone')||'—',dateStr=GS('c_date')||'—';
-  var addressStr=GS('c_address')||'',taxIdStr=GS('c_taxid')||'',companyStr=GS('c_company')||'',memoStr=GS('c_memo')||'';
+  var _noUrl=function(v){v=(v||'').trim();return /^https?:\/\//i.test(v)?'':v;};
+  var addressStr=_noUrl(GS('c_address')),taxIdStr=_noUrl(GS('c_taxid')),companyStr=_noUrl(GS('c_company')),memoStr=GS('c_memo')||'';
   var price=r.unitPrice||0,total=r.totalPrice||0,qty=r.qty||1;
   var mid=r.mid||'',fid=r.fid||'',pid=r.pid||'',cid=r.cid||'';
   var rows2=parseInt(r.rows)||0,cols2=parseInt(r.cols)||0;
@@ -3288,7 +3298,7 @@ function buildSheet8Payload(){
   var phone        = (GS('c_phone')||'').trim();
   var address      = (GS('c_address')||'').trim();
   var taxId        = (GS('c_taxid')||'').trim();
-  var company      = (GS('c_company')||'').trim();
+  var company      = (function(v){v=(GS('c_company')||'').trim();return /^https?:\/\//i.test(v)?'':v;})();
   var memo         = (GS('c_memo')||'').trim();
   var dateStr      = (GS('c_date')||'').trim();
   var dateRagic    = dateStr ? dateStr.replace(/-/g,'/') : '';   // 2026-05-23 → 2026/05/23
