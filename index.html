@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.46</title>
+<title>USLED 快速報價 v9.47</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -286,9 +286,6 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 .quote-scale-container{width:100%;max-width:560px;margin:0 auto;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08);overflow:hidden}
 .quote-scale-inner{width:100%}
 .qs{background:#fff;color:#1A2236;font-family:'PingFang TC','Microsoft JhengHei',sans-serif;font-size:clamp(7.5px,2vw,9.5px)}
-/* v9.46：桌機(寬螢幕)把報價單放大好閱讀；手機維持原樣；存圖時 JS 會暫還原成 1 倍，圖片品質不變 */
-@media(min-width:820px){ #quoteSheet{zoom:1.5} }
-@media(min-width:1280px){ #quoteSheet{zoom:1.9} }
 .qs-hd{background:#1A3A6B;display:flex;align-items:center;gap:10px;padding:10px 14px}
 .qs-hd-logo{background:#fff;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:900;color:#1A3A6B;letter-spacing:-.5px}
 .qs-hd-co{color:#fff;font-size:clamp(11px,3vw,13px);font-weight:700}
@@ -337,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.46</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.47</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -2084,16 +2081,10 @@ function makeFileName(){
   return dateRaw+'-'+client+'-'+modCode+'-'+frmCode+pwrShort+sideStr+'.png';
 }
 
-// v9.46：存圖時把桌機放大(zoom)暫還原成 1 倍，確保輸出圖片是原始解析度、不受螢幕放大影響
-function _capQuote(opts){
-  var el=document.getElementById('quoteSheet');
-  var z=el.style.zoom; el.style.zoom='1';
-  return html2canvas(el,opts).then(function(cv){ el.style.zoom=z; return cv; }, function(e){ el.style.zoom=z; throw e; });
-}
 function saveImgAndArchive(){
   if(!RESULT.mid||!GS('c_name').trim()){toast('⚠ 請先填入客戶名稱與規格');return;}
   toast('📸 產生中...');
-  _capQuote({scale:2.5,backgroundColor:'#ffffff',useCORS:true}).then(function(cv){
+  html2canvas(document.getElementById('quoteSheet'),{scale:2.5,backgroundColor:'#ffffff',useCORS:true}).then(function(cv){
     var a=document.createElement('a');
     a.download=makeFileName();
     a.href=cv.toDataURL('image/png');a.click();
@@ -2105,7 +2096,7 @@ function saveImgAndArchive(){
 function shareImg(){
   if(!RESULT.mid){toast('⚠ 請先完成規格');return;}
   toast('📸 產生中...');
-  _capQuote({scale:2.5,backgroundColor:'#ffffff'}).then(function(cv){
+  html2canvas(document.getElementById('quoteSheet'),{scale:2.5,backgroundColor:'#ffffff'}).then(function(cv){
     cv.toBlob(function(blob){
       var fname=makeFileName();
       var file=new File([blob],fname,{type:'image/png'});
