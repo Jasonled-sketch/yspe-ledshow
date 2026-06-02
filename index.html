@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.48</title>
+<title>USLED 快速報價 v9.49</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -334,7 +334,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.48</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.49</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -845,6 +845,7 @@ var WORKER_URL = 'https://usled-ragic-proxy.yspe-led.workers.dev/';
 var ROLE_WHITELIST = {
   // 管理員（看得到成本、所有報價等級）
   'covernself@gmail.com': 'mgr',
+  's0936931932@gmail.com': 'mgr',
   // 業務員（只看 3 個報價等級，看不到成本）
   'usled.tw@gmail.com': 'sales',
   'amaze2349@gmail.com': 'sales'
@@ -2379,7 +2380,8 @@ function clearHistory(){
 var USER_INITIALS = {
   'covernself@gmail.com': 'J',  // Jason 管理員
   'usled.tw@gmail.com':   'T',
-  'amaze2349@gmail.com':  'W'
+  'amaze2349@gmail.com':  'W',
+  's0936931932@gmail.com':'S'   // 新增管理員（縮寫可改）
 };
 function getUserInitial(email){
   return USER_INITIALS[(email||'').toLowerCase()]
