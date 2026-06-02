@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.49</title>
+<title>USLED 快速報價 v9.50</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -312,7 +312,8 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 .qs-sign-lbl{font-size:8px;font-weight:700;color:#2563EB}
 .qs-sign-co{font-size:7px;color:var(--sub);text-align:right}
 .qs-valid{background:#FEF3C7;text-align:center;font-size:8.5px;color:#92400E;padding:5px;font-weight:600}
-.qs-footer{background:#1A3A6B;color:rgba(255,255,255,.8);text-align:center;font-size:7.5px;padding:7px;line-height:1.9}
+.qs-footer{background:#1A3A6B;color:rgba(255,255,255,.85);text-align:center;font-size:8px;padding:9px 8px;letter-spacing:.3px}
+.qs-foot-line{line-height:1.6;margin:2px 0;white-space:nowrap}
 
 /* ══ Toast ══ */
 .toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(10px);
@@ -334,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.49</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.50</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -1971,6 +1972,7 @@ function buildQuote(){
   var typeCode=(mid||'')+(rows2<10?'0':'')+rows2+(cols2<10?'0':'')+cols2+(fid?'-'+fid:'')+(pid||'');
   var d=new Date(dateStr);var days='日一二三四五六';
   var dStr=dateStr+'（'+days[d.getDay()]+'）';
+  var salesInitial = currentUser ? getUserInitial(currentUser.email) : '';  // 接洽業務代號
   document.getElementById('quoteSheet').innerHTML=
     '<div class="qs">'+
       '<div class="qs-hd">'+
@@ -2073,13 +2075,13 @@ function buildQuote(){
       '</div>'+
       '<div class="qs-sign">'+
         '<div class="qs-sign-box"><div class="qs-sign-lbl">購方簽章（甲方）</div><div></div><div class="qs-sign-co">簽　名</div></div>'+
-        '<div class="qs-sign-box"><div class="qs-sign-lbl">售方簽章（乙方）</div><div></div><div class="qs-sign-co">譽昇科技有限公司</div></div>'+
+        '<div class="qs-sign-box"><div class="qs-sign-lbl">售方簽章（乙方）'+(salesInitial?'<span style="float:right;color:#1A3A6B">接洽業務：'+salesInitial+'</span>':'')+'</div><div></div><div class="qs-sign-co">譽昇科技有限公司</div></div>'+
       '</div>'+
       '<div class="qs-valid">本報價單有效日期：7天（含當日）　逾期重新報價</div>'+
       '<div class="qs-footer">'+
-        '譽昇科技有限公司　統編：54825796　網站：www.yspeled.com　專線：0800-394349<br>'+
-        '◆LED字幕機 ◆LED電視牆 ◆LED光景亮化 ◆LED燈條燈飾 ◆工程自動化顯示<br>'+
-        'Google搜尋【岡山LED】高雄市岡山區溪西路2-2號　TEL:07-6251898'+
+        '<div class="qs-foot-line">譽昇科技有限公司　｜　統編 54825796　｜　專線 0800-394349</div>'+
+        '<div class="qs-foot-line">◆LED字幕機　◆LED電視牆　◆LED光景亮化　◆LED燈條燈飾　◆工程自動化顯示</div>'+
+        '<div class="qs-foot-line">www.yspeled.com　｜　高雄市岡山區溪西路2-2號　｜　TEL 07-6251898</div>'+
       '</div>'+
     '</div>';
 }
@@ -2381,7 +2383,7 @@ var USER_INITIALS = {
   'covernself@gmail.com': 'J',  // Jason 管理員
   'usled.tw@gmail.com':   'T',
   'amaze2349@gmail.com':  'W',
-  's0936931932@gmail.com':'S'   // 新增管理員（縮寫可改）
+  's0936931932@gmail.com':'R'   // 新增管理員
 };
 function getUserInitial(email){
   return USER_INITIALS[(email||'').toLowerCase()]
