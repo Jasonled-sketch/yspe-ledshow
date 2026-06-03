@@ -1,0 +1,9 @@
+{
+  "_note": "常規公定價清單（蝦皮/網路公定售價）。新增或改價：編輯下面 items 陣列後 git push，約 1 分鐘自動上線，不必動 index.html。",
+  "_fields": "code=型號（必填）, price=蝦皮售價數字（不要帶 $ 或逗號）, name=選填說明（會顯示在型號下方）",
+  "_updated": "2026-06-03",
+  "items": [
+    { "code": "DM4C0208-XLA", "price": 2100, "name": "" },
+    { "code": "DP4C0212-XLB", "price": 4620, "name": "" }
+  ]
+}
