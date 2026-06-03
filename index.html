@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.54</title>
+<title>USLED 快速報價 v9.55</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.54</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.55</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -1843,7 +1843,7 @@ function renderMarketCard(specKey, r){
 // ══ 常規公定價（讀 Ragic sheet 20；成本/規格用引擎即時算）══
 // ══════════════════════════════════════════
 var REGULAR_DATA=null,_regLoading=false,REG_SELECTED=[],REG_MAX=3,REG_CAT='';
-var REG_CAT_ORDER=['車載','手舉','擺攤','面招','橫招','移動式','會議屏','診所用','宮廟用','電視牆'];
+var REG_CAT_ORDER=['車載','手舉','擺攤','面招','橫招','移動式','會議屏','診所用','宮廟用','電視牆','其他'];
 function _regEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _regNum(v){var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n;}
 function renderRegular(force){
@@ -1917,11 +1917,17 @@ function renderRegularList(){
     var charTxt=r?(r.rows+'×'+r.cols+'='+r.chars+'字'):'';
     var line1R='<span style="font-weight:800;font-size:15px;color:#E8590C">$'+(it.price||0).toLocaleString()+'</span>'+(canSeeFloor?'<span style="font-size:12px;color:#0369A1;margin-left:6px">底$'+(it.floor||0).toLocaleString()+'</span>':'');
     var line2R='';
-    if(isMgr&&it.cost!=null){ var mg=it.price>0?Math.round((it.price-it.cost)/it.price*100):0; line2R='<span style="color:#64748B">成本$'+it.cost.toLocaleString()+'</span><span style="color:#059669;font-weight:700;margin-left:6px">毛'+mg+'%</span>'; }
-    var noStyle='width:22px;flex-shrink:0;text-align:center;font-size:12px;font-weight:800;color:#3730A3;border-radius:6px;'+(canDrag?'cursor:grab;background:#EEF2FF;padding:4px 0;touch-action:none;user-select:none':'');
+    if(isMgr){
+      var costInner;
+      if(it.cost!=null){ var mg=it.price>0?Math.round((it.price-it.cost)/it.price*100):0; costInner='<span style="color:#64748B">成本$'+it.cost.toLocaleString()+'</span><span style="color:#059669;font-weight:700;margin-left:6px">毛'+mg+'%</span>'; }
+      else costInner='<span style="color:#94A3B8">⠿ 拖曳</span>';
+      // 長按「成本數字」拖曳排序（只有管理員看得到成本，也只有管理員能拖）
+      line2R='<span class="reg-drag" data-code="'+_regEsc(it.code)+'" onclick="event.stopPropagation()" title="長按拖曳排序" style="cursor:grab;touch-action:none;user-select:none;display:inline-block">'+costInner+'</span>';
+    }
+    var noStyle='width:22px;flex-shrink:0;text-align:center;font-size:12px;font-weight:800;color:#3730A3';
     return '<div class="reg-row" data-code="'+_regEsc(it.code)+'" style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:#fff;border:1px solid '+(checked?'#2563EB':'var(--border)')+';border-radius:10px;margin-bottom:8px;'+(dis?'opacity:.45':'')+'">'+
       '<input type="checkbox" '+(checked?'checked':'')+' '+(dis?'disabled':'')+' onchange="toggleRegSelect(\''+_regEsc(it.code)+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:#2563EB">'+
-      '<div class="reg-no" data-code="'+_regEsc(it.code)+'" '+(canDrag?'title="長按拖曳排序"':'')+' style="'+noStyle+'">'+no+'</div>'+
+      '<div style="'+noStyle+'">'+no+'</div>'+
       '<div class="reg-main" onclick="toggleRegSelect(\''+_regEsc(it.code)+'\')" style="flex:1;min-width:0;cursor:pointer">'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">'+
           '<span style="font-weight:800;font-size:14px;color:#1A3A6B;word-break:break-all;min-width:0">'+_regEsc(it.code)+'</span>'+
@@ -1949,18 +1955,18 @@ function renderRegBar(){
   bar.style.display=REG_SELECTED.length>0?'flex':'none';
   var c=document.getElementById('regBarCount'); if(c)c.textContent='已選 '+REG_SELECTED.length+'/'+REG_MAX;
 }
-// ── 長按「編號」拖曳排序（僅管理員；本機重排，按「更新」才寫回 Ragic）──
+// ── 長按「成本數字」拖曳排序（僅管理員；本機重排，按「更新」才寫回 Ragic）──
 var REG_DIRTY=false,_regDrag=null;
 function updateRegUpdateBtn(){ var b=document.getElementById('regUpdateBtn'); if(b) b.style.display=(isMgr&&REG_DIRTY)?'':'none'; }
 function attachRegDrag(){
   if(!isMgr) return;
   var list=document.getElementById('regList'); if(!list) return;
-  [].slice.call(list.querySelectorAll('.reg-no')).forEach(function(h){ h.addEventListener('pointerdown', regDragDown); });
+  [].slice.call(list.querySelectorAll('.reg-drag')).forEach(function(h){ h.addEventListener('pointerdown', regDragDown); });
 }
 function regDragDown(e){
   if(!isMgr) return;
   var handle=e.currentTarget, code=handle.getAttribute('data-code');
-  var row=handle.parentNode, startY=e.clientY, pid=e.pointerId, started=false;
+  var row=handle.closest('.reg-row'), startY=e.clientY, pid=e.pointerId, started=false;
   var hold=setTimeout(start, 250);
   function start(){
     started=true; _regDrag={code:code};
