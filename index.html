@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.52</title>
+<title>USLED 快速報價 v9.53</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.52</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.53</div></div>
   </div>
   <div class="bar-right">
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
@@ -370,12 +370,11 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 
 <!-- ══ 常規公定價 ══ -->
 <div id="pg_reg" class="page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
-    <div style="font-size:16px;font-weight:800;color:#1A3A6B">🏷️ 常規公定價</div>
-    <button onclick="renderRegular(true)" style="padding:6px 10px;background:#2563EB;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer">↻ 重整</button>
+  <div id="regCats" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+    <input id="regSearch" type="text" placeholder="搜尋型號…" autocomplete="off" oninput="renderRegularList()" style="flex:1;padding:9px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;box-sizing:border-box">
+    <button onclick="renderRegular(true)" title="重新整理" style="flex-shrink:0;padding:9px 12px;background:#fff;color:#475569;border:1.5px solid #CBD5E1;border-radius:8px;font-size:15px;cursor:pointer">↻</button>
   </div>
-  <div style="margin-bottom:10px;font-size:12px;color:var(--sub)">蝦皮／網路公定售價 — 大家報價一致的公信基準</div>
-  <input id="regSearch" type="text" placeholder="搜尋型號…" autocomplete="off" oninput="renderRegularList()" style="width:100%;padding:9px 10px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px;box-sizing:border-box">
   <div id="regList"></div>
   <div style="height:64px"></div>
   <div id="regBar" style="display:none;position:fixed;left:0;right:0;bottom:0;z-index:120;background:#fff;border-top:1px solid var(--border);box-shadow:0 -2px 10px rgba(0,0,0,.08);padding:10px 14px;align-items:center;justify-content:space-between;gap:10px">
@@ -886,12 +885,13 @@ var ROLE_WHITELIST = {
   'covernself@gmail.com': 'mgr',
   's0936931932@gmail.com': 'mgr',
   // 業務員（只看 3 個報價等級，看不到成本）
-  'usled.tw@gmail.com': 'sales',
+  'usled.tw@gmail.com': 'manager',
   'amaze2349@gmail.com': 'sales'
   // 加新人：在這裡加一行 'email': 'sales'（或 'mgr'），並同步 Worker 的 ALLOWED_EMAILS
 };
 var currentUser = null;  // {email, name, role, picture}
 var isMgr = false;
+var canSeeFloor = false;  // true = 中階主管以上（可看業底價；成本仍只有 isMgr 看）
 var curPage = 1;
 var selTier = 0;
 var RESULT = {};
@@ -1841,12 +1841,14 @@ function renderMarketCard(specKey, r){
 // ══════════════════════════════════════════
 // ══ 常規公定價（讀 Ragic sheet 20；成本/規格用引擎即時算）══
 // ══════════════════════════════════════════
-var REGULAR_DATA=null,_regLoading=false,REG_SELECTED=[],REG_MAX=3;
+var REGULAR_DATA=null,_regLoading=false,REG_SELECTED=[],REG_MAX=3,REG_CAT='';
+var REG_CAT_ORDER=['車載','手舉','擺攤','面招','橫招','移動式','會議屏','診所用','宮廟用','電視牆'];
 function _regEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function _regNum(v){var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n;}
 function renderRegular(force){
   if(force)REGULAR_DATA=null;
   var box=document.getElementById('regList');
-  if(REGULAR_DATA){renderRegularList();return;}
+  if(REGULAR_DATA){renderRegCats();renderRegularList();return;}
   if(_regLoading)return;
   var route=getApiRoute();
   if(route.mode!=='worker'){ if(box)box.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">請先 Google 登入後查看常規價</div>'; return; }
@@ -1861,39 +1863,67 @@ function renderRegular(force){
       var rec=json[k];
       if(!rec||typeof rec!=='object'||rec['型號']==null) return;
       var code=String(rec['型號']||'').trim(); if(!code) return;
-      var price=parseInt(String(rec['建議售價']==null?'':rec['建議售價']).replace(/[^0-9.]/g,''))||0;
-      arr.push({code:code, price:price, name:String(rec['說明']||'').trim(), seq:(rec['_seq']!=null?rec['_seq']:(rec['_ragicId']||0))});
+      var cats=rec['用途分類'];
+      if(typeof cats==='string') cats=cats?cats.split(/[,，;；]/).map(function(s){return s.trim();}).filter(Boolean):[];
+      if(!Array.isArray(cats)) cats=[];
+      arr.push({code:code, price:_regNum(rec['建議售價']), floor:_regNum(rec['業底價']),
+        name:String(rec['說明']||'').trim(), cats:cats,
+        order:(rec['排序']==null||rec['排序']==='')?9999:_regNum(rec['排序']),
+        seq:(rec['_seq']!=null?rec['_seq']:0), ragicId:rec['_ragicId']});
     });
-    arr.sort(function(a,b){return (a.seq||0)-(b.seq||0);});
+    arr.sort(function(a,b){return (a.order-b.order)||(a.seq-b.seq);});
     arr.forEach(function(it){ var c=catalogCompute(it.code); it.calc=c; it.cost=(c&&c.ok)?c.cost:null; });
-    REGULAR_DATA=arr; _regLoading=false; renderRegularList();
+    REGULAR_DATA=arr; _regLoading=false; renderRegCats(); renderRegularList();
   }).catch(function(e){
     _regLoading=false; console.warn('[常規] 載入失敗',e);
     if(box)box.innerHTML='<div style="text-align:center;color:#dc2626;padding:30px 0">⚠ 常規價載入失敗（請確認已登入、Ragic 表單權限）</div>';
   });
 }
+function regCategories(){
+  var set={}; (REGULAR_DATA||[]).forEach(function(it){(it.cats||[]).forEach(function(c){if(c)set[c]=1;});});
+  var known=REG_CAT_ORDER.filter(function(c){return set[c];});
+  var extra=Object.keys(set).filter(function(c){return REG_CAT_ORDER.indexOf(c)<0;});
+  return known.concat(extra);
+}
+function renderRegCats(){
+  var box=document.getElementById('regCats'); if(!box)return;
+  var chips=[{label:'全部',val:''}].concat(regCategories().map(function(c){return {label:c,val:c};}));
+  box.innerHTML=chips.map(function(ch){
+    var on=(REG_CAT===ch.val);
+    return '<span onclick="setRegCat(\''+_regEsc(ch.val)+'\')" style="padding:6px 12px;border-radius:16px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;'+(on?'background:#2563EB;color:#fff':'background:#EEF2FF;color:#3730A3')+'">'+_regEsc(ch.label)+'</span>';
+  }).join('');
+}
+function setRegCat(v){ REG_CAT=v; renderRegCats(); renderRegularList(); }
+function regFiltered(){
+  var all=(REGULAR_DATA||[]).slice();
+  if(REG_CAT) all=all.filter(function(it){return (it.cats||[]).indexOf(REG_CAT)>=0;});
+  var kw=(((document.getElementById('regSearch')||{}).value)||'').trim().toUpperCase();
+  if(kw) all=all.filter(function(it){return (String(it.code||'')+' '+String(it.name||'')).toUpperCase().indexOf(kw)>=0;});
+  return all;
+}
 function renderRegularList(){
   var box=document.getElementById('regList');if(!box)return;
-  var all=(REGULAR_DATA||[]);
-  var indexMap={}; all.forEach(function(it,i){indexMap[it.code]=i+1;});
-  var kw=(((document.getElementById('regSearch')||{}).value)||'').trim().toUpperCase();
-  var items=kw?all.filter(function(it){return (String(it.code||'')+' '+String(it.name||'')).toUpperCase().indexOf(kw)>=0;}):all.slice();
-  if(!items.length){box.innerHTML='<div style="text-align:center;color:var(--sub);padding:30px 0">'+(kw?'查無符合型號':'尚無常規價')+'</div>';renderRegBar();return;}
-  box.innerHTML=items.map(function(it){
-    var no=indexMap[it.code]||'';
+  var items=regFiltered();
+  var hasFilter=(REG_CAT||(((document.getElementById('regSearch')||{}).value)||'').trim());
+  if(!items.length){box.innerHTML='<div style="text-align:center;color:var(--sub);padding:30px 0">'+(hasFilter?'此分類查無符合':'尚無常規價')+'</div>';renderRegBar();return;}
+  box.innerHTML=items.map(function(it,idx){
+    var no=idx+1;
     var checked=REG_SELECTED.indexOf(it.code)>=0;
     var dis=(!checked&&REG_SELECTED.length>=REG_MAX);
-    var costLine='';
-    if(isMgr){
-      if(it.cost!=null){ var mg=it.price>0?Math.round((it.price-it.cost)/it.price*100):0; costLine='<div style="font-size:11px;color:#64748B;margin-top:3px">成本 $'+it.cost.toLocaleString()+'　毛利 '+mg+'%</div>'; }
-      else costLine='<div style="font-size:11px;color:#cbd5e1;margin-top:3px">成本 —（型號無法解析）</div>';
-    }
-    return '<label style="display:flex;align-items:center;gap:10px;padding:11px 12px;background:#fff;border:1px solid '+(checked?'#2563EB':'var(--border)')+';border-radius:10px;margin-bottom:8px;cursor:pointer;'+(dis?'opacity:.45':'')+'">'+
+    var r=(it.calc&&it.calc.ok)?it.calc.r:null;
+    var specTxt=r?(r.fh.toFixed(1)+'×'+r.fw.toFixed(1)+'cm　'+r.rows+'×'+r.cols+'='+r.chars+'字'):'<span style="color:#cbd5e1">型號無法解析</span>';
+    var floorBlk=canSeeFloor?'<span style="font-size:12px;color:#0369A1;margin-left:8px">底 $'+(it.floor||0).toLocaleString()+'</span>':'';
+    var costBlk='';
+    if(isMgr&&it.cost!=null){ var mg=it.price>0?Math.round((it.price-it.cost)/it.price*100):0; costBlk='<div style="font-size:11px;color:#64748B;margin-top:2px">成本 $'+it.cost.toLocaleString()+'・毛利 '+mg+'%</div>'; }
+    return '<label style="display:flex;align-items:center;gap:9px;padding:10px 11px;background:#fff;border:1px solid '+(checked?'#2563EB':'var(--border)')+';border-radius:10px;margin-bottom:8px;cursor:pointer;'+(dis?'opacity:.45':'')+'">'+
       '<input type="checkbox" '+(checked?'checked':'')+' '+(dis?'disabled':'')+' onchange="toggleRegSelect(\''+_regEsc(it.code)+'\')" style="width:18px;height:18px;flex-shrink:0;accent-color:#2563EB">'+
-      '<div style="width:22px;height:22px;flex-shrink:0;background:#EEF2FF;color:#3730A3;border-radius:6px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center">'+no+'</div>'+
-      '<div style="flex:1;min-width:0"><div style="font-weight:800;font-size:14px;color:#1A3A6B;letter-spacing:.3px;word-break:break-all">'+_regEsc(it.code)+'</div>'+
-      (it.name?'<div style="font-size:12px;color:var(--sub);margin-top:2px">'+_regEsc(it.name)+'</div>':'')+costLine+'</div>'+
-      '<div style="font-weight:800;font-size:17px;color:#E8590C;white-space:nowrap">$'+(it.price||0).toLocaleString()+'</div>'+
+      '<div style="width:18px;flex-shrink:0;text-align:center;font-size:11px;font-weight:800;color:#3730A3">'+no+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:800;font-size:14px;color:#1A3A6B;word-break:break-all">'+_regEsc(it.code)+'</div>'+
+        '<div style="font-size:11px;color:#64748B;margin-top:2px">'+specTxt+(it.name?'　'+_regEsc(it.name):'')+'</div>'+
+        '<div style="margin-top:3px"><span style="font-weight:800;font-size:16px;color:#E8590C">$'+(it.price||0).toLocaleString()+'</span>'+floorBlk+'</div>'+
+        costBlk+
+      '</div>'+
     '</label>';
   }).join('');
   renderRegBar();
@@ -1935,6 +1965,11 @@ function openRegCompare(){
   html+='<tr style="background:#FFF7ED"><td style="'+sticky+'background:#FFF7ED;padding:9px 6px;font-weight:700">建議售價</td>';
   items.forEach(function(it){ html+='<td style="text-align:center;padding:9px 6px;font-weight:800;font-size:15px;color:#E8590C">$'+(it.price||0).toLocaleString()+'</td>'; });
   html+='</tr>';
+  if(canSeeFloor){
+    html+='<tr style="background:#EFF6FF"><td style="'+sticky+'background:#EFF6FF;padding:8px 6px;font-weight:700;color:#0369A1">業底價</td>';
+    items.forEach(function(it){ html+='<td style="text-align:center;padding:8px 6px;font-weight:800;color:#0369A1">$'+(it.floor||0).toLocaleString()+'</td>'; });
+    html+='</tr>';
+  }
   if(isMgr){
     html+='<tr><td style="'+sticky+'background:#fff;padding:8px 6px;color:#64748B">成本</td>';
     items.forEach(function(it){ html+='<td style="text-align:center;padding:8px 6px">'+(it.cost!=null?'$'+it.cost.toLocaleString():'—')+'</td>'; });
@@ -2060,7 +2095,7 @@ function doLogin(){
   if(pwd===MGR_PWD){
     currentUser={email:'admin@local',name:'管理者',role:'mgr',picture:null};
     localStorage.setItem('usled_user',JSON.stringify(currentUser));
-    isMgr=true;
+    isMgr=true; canSeeFloor=true;
     document.getElementById('lockOverlay').classList.remove('show');
     applyRole();
     toast('🔑 管理者模式（密碼登入）');
@@ -2080,6 +2115,10 @@ function applyRole(){
       b.textContent=displayName+' 管理 ✓';
       b.className='role-badge mgr';
       mg.classList.add('show');
+    }else if(canSeeFloor){
+      b.textContent=displayName+' 主管';
+      b.className='role-badge mgr';
+      mg.classList.remove('show');
     }else{
       b.textContent=displayName+' 業務';
       b.className='role-badge sales';
@@ -3120,6 +3159,7 @@ function handleGoogleSignIn(response){
     };
     localStorage.setItem('usled_user',JSON.stringify(currentUser));
     isMgr=(role==='mgr');
+    canSeeFloor=(role==='mgr'||role==='manager');
     applyRole();
     toast('👋 歡迎 '+payload.name+' ('+role+')');
   }catch(e){
@@ -3139,6 +3179,7 @@ function loadSavedUser(){
       }
       currentUser=u;
       isMgr=(u.role==='mgr');
+      canSeeFloor=(u.role==='mgr'||u.role==='manager');
       applyRole();
       return true;
     }
@@ -3149,7 +3190,7 @@ function loadSavedUser(){
 function googleSignOut(){
   if(typeof google!=='undefined'&&google.accounts) google.accounts.id.disableAutoSelect();
   currentUser=null;
-  isMgr=false;
+  isMgr=false; canSeeFloor=false;
   localStorage.removeItem('usled_user');
   applyRole();
   toast('👋 已登出');
