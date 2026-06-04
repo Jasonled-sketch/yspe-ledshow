@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.55</title>
+<title>USLED 快速報價 v9.56</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.55</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.56</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -4546,7 +4546,7 @@ function applyCustomer(i){
 }
 
 // ══════════════════════════════════════════
-// ══ v9.43：新增客戶建檔（寫回 Ragic 客戶主檔 20004）══
+// ══ v9.43 客戶建檔；v9.56 下拉對齊 Ragic 實際值＋補 email/地區/來源主類/接觸管道 ══
 // ══════════════════════════════════════════
 // 寫入用欄位 ID（2026-06 API 探測；客戶簡稱必填）。情報/評分欄不寫，由業務在 Ragic 經營。
 var RAGIC_CUST = {
@@ -4578,9 +4578,11 @@ function openCreateCustomer(){
     '<div style="display:flex;gap:8px"><div style="flex:1">'+inp('mobile','連絡手機',pv.mobile)+'</div><div style="flex:1">'+inp('phone','市話',pv.phone)+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+inp('company','客戶全名（抬頭）',pv.company)+'</div><div style="flex:1">'+inp('taxid','統一編號',pv.taxid)+'</div></div>'+
     inp('address','送貨/抵達地址',pv.address)+
-    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('status','客戶狀態',['淺在客戶','成交客戶','VIP客戶','黑名單'],'淺在客戶')+'</div><div style="flex:1">'+sel('role','客戶角色',['老闆','員工','採購','設計師','代理','其他'],'老闆')+'</div></div>'+
-    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('pickup','取貨方式',['門市自取','到府安裝','宅配','貨運','回頭車'],'門市自取')+'</div><div style="flex:1">'+sel('payment','付款方式',['現金(現結)','匯款','月結','貨到付款','刷卡'],'現金(現結)')+'</div></div>'+
-    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('srcSub','來源（子類）',['','蝦皮','露天','官網','Google','FB/IG','客戶介紹','現場','其他'],'')+'</div><div style="flex:1">'+inp('firstSales','首次接洽業務',initial)+'</div></div>'+
+    inp('email','電子郵件信箱','')+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('region','地區縣市',['','基隆','台北','新北','桃園','新竹','苗栗','台中','彰化','南投','雲林','嘉義','台南','高雄','屏東','宜蘭','花蓮','台東','澎湖','金門','連江'],'')+'</div><div style="flex:1">'+sel('role','客戶角色',['老闆','採購','員工','委員','其他'],'老闆')+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('pickup','取貨方式',['門市自取','專車到府','黑貓宅急便','中華郵政'],'門市自取')+'</div><div style="flex:1">'+sel('payment','付款方式',['現金(現結)','匯款','刷卡','月結','貨到付款'],'現金(現結)')+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('srcMain','來源（主類）',['','① 轉介紹（非社團）','② 社團／人脈組織','③ 現場品牌曝光','④ 數位內容吸引','⑤ 主動需求搜尋','⑥ 電商／第三方平台'],'')+'</div><div style="flex:1">'+sel('srcSub','來源（子類）',['','蝦皮','其他平台','QDM','主動來電','舊客戶介紹','異業合作介紹（設計師等）','BNI','宮廟實績看到','FB','員工介紹','Google搜尋','青商'],'')+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('channel','第一接觸管道',['','平台內訊息（蝦皮／QDM）','LINE','電話','現場洽談','官網表單','其他'],'')+'</div><div style="flex:1">'+inp('firstSales','首次接洽業務',initial)+'</div></div>'+
     inp('memo','備註','')+
     '<div id="ccErr" style="font-size:12px;color:#EF4444;margin:4px 0;min-height:16px"></div>'+
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">'+
@@ -4602,9 +4604,10 @@ function submitCreateCustomer(){
   fd.append(F.name, name);
   function add(k,v){ v=(v||'').trim(); if(/^https?:\/\//i.test(v)) v=''; if(v) fd.append(F[k], v); }
   add('mobile',g('mobile')); add('phone',g('phone')); add('company',g('company'));
-  add('taxid',g('taxid')); add('address',g('address')); add('memo',g('memo'));
-  add('status',g('status')); add('role',g('role')); add('pickup',g('pickup'));
-  add('payment',g('payment')); add('srcSub',g('srcSub')); add('firstSales',g('firstSales'));
+  add('taxid',g('taxid')); add('address',g('address')); add('email',g('email')); add('memo',g('memo'));
+  add('region',g('region')); add('role',g('role')); add('pickup',g('pickup'));
+  add('payment',g('payment')); add('srcMain',g('srcMain')); add('srcSub',g('srcSub'));
+  add('channel',g('channel')); add('firstSales',g('firstSales'));
   var btn=document.getElementById('ccSave'); if(btn){btn.disabled=true;btn.textContent='⏳ 建檔中…';}
   var url=WORKER_URL.replace(/\/$/,'')+'/?sheet=cust&doFormula=true';
   fetch(url,{method:'POST',headers:route.headers,body:fd})
