@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.56</title>
+<title>USLED 快速報價 v9.57</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.56</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.57</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -562,6 +562,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 <!-- ══ Page 3: 報價 ══ -->
 <div id="pg3" class="page">
   <div style="margin-bottom:12px;font-size:12px;color:var(--sub)">選擇報價等級，點選後進入預覽</div>
+  <div id="quoteInsight"></div>
   <div id="tierArea"></div>
 </div>
 
@@ -1640,7 +1641,7 @@ function updateTiers(){
   var area=document.getElementById('tierArea');
   area.innerHTML='';
   if(!RESULT.stdPrice){
-    area.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">請先在「產品」頁選擇模組規格</div>';return;
+    area.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">請先在「產品」頁選擇模組規格</div>';renderQuoteInsight();return;
   }
   var r=RESULT;
   // 業務看 sales:true 的 3 個，管理者看全部
@@ -1802,6 +1803,7 @@ function updateTiers(){
   if(specKey){
     renderMarketCard(specKey, r);
   }
+  renderQuoteInsight();
 }
 
 // v9.29：行情參考卡渲染（從 updateTiers 抽出，確保在所有 innerHTML 操作之後執行）
@@ -1836,6 +1838,64 @@ function renderMarketCard(specKey, r){
     }else{
       slot.remove();  // 業務員看不到、規格沒設定 → 不顯示任何東西
     }
+  });
+}
+
+// v9.57：報價頁「戰情參考卡」— 用規格自動歸類，從 sheet 19 算同類歷史成交率＋各價帶成交率（業務定價輔助；全角色可見，僅聚合數據不含個人業績）
+function renderQuoteInsight(){
+  var box=document.getElementById('quoteInsight');
+  if(!box) return;
+  var r=RESULT;
+  if(!r || !r.stdPrice){ box.innerHTML=''; return; }
+  var route=getApiRoute();
+  if(route.mode!=='worker'){ box.innerHTML=''; return; }   // 未登入不顯示
+  var cat; try{ cat=pickProductCategory(r); }catch(e){ cat=''; }
+  var curTotal=(r.totalPrice||(r.unitPrice||0)*(r.qty||1)||0);
+  box.innerHTML='<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;margin-bottom:10px;font-size:12px;color:#94a3b8">📈 戰情參考載入中…</div>';
+  fetchAllQuotes(false, function(all){
+    if(!box.isConnected) return;
+    if(!all || !all.length){ box.innerHTML=''; return; }
+    var BANDS=[['<1萬',0,10000],['1-3萬',10000,30000],['3-5萬',30000,50000],['5-10萬',50000,100000],['10萬+',100000,1e12]];
+    function rc(v){ return v>=50?'#10B981':v>=30?'#F59E0B':'#EF4444'; }
+    var catWon=0,catDen=0,allWon=0,allDen=0,bandW={},bandD={};
+    BANDS.forEach(function(b){ bandW[b[0]]=0; bandD[b[0]]=0; });
+    var curBand=null;
+    for(var k=0;k<BANDS.length;k++){ if(curTotal>=BANDS[k][1]&&curTotal<BANDS[k][2]){ curBand=BANDS[k][0]; break; } }
+    all.forEach(function(q){
+      var st=quoteStage(q.progress);
+      if(st==='draft'||st==='other') return;
+      var won=(st==='won');
+      allDen++; if(won) allWon++;
+      if(cat && q.category===cat){
+        catDen++; if(won) catWon++;
+        for(var j=0;j<BANDS.length;j++){ if(q.amount>=BANDS[j][1]&&q.amount<BANDS[j][2]){ bandD[BANDS[j][0]]++; if(won) bandW[BANDS[j][0]]++; break; } }
+      }
+    });
+    var catRate=catDen>0?catWon/catDen*100:0, allRate=allDen>0?allWon/allDen*100:0;
+    var h='';
+    if(catDen>=4){
+      h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap">'+
+         '<span style="font-size:13px;font-weight:800;color:#1A3A6B">📈 戰情參考</span>'+
+         '<span style="font-size:11px;color:#64748b">'+cat+'</span>'+
+         '<span style="margin-left:auto;font-size:12px;color:#64748b">同類成交率 <b style="color:'+rc(catRate)+';font-size:15px">'+catRate.toFixed(0)+'%</b> （'+catWon+'/'+catDen+'）</span></div>';
+      var rows='';
+      BANDS.forEach(function(b){
+        var d=bandD[b[0]]; if(d<2) return;
+        var rate=bandW[b[0]]/d*100, here=(b[0]===curBand);
+        rows+='<div style="display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:3px'+(here?';font-weight:800':'')+'">'+
+          '<span style="width:48px;color:#475569">'+b[0]+(here?' ◀':'')+'</span>'+
+          '<div style="flex:1;background:#E5E7EB;border-radius:4px;height:8px;overflow:hidden"><div style="width:'+Math.max(3,Math.min(rate,100))+'%;height:100%;background:'+rc(rate)+'"></div></div>'+
+          '<span style="width:38px;text-align:right;color:'+rc(rate)+';font-weight:700">'+rate.toFixed(0)+'%</span>'+
+          '<span style="width:38px;text-align:right;color:#94a3b8">'+bandW[b[0]]+'/'+d+'</span></div>';
+      });
+      if(rows) h+=rows+(curBand?'<div style="font-size:10px;color:#94a3b8;margin-top:4px">◀ 目前報價 $'+Math.round(curTotal).toLocaleString()+' 落在 '+curBand+' 帶</div>':'');
+    }else{
+      h+='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+         '<span style="font-size:13px;font-weight:800;color:#1A3A6B">📈 戰情參考</span>'+
+         '<span style="font-size:11px;color:#94a3b8">'+(cat||'此類')+' 資料累積中（'+catDen+' 筆）</span>'+
+         '<span style="margin-left:auto;font-size:12px;color:#64748b">全品類成交率 <b style="color:'+rc(allRate)+'">'+allRate.toFixed(0)+'%</b> （'+allWon+'/'+allDen+'）</span></div>';
+    }
+    box.innerHTML='<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:9px 12px;margin-bottom:10px">'+h+'</div>';
   });
 }
 
@@ -4554,7 +4614,7 @@ var RAGIC_CUST = {
   address:'3000903', cityArea:'3000899', email:'3000908', memo:'1000303',
   region:'1000306', role:'1002238', status:'1002501',
   srcMain:'1002506', srcSub:'1002508', channel:'1002507', firstSales:'1002510',
-  pickup:'3000915', payment:'3000910'
+  pickup:'3000915', payment:'3000910', industry:'3001873', referrer:'1002509'
 };
 
 function openCreateCustomer(){
@@ -4583,6 +4643,7 @@ function openCreateCustomer(){
     '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('pickup','取貨方式',['門市自取','專車到府','黑貓宅急便','中華郵政'],'門市自取')+'</div><div style="flex:1">'+sel('payment','付款方式',['現金(現結)','匯款','刷卡','月結','貨到付款'],'現金(現結)')+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('srcMain','來源（主類）',['','① 轉介紹（非社團）','② 社團／人脈組織','③ 現場品牌曝光','④ 數位內容吸引','⑤ 主動需求搜尋','⑥ 電商／第三方平台'],'')+'</div><div style="flex:1">'+sel('srcSub','來源（子類）',['','蝦皮','其他平台','QDM','主動來電','舊客戶介紹','異業合作介紹（設計師等）','BNI','宮廟實績看到','FB','員工介紹','Google搜尋','青商'],'')+'</div></div>'+
     '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('channel','第一接觸管道',['','平台內訊息（蝦皮／QDM）','LINE','電話','現場洽談','官網表單','其他'],'')+'</div><div style="flex:1">'+inp('firstSales','首次接洽業務',initial)+'</div></div>'+
+    '<div style="display:flex;gap:8px"><div style="flex:1">'+sel('industry','產業',['','宮廟宗教','餐飲','零售/商店','建材/五金','工程行(承包商)','醫療診所','學校機關','車業','廣告招牌','同業合作','其他'],'')+'</div><div style="flex:1">'+inp('referrer','介紹人','','誰介紹來的')+'</div></div>'+
     inp('memo','備註','')+
     '<div id="ccErr" style="font-size:12px;color:#EF4444;margin:4px 0;min-height:16px"></div>'+
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">'+
@@ -4608,6 +4669,7 @@ function submitCreateCustomer(){
   add('region',g('region')); add('role',g('role')); add('pickup',g('pickup'));
   add('payment',g('payment')); add('srcMain',g('srcMain')); add('srcSub',g('srcSub'));
   add('channel',g('channel')); add('firstSales',g('firstSales'));
+  add('industry',g('industry')); add('referrer',g('referrer'));
   var btn=document.getElementById('ccSave'); if(btn){btn.disabled=true;btn.textContent='⏳ 建檔中…';}
   var url=WORKER_URL.replace(/\/$/,'')+'/?sheet=cust&doFormula=true';
   fetch(url,{method:'POST',headers:route.headers,body:fd})
