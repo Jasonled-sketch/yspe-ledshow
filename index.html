@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.58</title>
+<title>USLED 快速報價 v9.59</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.58</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.59</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -940,7 +940,7 @@ var QUICK_REF_PER_CHAR = {
 var MODS=[], FRMS=[], PWRS=[], CTRL=[];
 var BACK_OFFSET={O:0,N:0,S:1.5,X:2.5,I:4.0,J:3.7,R:4.5,A:7.5,P:8.5,D:4.5};
 // v9.4：含框厚度 T（cm）— 由使用者規格決定，跟成本/重量計算無關，僅用於報價單外觀
-var FRAME_THICKNESS={R:9, P:9, N:9, J:6, I:6, X:3.8, A:8, D:3, S:3.8, O:0};
+var FRAME_THICKNESS={R:9, P:9, N:9, J:6, I:6, X:3.8, A:8, D:11.5, S:3.8, O:0};
 // v9.9：固定件每件長度偏移（mm）— 戶外用「固定 B-門型鐵」，室內用「固定 A-玻纖板」
 // 每件長度 = 模組顯示高度 (dispH cm) + 此偏移 (mm/10 cm)
 var BRACKET_OFFSET_MM = {
@@ -969,7 +969,7 @@ var MOD_META={
   M04C:{mh:12.8,ml:25.6,ch:2,cw:4,water:'室內'},M4CL:{mh:25.6,ml:25.6,ch:4,cw:4,water:'室內'},
   M47D:{mh:15.2,ml:30.4,ch:2,cw:4,water:'室內'},M03C:{mh:19.2,ml:19.2,ch:4,cw:4,water:'室內'},
   M25F:{mh:16,ml:32,ch:4,cw:8,water:'室內'},M02C:{mh:16,ml:32,ch:5,cw:10,water:'室內'},
-  M186:{mh:16,ml:32,ch:5,cw:11,water:'室內'},Q04C:{mh:16,ml:32,ch:3,cw:5,water:'室內'}
+  M186:{mh:16,ml:32,ch:5,cw:11,water:'室內'},Q04C:{mh:16,ml:32,ch:2.5,cw:5,water:'室內'}
 };
 var FRM_META={
   R:{model:'2590F3',edge:2.5,grp:'outdoor',name:'R框 戶外標準'},
@@ -977,7 +977,7 @@ var FRM_META={
   N:{model:'9025',edge:0,grp:'outdoor',name:'N框 戶外無邊'},
   J:{model:'2060',edge:2.0,grp:'outdoor',name:'J框 戶外輕薄'},
   A:{model:'092A',edge:4.0,grp:'outdoor',name:'A框 戶外重型'},
-  D:{model:'11530',edge:11.5,grp:'outdoor',name:'D框 戶外寬邊',forceDual:2,noBack:true},
+  D:{model:'11530',edge:3,grp:'outdoor',name:'D框 戶外雙面',forceDual:2,noBack:true},
   I:{model:'2260',edge:2.2,grp:'indoor',name:'I框 室內標準'},
   S:{model:'1025',edge:1.0,grp:'indoor',name:'S框 室內薄型'},
   X:{model:'3815',edge:1.5,grp:'indoor',name:'X框 室內輕量'},
