@@ -413,9 +413,9 @@ nav{background:#fff;border-bottom:1px solid #E2DED7;display:flex;overflow-x:auto
 </div>
 <script>
 // ══ 框型分類 ══
-var FG={R:"outdoor",P:"outdoor",N:"outdoor",J:"outdoor",A:"outdoor",X:"indoor",I:"indoor",S:"indoor",O:"none"};
+var FG={R:"outdoor",P:"outdoor",N:"outdoor",J:"outdoor",A:"outdoor",D:"outdoor",X:"indoor",I:"indoor",S:"indoor",O:"none"};
 // ══ 背板外擴量（cm，加到H和W各一次） ══
-var BACK_OFFSET={O:0,N:0,S:1.5,X:2.5,I:4.0,J:3.7,R:4.5,A:7.5,P:8.5};
+var BACK_OFFSET={O:0,N:0,S:1.5,X:2.5,I:4.0,J:3.7,R:4.5,A:7.5,P:8.5,D:4.5};
 // ══ 電源器輸入線規格 ══
 var PWR_INWIRE={HAM:"0.75mm插頭線",HBM:"0.75mm插頭線",HAT:"0.75mm插頭線",HBT:"0.75mm插頭線",HSH1:"0.75mm插頭線",HSH2:"0.75mm插頭線",HSM1:"0.75mm插頭線",HSM2:"0.75mm插頭線",HSM3:"0.75mm插頭線",LAA0:"USB20AWG-0.5mm",LAA3:"USB20AWG-0.5mm",LAA6:"USB18AWG-0.75mm",LBG1:"DC母頭0.75mm",LBH1:"DC母頭0.75mm",LBH2:"DC母頭0.75mm",LBH3:"紅白平打1.25mm",LCH2:"DC母頭0.75mm"};
 
@@ -442,7 +442,7 @@ var MODS=[
   {id:"M25F",mh:16,  ml:32,  ch:4,cw:8, wpm:10,wg:222,water:"室內",  q:50, rmb:78, twd:0,  src:"rmb"},
   {id:"M02C",mh:16,  ml:32,  ch:5,cw:10,wpm:15,wg:222,water:"室內",  q:40, rmb:0,  twd:725,src:"twd"},
   {id:"M186",mh:16,  ml:32,  ch:5,cw:11,wpm:10,wg:250,water:"室內",  q:35, rmb:113,twd:0,  src:"rmb"},
-  {id:"Q4",  mh:16,  ml:32,  ch:3,cw:5, wpm:16,wg:250,water:"室內",  q:0,  rmb:0,  twd:315,src:"twd"}
+  {id:"Q04C",mh:16,  ml:32,  ch:3,cw:5, wpm:16,wg:250,water:"室內",  q:0,  rmb:0,  twd:315,src:"twd"}
 ];
 
 var FRMS=[
@@ -451,6 +451,7 @@ var FRMS=[
   {id:"N",model:"9025",    edge:0,  thick:9,  wp:true, wg_cm:6.97,corner_wg:34,corner:15.0,price:1.372,grp:"outdoor"},
   {id:"J",model:"2060",    edge:2.0,thick:6,  wp:true, wg_cm:4.3, corner_wg:34,corner:21.5,price:0.847,grp:"outdoor"},
   {id:"A",model:"092A",    edge:4.0,thick:8,  wp:true, wg_cm:10.0,corner_wg:0, corner:30.0,price:1.969,grp:"outdoor"},
+  {id:"D",model:"11530",   edge:11.5,thick:3, wp:true, wg_cm:8.0, corner_wg:83,corner:20.0,price:2.0,  grp:"outdoor",forceDual:2},
   {id:"I",model:"2260",    edge:2.2,thick:6,  wp:false,wg_cm:4.3, corner_wg:19,corner:8.0, price:0.847,grp:"indoor"},
   {id:"S",model:"1025",    edge:1.0,thick:2.5,wp:false,wg_cm:2.0, corner_wg:11,corner:15.0,price:0,    grp:"indoor"},
   {id:"X",model:"3815",    edge:1.5,thick:3.8,wp:false,wg_cm:3.2, corner_wg:11,corner:7.95,price:0.630,grp:"indoor"},
@@ -644,7 +645,7 @@ function BUILD(){
   var ms=document.getElementById("cfgMod");
   MODS.forEach(function(m){var o=document.createElement("option");o.value=m.id;o.textContent=m.id+" | "+m.ch+"H×"+m.cw+"W/片";o.dataset.ch=m.ch;o.dataset.cw=m.cw;o.dataset.mh=m.mh;o.dataset.ml=m.ml;o.dataset.q=m.q;ms.appendChild(o);});
   var fs=document.getElementById("cfgFrm");
-  FRMS.forEach(function(f){var o=document.createElement("option");o.value=f.id;o.textContent=f.id+" "+f.model+" 邊"+f.edge+"cm";o.dataset.edge=f.edge;o.dataset.wp=f.wp?1:0;o.dataset.wg_cm=f.wg_cm;o.dataset.cwg=f.corner_wg;o.dataset.grp=f.grp;fs.appendChild(o);});
+  FRMS.forEach(function(f){var o=document.createElement("option");o.value=f.id;o.textContent=f.id+" "+f.model+" 邊"+f.edge+"cm";o.dataset.edge=f.edge;o.dataset.wp=f.wp?1:0;o.dataset.wg_cm=f.wg_cm;o.dataset.cwg=f.corner_wg;o.dataset.grp=f.grp;o.dataset.fdual=f.forceDual||1;o.dataset.noback=f.noBack?1:0;fs.appendChild(o);});
   var ps=document.getElementById("cfgPwr");
   PWRS.forEach(function(p){var o=document.createElement("option");o.value=p.id;o.textContent=p.id+" "+p.spec+" "+p.watt+"W";o.dataset.watt=p.watt;o.dataset.wg=p.wg;ps.appendChild(o);});
   var cs=document.getElementById("cfgCtrl");
@@ -701,6 +702,9 @@ function CFG(){
   document.getElementById("cfgColsHint").textContent="每片cw="+cw+"，需為"+cw+"的倍數";
 
   var rows=G("cfgRows")||1,cols=G("cfgCols")||1,dual=G("cfgDual")||1,loadPct=(G("cfgLoad")||70)/100;
+  var _fo=(fs&&fs.value)?fs.options[fs.selectedIndex]:null,_cd=document.getElementById("cfgDual");
+  if(_fo&&parseInt(_fo.dataset.fdual)>1){dual=parseInt(_fo.dataset.fdual);if(_cd){_cd.value=String(dual);_cd.disabled=true;}}
+  else if(_cd){if(_cd.disabled){_cd.disabled=false;_cd.value="1";}dual=parseInt(_cd.value)||1;}  // 切離 D 框→還原可選
   var errs=[];
   if(rows%ch!==0)errs.push("字高"+rows+"需為"+ch+"的倍數");
   if(cols%cw!==0)errs.push("字寬"+cols+"需為"+cw+"的倍數");
@@ -725,6 +729,8 @@ function CFG(){
   var cai=backH*backW/(30.3*30.3);
   var backPerim=(backH+backW)*2;
   var backScrewCnt=ceil(backPerim/20);
+  var noBack=_fo&&parseInt(_fo.dataset.noback)===1;
+  if(noBack){cai=0;backPerim=0;backScrewCnt=0;backH=0;backW=0;}  // D 框雙面無背板
 
   // ── 框型規則提示 ──
   if(fId){
@@ -765,7 +771,7 @@ function CFG(){
   var railCnt=(fGrp==="indoor")?4:0;
   var frmPrice=fId?G("fp_"+fId)||0:0,cornerPrice=fId?G("fc_"+fId)||0:0;
   var fWgCmNow=fId?G("fw_"+fId)||0:0,fCwgNow=fId?G("fcw_"+fId)||0:0;
-  var fixCount=mCols+1,fixLen=dispH+3,fixTotal=fixCount*fixLen;
+  var fixCount=mCols+1,fixLen=dispH+(noBack?0:3),fixTotal=fixCount*fixLen;
   var hasBracket=(fGrp==="outdoor"),hasGlass=(fGrp==="indoor");
   var fixScrewCnt=(fGrp==="outdoor"||fGrp==="indoor")?fixCount*2:0;
   var modScrewCnt=(fGrp==="indoor")?4*D:0;

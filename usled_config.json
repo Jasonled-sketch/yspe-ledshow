@@ -164,7 +164,7 @@
       "wg": 250,
       "wpm": 17.5
     },
-    "Q4": {
+    "Q04C": {
       "src": "twd",
       "rmb": 0,
       "twd": 315,
@@ -202,6 +202,12 @@
       "corner": 30,
       "wg_cm": 10,
       "corner_wg": 0
+    },
+    "D": {
+      "price": 2,
+      "corner": 20,
+      "wg_cm": 8,
+      "corner_wg": 83
     },
     "I": {
       "price": 0.847,
