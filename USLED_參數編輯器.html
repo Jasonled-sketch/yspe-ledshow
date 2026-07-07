@@ -730,7 +730,7 @@ function CFG(){
   var backPerim=(backH+backW)*2;
   var backScrewCnt=ceil(backPerim/20);
   var noBack=_fo&&parseInt(_fo.dataset.noback)===1;
-  if(noBack){cai=0;backPerim=0;backScrewCnt=0;backH=0;backW=0;}  // D 框雙面無背板
+  if(noBack||dual>1){cai=0;backPerim=0;backScrewCnt=0;backH=0;backW=0;}  // 雙面無背板：另一面也是模組
 
   // ── 框型規則提示 ──
   if(fId){

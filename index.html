@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.60</title>
+<title>USLED 快速報價 v9.61</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.60</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.61</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -1331,7 +1331,7 @@ function selectPickerItem(id){
 //     P10C1124-RHA → P10C / 字高11 / 字寬24 / 鋁框R / 電源 HA*
 //     M04C0208XLA  → 同上（- 可省略）
 function parseFullModelCode(input){
-  var raw=(input||'').trim().toUpperCase().replace(/\s+/g,'');
+  var raw=(input||'').trim().toUpperCase().replace(/[^A-Z0-9-]/g,'');   // 去空白與中文備註，只留代碼字元
   if(!raw) return {error:'請輸入型號'};
 
   // 找最長匹配的模組 ID（允許 leading-zero 容錯：M4C ↔ M04C）
@@ -1440,6 +1440,10 @@ function applyFullModel(){
     pwrMsg='電源前綴「'+p.pwrPrefix+'」沒對應型號';
   }
 
+  // v9.61: 型號含「雙面/單面」中文標記 → 設定單雙面（D 框仍由 calc 強制雙面）
+  var _dm=/雙面/.test(raw)?2:(/單面/.test(raw)?1:0);
+  if(_dm){var _de=document.getElementById('p_dual'); if(_de){_de.disabled=false;_de.value=String(_dm);}}
+
   calc();
   hint.innerHTML='<span style="color:var(--green)">✅ 已套用：'+p.mod.id+
     (p.rows!=null?' 字高'+p.rows:'')+(p.cols!=null?' 字寬'+p.cols:'')+
@@ -1499,7 +1503,7 @@ function computeRecord(mid,fid,pid,cid,rows,cols,dual,qty){
   if(p&&p.watt>0)pwrN=Math.ceil(totalW/(p.watt*1.0));
   var boff=f?(BACK_OFFSET[fid]||0):0;
   var backH=dispH+boff,backW=dispW+boff,cai=backH*backW/918;
-  if(f&&f.noBack)cai=0;   // D 框雙面無背板
+  if(dual>1||(f&&f.noBack))cai=0;   // 雙面(含D框)無背板：另一面也是模組
   var modWg=m.wg*D,frmWg=f?(f.wg_cm*(fh+fw)*2+4*f.corner_wg):0;
   var pwrWg=p?p.wg*pwrN:0,ctrlWg=ct?ct.wg:0,backWg=cai*207;
   var totalKg=(modWg+frmWg+pwrWg+ctrlWg+backWg)/1000;
@@ -1538,7 +1542,9 @@ function computeRecord(mid,fid,pid,cid,rows,cols,dual,qty){
 // 常規型號 → 規格+成本（重用報價引擎）。格式：品牌(D/U)+模組+字高字寬+(-)+框+完整電源，如 DM4C0208-XLAA6
 var CATALOG_BRAND = { 'D':{name:'DART', ctrl:'RHX-8Q2'}, 'U':{name:'US', ctrl:'HD-WF4'} };
 function catalogCompute(code){
-  var raw=(code||'').trim().toUpperCase().replace(/\s+/g,'');
+  var rawIn=(code||'').trim();
+  var dualMark=/雙面/.test(rawIn)?2:(/單面/.test(rawIn)?1:0);   // 型號欄可夾「雙面/單面」中文標記
+  var raw=rawIn.toUpperCase().replace(/[^A-Z0-9-]/g,'');   // 剝除中文備註，只留代碼字元
   if(!raw) return {ok:false, error:'空型號'};
   var brand=CATALOG_BRAND[raw.charAt(0)];
   var rest=brand?raw.slice(1):raw;
@@ -1547,7 +1553,7 @@ function catalogCompute(code){
   if(p.error) return {ok:false, error:p.error, brandName:brand?brand.name:''};
   var pid=(p.pwrCandidates&&p.pwrCandidates.length)?p.pwrCandidates[0].id:null;
   var _fobj=p.frm?FRMS.find(function(x){return x.id===p.frm;}):null;
-  var _dual=(_fobj&&_fobj.forceDual)?_fobj.forceDual:1;   // D 框＝雙面（模組雙倍，控制卡仍 1 個）
+  var _dual=(_fobj&&_fobj.forceDual)?_fobj.forceDual:(dualMark||1);   // D框強制雙面；其他框看型號「雙面」標記
   var r=computeRecord(p.mod.id, p.frm, pid, cid, p.rows||1, p.cols||1, _dual, 1);
   if(!r) return {ok:false, error:'無法建立規格', brandName:brand?brand.name:''};
   var cost=null;
@@ -1574,7 +1580,7 @@ function calc(){
   if(p&&p.watt>0)pwrN=Math.ceil(totalW/(p.watt*1.0));
   var boff=f?(BACK_OFFSET[fid]||0):0;
   var backH=dispH+boff,backW=dispW+boff,cai=backH*backW/918;
-  if(f&&f.noBack)cai=0;   // D 框雙面無背板
+  if(dual>1||(f&&f.noBack))cai=0;   // 雙面(含D框)無背板：另一面也是模組
   var modWg=m.wg*D,frmWg=f?(f.wg_cm*(fh+fw)*2+4*f.corner_wg):0;
   var pwrWg=p?p.wg*pwrN:0,ctrlWg=ct?ct.wg:0,backWg=cai*207;
   var totalKg=(modWg+frmWg+pwrWg+ctrlWg+backWg)/1000;
