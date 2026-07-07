@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.59</title>
+<title>USLED 快速報價 v9.60</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.59</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.60</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -1542,7 +1542,7 @@ function catalogCompute(code){
   if(!raw) return {ok:false, error:'空型號'};
   var brand=CATALOG_BRAND[raw.charAt(0)];
   var rest=brand?raw.slice(1):raw;
-  var cid=brand?brand.ctrl:'';
+  var cid=brand?brand.ctrl:'HD-WF4';   // 無品牌前綴(型號未帶 D/U)時，控制卡預設 WF4
   var p=parseFullModelCode(rest);
   if(p.error) return {ok:false, error:p.error, brandName:brand?brand.name:''};
   var pid=(p.pwrCandidates&&p.pwrCandidates.length)?p.pwrCandidates[0].id:null;
