@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.65</title>
+<title>USLED 快速報價 v9.66</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.65</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.66</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -1656,7 +1656,17 @@ function renderRegular(force){
   if(REGULAR_DATA){renderRegCats();renderRegularList();return;}
   if(_regLoading)return;
   var route=getApiRoute();
-  if(route.mode!=='worker'){ if(box)box.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">請先 Google 登入後查看常規價</div>'; return; }
+  if(route.mode!=='worker'){
+    // v9.66：登過但 token 過期 → 顯示續期中並排隊自動重試（token 換好會自己載入，不用點）
+    if(currentUser&&currentUser.idToken){
+      if(box)box.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">🔄 登入憑證自動續期中…</div>';
+      window._afterAuthRetry=function(){ renderRegular(true); };
+      refreshTokenIfNeeded();
+    }else{
+      if(box)box.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">請先 Google 登入後查看常規價</div>';
+    }
+    return;
+  }
   _regLoading=true;
   if(box)box.innerHTML='<div style="text-align:center;color:var(--sub);padding:40px 0">載入中…</div>';
   var url=WORKER_URL.replace(/\/$/,'')+'/?sheet=20&limit=1000';
@@ -3062,18 +3072,29 @@ function initGoogleSignIn(){
       client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleSignIn,
       auto_select: true,           // v9.23：開啟自動登入（之前登過的 Google 帳號自動發新 token）
+      itp_support: true,           // v9.66：Safari/ITP 環境也支援 One Tap 靜默續期
       cancel_on_tap_outside: false
     });
-    // v9.23：若 token 過期，靜默 prompt 重新取得（不打擾使用者）
-    try{
-      var u = currentUser;
-      if(u && u.tokenExp && u.tokenExp < Date.now()){
-        google.accounts.id.prompt();
-      }
-    }catch(e){}
+    // v9.66：主動靜默續期——開頁立即檢查＋每 5 分鐘檢查，token 15 分鐘內到期就自動換新
+    // （取代 v9.23 只在開頁檢查一次的做法；使用者不點任何東西，除非自己登出）
+    refreshTokenIfNeeded();
+    setInterval(refreshTokenIfNeeded, 5*60*1000);
     updateAuthGate();   // v9.48：google 就緒後渲染閘門登入按鈕
   }
   tryInit();
+}
+
+// v9.66：token 快到期（15 分鐘內）或已過期 → 靜默 prompt 讓 Google 自動發新 token
+// auto_select:true 且帳號登過 → 完全無感換證；只有 Google 瀏覽器工作階段本身登出才會要人點
+function refreshTokenIfNeeded(){
+  try{
+    if(typeof google==='undefined'||!google.accounts) return;
+    var u=currentUser;
+    if(!u||!u.idToken) return;   // 沒登過（或已登出）不打擾
+    if(!u.tokenExp || (u.tokenExp - Date.now()) < 15*60*1000){
+      google.accounts.id.prompt();
+    }
+  }catch(e){}
 }
 
 function showGoogleSignIn(){
@@ -3106,6 +3127,7 @@ function handleGoogleSignIn(response){
       return;
     }
     // v9.2：保存原始 JWT (idToken) 給 Worker 驗證用；tokenExp 用來偵測過期
+    var wasAuthed = !!(currentUser && currentUser.idToken);   // v9.66：靜默續期不重複打招呼
     currentUser={
       email:email, name:payload.name, picture:payload.picture, role:role,
       idToken: response.credential,
@@ -3115,7 +3137,11 @@ function handleGoogleSignIn(response){
     isMgr=(role==='mgr');
     canSeeFloor=(role==='mgr'||role==='manager');
     applyRole();
-    toast('👋 歡迎 '+payload.name+' ('+role+')');
+    if(!wasAuthed) toast('👋 歡迎 '+payload.name+' ('+role+')');
+    // v9.66：換到新 token 後，自動重試剛才因過期而擱置的動作（例如常規載入）
+    try{
+      if(window._afterAuthRetry){ var f=window._afterAuthRetry; window._afterAuthRetry=null; f(); }
+    }catch(e){}
   }catch(e){
     alert('Google 登入失敗：'+e.message);
   }
