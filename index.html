@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.61</title>
+<title>USLED 快速報價 v9.62</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.61</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.62</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -870,7 +870,9 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
 // ══════════════════════════════════════════
 // ══ 內建預設設定（v4.9.3）══
 // ══════════════════════════════════════════
-var BUILTIN_CFG = {"_version":"4.9","_exported":"2026-05-17 03:47","base":{"rate":4.7,"wage":350,"sp":22,"sal":50000,"shipRate":8.5,"cap":6,"tax":5,"risk":5,"pft":3,"scO":3.5,"scIn":4.5,"scOut":5.5,"scDiv":450},"mods":{"P10R":{"src":"rmb","rmb":30,"twd":159,"wg":450,"wpm":33},"P10C":{"src":"rmb","rmb":50,"twd":251,"wg":403,"wpm":33},"P10S":{"src":"rmb","rmb":55,"twd":276,"wg":430,"wpm":33},"P08C":{"src":"rmb","rmb":46,"twd":227,"wg":272,"wpm":23},"P06C":{"src":"rmb","rmb":48,"twd":234,"wg":216,"wpm":50},"P05C":{"src":"twd","rmb":75,"twd":335,"wg":445,"wpm":48},"P5CM":{"src":"rmb","rmb":55,"twd":267,"wg":210,"wpm":24},"P04C":{"src":"rmb","rmb":58,"twd":284,"wg":284,"wpm":48},"P03C":{"src":"rmb","rmb":82,"twd":398,"wg":313,"wpm":50},"P25F":{"src":"rmb","rmb":168,"twd":810,"wg":520,"wpm":53},"M10C":{"src":"rmb","rmb":30,"twd":153,"wg":300,"wpm":23},"M10R":{"src":"rmb","rmb":26,"twd":132,"wg":248,"wpm":23},"M06C":{"src":"rmb","rmb":55,"twd":269,"wg":260,"wpm":23},"M05C":{"src":"rmb","rmb":38,"twd":190,"wg":286,"wpm":17.5},"M04C":{"src":"rmb","rmb":43,"twd":209,"wg":178,"wpm":17.5},"M4CL":{"src":"rmb","rmb":44,"twd":221,"wg":347,"wpm":8},"M47D":{"src":"rmb","rmb":24,"twd":123,"wg":255,"wpm":17.5},"M03C":{"src":"rmb","rmb":54,"twd":263,"wg":232,"wpm":8},"M25F":{"src":"rmb","rmb":65,"twd":314,"wg":222,"wpm":17.5},"M02C":{"src":"twd","rmb":0,"twd":725,"wg":222,"wpm":15},"M186":{"src":"rmb","rmb":113,"twd":541,"wg":250,"wpm":17.5},"Q04C":{"src":"twd","rmb":0,"twd":315,"wg":250,"wpm":17.5}},"frms":{"R":{"price":1.372,"corner":15,"wg_cm":6.97,"corner_wg":34},"P":{"price":1.752,"corner":17,"wg_cm":8.9,"corner_wg":69},"N":{"price":1.372,"corner":15,"wg_cm":6.97,"corner_wg":34},"J":{"price":0.847,"corner":21.5,"wg_cm":4.3,"corner_wg":34},"A":{"price":1.969,"corner":30,"wg_cm":10,"corner_wg":0},"D":{"price":2,"corner":20,"wg_cm":8,"corner_wg":83},"I":{"price":0.847,"corner":8,"wg_cm":4.3,"corner_wg":19},"S":{"price":0,"corner":15,"wg_cm":2,"corner_wg":11},"X":{"price":0.63,"corner":7.95,"wg_cm":3.2,"corner_wg":11},"O":{"price":0,"corner":7.5,"wg_cm":0,"corner_wg":30}},"pwrs":{"HAM":{"src":"twd","rmb":0,"price":560,"wg":740,"watt":300,"inwire_rmb":2.8,"inwire_wg":20},"HAT":{"src":"rmb","rmb":44,"price":223,"wg":404,"watt":200,"inwire_rmb":2.8,"inwire_wg":20},"HBM":{"src":"twd","rmb":0,"price":560,"wg":740,"watt":300,"inwire_rmb":2.8,"inwire_wg":20},"HBT":{"src":"rmb","rmb":44,"price":223,"wg":404,"watt":200,"inwire_rmb":2.8,"inwire_wg":20},"HSH1":{"src":"rmb","rmb":22,"price":103,"wg":0,"watt":70,"inwire_rmb":2.8,"inwire_wg":20},"HSH2":{"src":"rmb","rmb":28,"price":132,"wg":0,"watt":105,"inwire_rmb":2.8,"inwire_wg":20},"HSM1":{"src":"twd","rmb":0,"price":290,"wg":213,"watt":50,"inwire_rmb":2.8,"inwire_wg":20},"HSM2":{"src":"twd","rmb":0,"price":330,"wg":315,"watt":100,"inwire_rmb":2.8,"inwire_wg":20},"HSM3":{"src":"twd","rmb":0,"price":435,"wg":419,"watt":150,"inwire_rmb":2.8,"inwire_wg":20},"LAA0":{"src":"rmb","rmb":0,"price":0,"wg":0,"watt":0,"inwire_rmb":2,"inwire_wg":10},"LAA3":{"src":"rmb","rmb":4,"price":21,"wg":55,"watt":15,"inwire_rmb":2,"inwire_wg":10},"LAA6":{"src":"rmb","rmb":16.5,"price":88,"wg":264,"watt":46,"inwire_rmb":3.5,"inwire_wg":30},"LBG1":{"src":"rmb","rmb":20,"price":97,"wg":72,"watt":50,"inwire_rmb":1.8,"inwire_wg":20},"LBH1":{"src":"rmb","rmb":22,"price":107,"wg":85,"watt":70,"inwire_rmb":1.8,"inwire_wg":20},"LBH2":{"src":"rmb","rmb":32,"price":156,"wg":151,"watt":144,"inwire_rmb":1.8,"inwire_wg":20},"LBH3":{"src":"rmb","rmb":60,"price":290,"wg":210,"watt":200,"inwire_rmb":2.3,"inwire_wg":20},"LCH2":{"src":"rmb","rmb":55,"price":265,"wg":151,"watt":144,"inwire_rmb":1.8,"inwire_wg":20}},"ctrl":{"HD-D16":{"src":"twd","rmb":0,"price":1350,"wg":65},"HD-C16L":{"src":"twd","rmb":0,"price":2100,"wg":65},"HD-U6A":{"src":"rmb","rmb":21,"price":99,"wg":20},"LM-30A":{"src":"rmb","rmb":285,"price":1349,"wg":250},"HD-A5L":{"src":"twd","rmb":0,"price":5100,"wg":800},"HD-A4":{"src":"twd","rmb":0,"price":3600,"wg":600},"HD-A3L":{"src":"twd","rmb":0,"price":1900,"wg":400},"HD-E64":{"src":"twd","rmb":0,"price":609,"wg":60},"HD-W66":{"src":"rmb","rmb":300,"price":1414,"wg":100},"HD-WF4":{"src":"twd","rmb":0,"price":230,"wg":31},"HD-WF2":{"src":"rmb","rmb":26,"price":123,"wg":21},"RHX-64W512":{"src":"rmb","rmb":18,"price":85,"wg":18},"RHX-32W320":{"src":"rmb","rmb":7,"price":33,"wg":14},"RHX-Q10":{"src":"rmb","rmb":118,"price":557,"wg":60},"RHX-Q8B":{"src":"rmb","rmb":60,"price":284,"wg":50},"RHX-Q4A1":{"src":"rmb","rmb":38,"price":180,"wg":30},"RHX-Q4AM":{"src":"rmb","rmb":24,"price":114,"wg":27},"RHX-64WUN1024":{"src":"rmb","rmb":78,"price":369,"wg":50},"RHX-8Q2":{"src":"rmb","rmb":10,"price":48,"wg":16},"RHX-8C1":{"src":"rmb","rmb":12,"price":57,"wg":13}},"parts":{"cornscrew_p":0.5,"cornscrew_w":2,"drain_p":1,"drain_w":3,"rail_p":3,"rail_w":6,"glass_p":0.8,"glass_w":1.5,"bracket_p":0.25,"bracket_w":4,"fixscrew_p":0.5,"fixscrew_w":2,"modscrew_p":0.3,"modscrew_w":1,"magnet_p":7.2,"magnet_w":14,"preglue_p":1.2,"preglue_w":0.5,"fullglue_p":4,"fullglue_w":2,"ribbon_p":8,"ribbon_w":10,"dcwire_p":8,"dcwire_w":19,"transwire_p":12,"transwire_w":70,"back_p":45,"back_w":207,"screw_p":0.5,"screw_w":1.15,"sealglue_p":0.1,"sealglue_w":0.1,"t01":0.33,"t04":1,"t02":1.01,"t05":0.5,"t06":0.5,"t07":0.233,"t10":5.867,"t11":0.2,"t12":0.2,"t16":5.5,"t17":1.5,"t19":0.25,"t20":0.1,"t_pack":0},"tiers":{"1":60,"2":44.5,"3":40,"4":34.5,"5":27,"6":18.2,"7":13.3}};
+var BUILTIN_CFG = {"_version":"4.9","_exported":"2026-05-17 03:47","base":{"rate":4.7,"wage":350,"sp":22,"sal":50000,"shipRate":8.5,"cap":6,"tax":5,"risk":5,"pft":3,"scO":3.5,"scIn":4.5,"scOut":5.5,"scDiv":450},"mods":{"P10R":{"src":"rmb","rmb":30,"twd":159,"wg":450,"wpm":33},"P10C":{"src":"rmb","rmb":50,"twd":251,"wg":403,"wpm":33},"P10S":{"src":"rmb","rmb":55,"twd":276,"wg":430,"wpm":33},"P08C":{"src":"rmb","rmb":46,"twd":227,"wg":272,"wpm":23},"P06C":{"src":"rmb","rmb":48,"twd":234,"wg":216,"wpm":50},"P05C":{"src":"twd","rmb":75,"twd":335,"wg":445,"wpm":48},"P5CM":{"src":"rmb","rmb":55,"twd":267,"wg":210,"wpm":24},"P04C":{"src":"rmb","rmb":58,"twd":284,"wg":284,"wpm":48},"P03C":{"src":"rmb","rmb":82,"twd":398,"wg":313,"wpm":50},"P25F":{"src":"rmb","rmb":168,"twd":810,"wg":520,"wpm":53},"M10C":{"src":"rmb","rmb":30,"twd":153,"wg":300,"wpm":23},"M10R":{"src":"rmb","rmb":26,"twd":132,"wg":248,"wpm":23},"M05C":{"src":"rmb","rmb":38,"twd":190,"wg":286,"wpm":17.5},"M04C":{"src":"rmb","rmb":43,"twd":209,"wg":178,"wpm":17.5},"M4CL":{"src":"rmb","rmb":44,"twd":221,"wg":347,"wpm":8},"M47D":{"src":"rmb","rmb":24,"twd":123,"wg":255,"wpm":17.5},"M03C":{"src":"rmb","rmb":54,"twd":263,"wg":232,"wpm":8},"M25F":{"src":"rmb","rmb":65,"twd":314,"wg":222,"wpm":17.5},"M02C":{"src":"twd","rmb":0,"twd":725,"wg":222,"wpm":15},"M186":{"src":"rmb","rmb":113,"twd":541,"wg":250,"wpm":17.5},"Q04C":{"src":"twd","rmb":0,"twd":315,"wg":250,"wpm":17.5}},"frms":{"R":{"price":1.372,"corner":15,"wg_cm":6.97,"corner_wg":34},"P":{"price":1.752,"corner":17,"wg_cm":8.9,"corner_wg":69},"N":{"price":1.372,"corner":15,"wg_cm":6.97,"corner_wg":34},"J":{"price":0.847,"corner":21.5,"wg_cm":4.3,"corner_wg":34},"A":{"price":1.969,"corner":30,"wg_cm":10,"corner_wg":0},"D":{"price":2,"corner":20,"wg_cm":8,"corner_wg":83},"I":{"price":0.847,"corner":8,"wg_cm":4.3,"corner_wg":19},"S":{"price":0,"corner":15,"wg_cm":2,"corner_wg":11},"X":{"price":0.63,"corner":7.95,"wg_cm":3.2,"corner_wg":11},"O":{"price":0,"corner":7.5,"wg_cm":0,"corner_wg":30}},"pwrs":{"HAM":{"src":"twd","rmb":0,"price":560,"wg":740,"watt":300,"inwire_rmb":2.8,"inwire_wg":20},"HAT":{"src":"rmb","rmb":44,"price":223,"wg":404,"watt":200,"inwire_rmb":2.8,"inwire_wg":20},"HBM":{"src":"twd","rmb":0,"price":560,"wg":740,"watt":300,"inwire_rmb":2.8,"inwire_wg":20},"HBT":{"src":"rmb","rmb":44,"price":223,"wg":404,"watt":200,"inwire_rmb":2.8,"inwire_wg":20},"HSH1":{"src":"rmb","rmb":22,"price":103,"wg":0,"watt":70,"inwire_rmb":2.8,"inwire_wg":20},"HSH2":{"src":"rmb","rmb":28,"price":132,"wg":0,"watt":105,"inwire_rmb":2.8,"inwire_wg":20},"HSM1":{"src":"twd","rmb":0,"price":290,"wg":213,"watt":50,"inwire_rmb":2.8,"inwire_wg":20},"HSM2":{"src":"twd","rmb":0,"price":330,"wg":315,"watt":100,"inwire_rmb":2.8,"inwire_wg":20},"HSM3":{"src":"twd","rmb":0,"price":435,"wg":419,"watt":150,"inwire_rmb":2.8,"inwire_wg":20},"LAA0":{"src":"rmb","rmb":0,"price":0,"wg":0,"watt":0,"inwire_rmb":2,"inwire_wg":10},"LAA3":{"src":"rmb","rmb":4,"price":21,"wg":55,"watt":15,"inwire_rmb":2,"inwire_wg":10},"LAA6":{"src":"rmb","rmb":16.5,"price":88,"wg":264,"watt":46,"inwire_rmb":3.5,"inwire_wg":30},"LBG1":{"src":"rmb","rmb":20,"price":97,"wg":72,"watt":50,"inwire_rmb":1.8,"inwire_wg":20},"LBH1":{"src":"rmb","rmb":22,"price":107,"wg":85,"watt":70,"inwire_rmb":1.8,"inwire_wg":20},"LBH2":{"src":"rmb","rmb":32,"price":156,"wg":151,"watt":144,"inwire_rmb":1.8,"inwire_wg":20},"LBH3":{"src":"rmb","rmb":60,"price":290,"wg":210,"watt":200,"inwire_rmb":2.3,"inwire_wg":20},"LCH2":{"src":"rmb","rmb":55,"price":265,"wg":151,"watt":144,"inwire_rmb":1.8,"inwire_wg":20}},"ctrl":{"HD-D16":{"src":"twd","rmb":0,"price":1350,"wg":65},"HD-C16L":{"src":"twd","rmb":0,"price":2100,"wg":65},"HD-U6A":{"src":"rmb","rmb":21,"price":99,"wg":20},"LM-30A":{"src":"rmb","rmb":285,"price":1349,"wg":250},"HD-A5L":{"src":"twd","rmb":0,"price":5100,"wg":800},"HD-A4":{"src":"twd","rmb":0,"price":3600,"wg":600},"HD-A3L":{"src":"twd","rmb":0,"price":1900,"wg":400},"HD-E64":{"src":"twd","rmb":0,"price":609,"wg":60},"HD-W66":{"src":"rmb","rmb":300,"price":1414,"wg":100},"HD-WF4":{"src":"twd","rmb":0,"price":230,"wg":31},"HD-WF2":{"src":"rmb","rmb":26,"price":123,"wg":21},"RHX-64W512":{"src":"rmb","rmb":18,"price":85,"wg":18},"RHX-32W320":{"src":"rmb","rmb":7,"price":33,"wg":14},"RHX-Q10":{"src":"rmb","rmb":118,"price":557,"wg":60},"RHX-Q8B":{"src":"rmb","rmb":60,"price":284,"wg":50},"RHX-Q4A1":{"src":"rmb","rmb":38,"price":180,"wg":30},"RHX-Q4AM":{"src":"rmb","rmb":24,"price":114,"wg":27},"RHX-64WUN1024":{"src":"rmb","rmb":78,"price":369,"wg":50},"RHX-8Q2":{"src":"rmb","rmb":10,"price":48,"wg":16},"RHX-8C1":{"src":"rmb","rmb":12,"price":57,"wg":13}},"parts":{"cornscrew_p":0.5,"cornscrew_w":2,"drain_p":1,"drain_w":3,"rail_p":3,"rail_w":6,"glass_p":0.8,"glass_w":1.5,"bracket_p":0.25,"bracket_w":4,"fixscrew_p":0.5,"fixscrew_w":2,"modscrew_p":0.3,"modscrew_w":1,"magnet_p":7.2,"magnet_w":14,"preglue_p":1.2,"preglue_w":0.5,"fullglue_p":4,"fullglue_w":2,"ribbon_p":8,"ribbon_w":10,"dcwire_p":8,"dcwire_w":19,"transwire_p":12,"transwire_w":70,"back_p":45,"back_w":207,"screw_p":0.5,"screw_w":1.15,"sealglue_p":0.1,"sealglue_w":0.1,"t01":0.33,"t04":1,"t02":1.01,"t05":0.5,"t06":0.5,"t07":0.233,"t10":5.867,"t11":0.2,"t12":0.2,"t16":5.5,"t17":1.5,"t19":0.25,"t20":0.1,"t_pack":0},"tiers":{"1":60,"2":44.5,"3":40,"4":34.5,"5":27,"6":18.2,"7":13.3}};
+// v9.62：parts/base 乾淨預設深拷貝——buildFromJson 每次以此為底 merge，避免連續套用部分 config 時舊值殘留
+var CFG_DEFAULT_PARTS = JSON.parse(JSON.stringify(BUILTIN_CFG.parts)), CFG_DEFAULT_BASE = JSON.parse(JSON.stringify(BUILTIN_CFG.base));
 
 // ══ 角色與密碼 ══
 var MGR_PWD = '1314';
@@ -932,7 +934,7 @@ var QUICK_REF_PER_CHAR = {
   // 之後在編輯器⑩改了再「套用到 PWA」會覆寫這裡（cfg.quickRef）
   P10R:450, P10C:550, P10S:600, P08C:500, P06C:450, P05C:210, P5CM:240, P04C:205,
   P03C:100, P25F:115,
-  M10C:250, M10R:400, M06C:120, M05C:85, M04C:90, M4CL:80, M47D:80, M03C:60,
+  M10C:250, M10R:400, M05C:85, M04C:90, M4CL:80, M47D:80, M03C:60,
   M25F:50, M02C:40, M186:35
 };
 
@@ -965,7 +967,7 @@ var MOD_META={
   P5CM:{mh:16,ml:16,ch:2,cw:2,water:'全戶外'},P04C:{mh:12.8,ml:25.6,ch:2,cw:4,water:'全戶外'},
   P03C:{mh:19.2,ml:19.2,ch:4,cw:4,water:'全戶外'},P25F:{mh:16,ml:32,ch:4,cw:8,water:'全戶外'},
   M10C:{mh:16,ml:32,ch:1,cw:2,water:'半戶外'},M10R:{mh:16,ml:32,ch:1,cw:2,water:'半戶外'},
-  M06C:{mh:19.2,ml:38.4,ch:2,cw:4,water:'室內'},M05C:{mh:16,ml:32,ch:2,cw:4,water:'室內'},
+  M05C:{mh:16,ml:32,ch:2,cw:4,water:'室內'},
   M04C:{mh:12.8,ml:25.6,ch:2,cw:4,water:'室內'},M4CL:{mh:25.6,ml:25.6,ch:4,cw:4,water:'室內'},
   M47D:{mh:15.2,ml:30.4,ch:2,cw:4,water:'室內'},M03C:{mh:19.2,ml:19.2,ch:4,cw:4,water:'室內'},
   M25F:{mh:16,ml:32,ch:4,cw:8,water:'室內'},M02C:{mh:16,ml:32,ch:5,cw:10,water:'室內'},
@@ -1061,6 +1063,9 @@ window.onload = function(){
 
 // ── 從 JSON 檔建立 ──
 function buildFromJson(cfg){
+  // v9.62：套用 cfg.parts / cfg.base——每次從乾淨預設 merge（config 缺漏欄位回內建預設，不殘留前次套用值）
+  BUILTIN_CFG.parts = Object.assign({}, CFG_DEFAULT_PARTS, cfg.parts||{});
+  BUILTIN_CFG.base  = Object.assign({}, CFG_DEFAULT_BASE,  cfg.base||{});
   MODS=[];
   Object.keys(cfg.mods||{}).forEach(function(id){
     var m=MOD_META[id];if(!m)return;
@@ -1071,13 +1076,13 @@ function buildFromJson(cfg){
   Object.keys(cfg.frms||{}).forEach(function(id){
     var m=FRM_META[id];if(!m)return;
     var d=cfg.frms[id];
-    FRMS.push(Object.assign({id:id,wg_cm:d.wg_cm,corner_wg:d.corner_wg,price:d.price},m));
+    FRMS.push(Object.assign({id:id,wg_cm:d.wg_cm,corner_wg:d.corner_wg,price:d.price,corner:d.corner},m));
   });
   PWRS=[];
   Object.keys(cfg.pwrs||{}).forEach(function(id){
     var m=PWR_META[id];if(!m)return;
     var d=cfg.pwrs[id];
-    PWRS.push(Object.assign({id:id,watt:d.watt,wg:d.wg,price:d.price,inwire_p:(d.inwire_rmb||0)*(cfg.base&&cfg.base.rate||4.7)},m));
+    PWRS.push(Object.assign({id:id,watt:d.watt,wg:d.wg,price:d.price,inwire_p:(d.inwire_rmb||0)*(BUILTIN_CFG.base.rate||4.7)},m));
   });
   CTRL=[];
   Object.keys(cfg.ctrl||{}).forEach(function(id){
@@ -1522,9 +1527,12 @@ function computeRecord(mid,fid,pid,cid,rows,cols,dual,qty){
   var scO=base.scO||3.5, scIn=base.scIn||4.5, scOut=base.scOut||5.5, scDiv=base.scDiv||450;
   var longSide = Math.max(fh||dispH||0, fw||dispW||0);
   var kpi=0;
-  if(fid==='O') kpi = (scO + D) * qty;
-  else if(['X','I','S'].indexOf(fid)>=0) kpi = (scIn + D) * qty;
-  else if(['R','P','N','J','A','D'].indexOf(fid)>=0){
+  // v9.62：KPI 改用框分類（grp）判斷，新框不再漏算；f=null（無框未選）視為 none
+  var g = f ? f.grp : 'none';
+  if(g==='none') kpi = (scO + D) * qty;
+  else if(g==='indoor') kpi = (scIn + D) * qty;
+  else { // outdoor 與未知框都走戶外式（保守偏高），未知時 console.warn
+    if(g!=='outdoor') console.warn('KPI: unknown frame grp', fid, g);
     if(longSide<=112) kpi = (scOut + D*2) * qty;
     else kpi = (Math.round((fh*fw)/scDiv) + D*2) * qty;
   }
@@ -1604,9 +1612,12 @@ function calc(){
   var scO=base.scO||3.5, scIn=base.scIn||4.5, scOut=base.scOut||5.5, scDiv=base.scDiv||450;
   var longSide = Math.max(fh||dispH||0, fw||dispW||0);
   var kpi=0;
-  if(fid==='O') kpi = (scO + D) * qty;
-  else if(['X','I','S'].indexOf(fid)>=0) kpi = (scIn + D) * qty;
-  else if(['R','P','N','J','A','D'].indexOf(fid)>=0){
+  // v9.62：KPI 改用框分類（grp）判斷，新框不再漏算；f=null（無框未選）視為 none
+  var g = f ? f.grp : 'none';
+  if(g==='none') kpi = (scO + D) * qty;
+  else if(g==='indoor') kpi = (scIn + D) * qty;
+  else { // outdoor 與未知框都走戶外式（保守偏高），未知時 console.warn
+    if(g!=='outdoor') console.warn('KPI: unknown frame grp', fid, g);
     if(longSide<=112) kpi = (scOut + D*2) * qty;
     else kpi = (Math.round((fh*fw)/scDiv) + D*2) * qty;
   }
@@ -3419,7 +3430,7 @@ function computeFullCostBreakdown(r){
     var fLabel='框料 '+r.fid+(r.f.model?' ('+r.f.model+')':'');
     mats.push({n:fLabel, q:perimCm.toFixed(1)+' cm', u:r.f.price, sub:r.f.price*perimCm, cat:'框'});
   }
-  if(r.f && r.f.corner){
+  if(r.f && r.f.grp!=='none' && r.f.corner){  // v9.62：框角只對有框的收（O 塑膠背板無鋁彎角）
     var fcLabel='框角 '+r.fid+(r.f.model?' ('+r.f.model+')':'');
     mats.push({n:fcLabel, q:'4 個', u:r.f.corner, sub:r.f.corner*4, cat:'框'});
   }
@@ -3611,9 +3622,11 @@ function renderCostPage(){
   // 積分點
   var kpiHtml='<div>本筆積分：<strong style="color:var(--brand2);font-size:18px">'+(r.kpi||0).toFixed(1)+'</strong> 分　→ 委外工資 <strong style="color:var(--green)">$'+Math.round(workCost).toLocaleString()+'</strong> ('+(r.kpi||0).toFixed(1)+' × $'+sp+')</div>';
   kpiHtml+='<div style="font-size:11px;color:var(--sub);margin-top:6px">計算規則：';
-  if(r.fid==='O') kpiHtml+='無框 = 3.5 + D 片數';
-  else if(['X','I','S'].indexOf(r.fid)>=0) kpiHtml+='室內框 = 4.5 + D 片數';
-  else if(['R','P','N','J','A'].indexOf(r.fid)>=0){
+  // v9.62：說明文字改依框分類（grp）判斷，與引擎 KPI 邏輯一致（D 框也正確顯示戶外式）
+  var kpiGrp = r.f ? r.f.grp : 'none';
+  if(kpiGrp==='none') kpiHtml+='無框 = 3.5 + D 片數';
+  else if(kpiGrp==='indoor') kpiHtml+='室內框 = 4.5 + D 片數';
+  else {
     var longSide = Math.max(r.fh, r.fw);
     if(longSide<=112) kpiHtml+='戶外短邊≤112cm = 5.5 + D×2';
     else kpiHtml+='戶外長邊>112cm = (含框面積÷'+(base.scDiv||450)+') + D×2';
