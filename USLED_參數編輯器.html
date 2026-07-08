@@ -350,6 +350,7 @@ nav{background:#fff;border-bottom:1px solid #E2DED7;display:flex;overflow-x:auto
       <thead><tr><th class="hA" style="width:42%">材料項目</th><th class="hB" style="width:11%">數量</th><th class="hC" style="width:13%">單價</th><th class="hD" style="width:17%">小計(元)</th><th class="hE" style="width:17%">重量</th></tr></thead>
       <tbody id="costBody"></tbody>
     </table>
+    <div id="engCmpRow" style="margin-top:6px;font-size:11px;color:#6B6761"></div>
     <div class="sgrid">
       <div class="scell hot"><div class="sn" id="cr_cost">—</div><div class="sl">材料現金成本</div></div>
       <div class="scell grn"><div class="sn" id="cr_labor">—</div><div class="sl">工時成本</div></div>
@@ -411,6 +412,7 @@ nav{background:#fff;border-bottom:1px solid #E2DED7;display:flex;overflow-x:auto
 </div>
 
 </div>
+<script src="./usled_engine.js?v=963"></script>
 <script>
 // ══ 框型分類 ══
 var FG={R:"outdoor",P:"outdoor",N:"outdoor",J:"outdoor",A:"outdoor",D:"outdoor",X:"indoor",I:"indoor",S:"indoor",O:"none"};
@@ -866,6 +868,36 @@ function CFG(){
   S("cr_wgt",FD(totalWgt,2)+"kg");S("cr_score",score.toFixed(1)+"分");
   S("cr_total","$"+FMT(totalCost+laborCost));S("cr_time",FD(tMin,1)+"分");
   S("cr_D",Ds+(dual>1?" ×2="+D:"")+"片");S("cr_qp",qp>0?"$"+Math.round(qp).toLocaleString():"—");
+
+  // v9.63（AI 團隊工單 #3）：引擎對照行——用共用引擎 usled_engine.js 算同規格總成本，與本表並列顯示差額。
+  // 編輯器自己的表格與數字一概不動；引擎 buildFromJson 會重指派全域 MODS/FRMS/PWRS/CTRL，先快照後還原。
+  try{
+    var _engEl=document.getElementById("engCmpRow");
+    if(_engEl){
+      if(typeof catalogCompute==="undefined"||typeof engineInit==="undefined"||typeof buildFromJson==="undefined"){
+        _engEl.textContent="🔎 引擎對照：引擎未載入";
+      }else{
+        var _cfg=BUILD_CFG_OBJECT();
+        delete _cfg.tiers; delete _cfg.quickRef;   // 對照只需價格資料；避免引擎動到編輯器自己的 TIERS/快速報價
+        var _sm=MODS,_sf=FRMS,_sp2=PWRS,_sc=CTRL;  // 快照編輯器資料陣列（宣告在 try 外，finally 一定能還原）
+        var _engTxt;
+        try{
+          engineInit(_cfg); buildFromJson(_cfg);
+          var _r=computeRecord(ms.value,(fs&&fs.value)?fs.value:null,(ps&&ps.value)?ps.value:null,(cs&&cs.value)?cs.value:null,rows,cols,dual,1);
+          if(_r){
+            var _fc=computeFullCostBreakdown(_r);
+            var _eng=Math.round(_fc.totalCost),_ed=Math.round(totalCost+laborCost);
+            _engTxt="🔎 引擎對照：$"+_eng.toLocaleString()+"（差 $"+Math.abs(_eng-_ed).toLocaleString()+"）";
+          }else _engTxt="🔎 引擎對照：無法計算（規格不完整）";
+        }finally{
+          MODS=_sm;FRMS=_sf;PWRS=_sp2;CTRL=_sc;    // v9.63b：改 finally——引擎中途丟例外也保證還原，不殘留引擎版陣列
+        }
+        _engEl.textContent=_engTxt;
+      }
+    }
+  }catch(_e){
+    try{document.getElementById("engCmpRow").textContent="🔎 引擎對照：計算錯誤（"+_e.message+"）";}catch(_e2){}
+  }
 }
 
 // v4.9.6: 移除內嵌 key（安全收口，AI 團隊工單 #2）— 執行時輸入、僅存 sessionStorage，401/403 自動清除重問
