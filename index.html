@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.64</title>
+<title>USLED 快速報價 v9.65</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.64</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.65</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -898,11 +898,10 @@ var GOOGLE_CLIENT_ID = '948080912487-922lldt7pmi8qp26nfcij206apkd5f1v.apps.googl
 var WORKER_URL = 'https://usled-ragic-proxy.yspe-led.workers.dev/';
 
 // ══════════════════════════════════════════
-// ══ v9.64 工單 #4：常規「同步成本→Ragic」欄位 ID 設定 ══
-// ══ Jason 在 Ragic sheet 20 建好三個欄位後，把 fieldId 回填到這裡 ══
-// ══ （引擎成本 / 每字快速報價參考 / 成本同步日期）任一為空按鈕會擋下不送 ══
+// ══ v9.65：常規「同步成本→Ragic」欄位 ID（sheet 20，Jason 2026-07-08 建）══
+// ══ 成本=1003086（金額）、快速報價參考=1003087（金額）；date 選配（未建，留空=不寫）══
 // ══════════════════════════════════════════
-var REG_SYNC_FIDS = { cost:'', quick:'', date:'' };  // Jason 建好 Ragic 欄位後回填 fieldId
+var REG_SYNC_FIDS = { cost:'1003086', quick:'1003087', date:'' };  // date 留空＝不寫同步日期
 var ROLE_WHITELIST = {
   // 管理員（看得到成本、所有報價等級）
   'covernself@gmail.com': 'mgr',
@@ -1852,7 +1851,7 @@ function updateRegSyncBtn(){
 }
 function syncRegCostToRagic(){
   if(!isMgr) return;
-  if(!REG_SYNC_FIDS.cost||!REG_SYNC_FIDS.quick||!REG_SYNC_FIDS.date){
+  if(!REG_SYNC_FIDS.cost||!REG_SYNC_FIDS.quick){   // v9.65：date 改選配
     toast('⚠ Ragic 欄位尚未設定（等 Jason 建欄位回報 fieldId）'); return;
   }
   var route=getApiRoute(); if(route.mode!=='worker'){ toast('請先登入再同步'); return; }
@@ -1873,7 +1872,7 @@ function syncRegCostToRagic(){
     fd.append(REG_SYNC_FIDS.cost, String(Math.round(it.calc.cost)));
     var qr=regQuickRef(it);
     fd.append(REG_SYNC_FIDS.quick, qr!=null?String(qr):'');
-    fd.append(REG_SYNC_FIDS.date, dateStr);
+    if(REG_SYNC_FIDS.date) fd.append(REG_SYNC_FIDS.date, dateStr);   // v9.65：date 選配
     var url=WORKER_URL.replace(/\/$/,'')+'/?sheet=20&ragicId='+encodeURIComponent(it.ragicId);
     fetch(url,{method:'POST',headers:route.headers,body:fd}).then(function(r){return r.text();}).then(function(t){
       var ok=false; try{ var j=JSON.parse(t); ok=(j.status==='SUCCESS'); }catch(e){}
