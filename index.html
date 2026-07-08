@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.63</title>
+<title>USLED 快速報價 v9.64</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,10 +335,11 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.63</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.64</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
+    <button id="regSyncBtn" onclick="syncRegCostToRagic()" title="把引擎成本／每字參考價／同步日期批次寫回 Ragic sheet 20（僅管理員）" style="display:none;padding:5px 10px;background:#0EA5E9;color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">⇪ 同步成本→Ragic</button>
     <div class="role-badge sales" id="roleBadge" onclick="toggleRole()">未登入 ▾</div>
     <div id="userDisplay" style="display:none;font-size:10px;color:rgba(255,255,255,.85);max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
     <div class="cfg-icon" onclick="openSettings()" title="設定">
@@ -895,6 +896,13 @@ var GOOGLE_CLIENT_ID = '948080912487-922lldt7pmi8qp26nfcij206apkd5f1v.apps.googl
 // 把 RAGIC API KEY 鎖在 Worker secret 內，業務員登入 Google 後即可直接使用，無 key 外洩疑慮
 // 若需暫時關閉走代理，把此常數設為空字串即可（自動退回直連 Ragic + APIKey 模式）
 var WORKER_URL = 'https://usled-ragic-proxy.yspe-led.workers.dev/';
+
+// ══════════════════════════════════════════
+// ══ v9.64 工單 #4：常規「同步成本→Ragic」欄位 ID 設定 ══
+// ══ Jason 在 Ragic sheet 20 建好三個欄位後，把 fieldId 回填到這裡 ══
+// ══ （引擎成本 / 每字快速報價參考 / 成本同步日期）任一為空按鈕會擋下不送 ══
+// ══════════════════════════════════════════
+var REG_SYNC_FIDS = { cost:'', quick:'', date:'' };  // Jason 建好 Ragic 欄位後回填 fieldId
 var ROLE_WHITELIST = {
   // 管理員（看得到成本、所有報價等級）
   'covernself@gmail.com': 'mgr',
@@ -1635,6 +1643,14 @@ var REGULAR_DATA=null,_regLoading=false,REG_SELECTED=[],REG_MAX=3,REG_CAT='';
 var REG_CAT_ORDER=['車載','手舉','擺攤','面招','橫招','移動式','會議屏','診所用','宮廟用','電視牆','其他'];
 function _regEsc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function _regNum(v){var n=parseFloat(String(v==null?'':v).replace(/[^0-9.\-]/g,''));return isNaN(n)?0:n;}
+// v9.64：常規項目的「快速報價參考價」＝ 每字參考價 × 字數（取整）；模組無每字價 → null（不顯示）
+function regQuickRef(it){
+  var r=(it&&it.calc&&it.calc.ok)?it.calc.r:null;
+  if(!r||!r.chars) return null;
+  var perChar=QUICK_REF_PER_CHAR[r.mid];
+  if(!(perChar>0)) return null;
+  return Math.round(perChar*r.chars);
+}
 function renderRegular(force){
   if(force)REGULAR_DATA=null;
   var box=document.getElementById('regList');
@@ -1663,7 +1679,7 @@ function renderRegular(force){
     });
     arr.sort(function(a,b){return (a.order-b.order)||(a.seq-b.seq);});
     arr.forEach(function(it,i){ it.order=i+1; it._origOrder=i+1; var c=catalogCompute(it.code); it.calc=c; it.cost=(c&&c.ok)?c.cost:null; });
-    REG_DIRTY=false; REGULAR_DATA=arr; _regLoading=false; renderRegCats(); renderRegularList(); updateRegUpdateBtn();
+    REG_DIRTY=false; REGULAR_DATA=arr; _regLoading=false; renderRegCats(); renderRegularList(); updateRegUpdateBtn(); updateRegSyncBtn();
   }).catch(function(e){
     _regLoading=false; console.warn('[常規] 載入失敗',e);
     if(box)box.innerHTML='<div style="text-align:center;color:#dc2626;padding:30px 0">⚠ 常規價載入失敗（請確認已登入、Ragic 表單權限）</div>';
@@ -1708,7 +1724,7 @@ function renderRegularList(){
     var line2R='';
     if(isMgr){
       var costInner;
-      if(it.cost!=null){ var mg=it.price>0?Math.round((it.price-it.cost)/it.price*100):0; costInner='<span style="color:#64748B">成本$'+it.cost.toLocaleString()+'</span><span style="color:#059669;font-weight:700;margin-left:6px">毛'+mg+'%</span>'; }
+      if(it.cost!=null){ var mg=it.price>0?Math.round((it.price-it.cost)/it.price*100):0; costInner='<span style="color:#64748B">成本$'+it.cost.toLocaleString()+'</span><span style="color:#059669;font-weight:700;margin-left:6px">毛'+mg+'%</span>'; var qr=regQuickRef(it); if(qr!=null) costInner+='<span style="color:#92400E;font-weight:700;margin-left:6px">快$'+qr.toLocaleString()+'</span>'; }
       else costInner='<span style="color:#94A3B8">⠿ 拖曳</span>';
       // 長按「成本數字」拖曳排序（只有管理員看得到成本，也只有管理員能拖）
       line2R='<span class="reg-drag" data-code="'+_regEsc(it.code)+'" onclick="event.stopPropagation()" title="長按拖曳排序" style="cursor:grab;touch-action:none;user-select:none;display:inline-block">'+costInner+'</span>';
@@ -1829,6 +1845,51 @@ function commitRegOrder(){
     toast(fails?('⚠ '+fails+' 筆更新失敗，請重試'):'✓ 排序已更新到 Ragic');
   });
 }
+// ── v9.64 工單 #4：同步成本→Ragic（僅管理員；批次寫 引擎成本/每字參考價/同步日期 到 sheet 20）──
+function updateRegSyncBtn(){
+  var b=document.getElementById('regSyncBtn'); if(!b||b.disabled) return;
+  b.style.display=(isMgr&&REGULAR_DATA&&REGULAR_DATA.length)?'':'none';
+}
+function syncRegCostToRagic(){
+  if(!isMgr) return;
+  if(!REG_SYNC_FIDS.cost||!REG_SYNC_FIDS.quick||!REG_SYNC_FIDS.date){
+    toast('⚠ Ragic 欄位尚未設定（等 Jason 建欄位回報 fieldId）'); return;
+  }
+  var route=getApiRoute(); if(route.mode!=='worker'){ toast('請先登入再同步'); return; }
+  var all=REGULAR_DATA||[];
+  var targets=all.filter(function(x){ return x.ragicId!=null && x.calc && x.calc.ok; });
+  var skipped=all.length-targets.length;
+  if(!targets.length){ toast('沒有可同步的資料'); return; }
+  var btn=document.getElementById('regSyncBtn'), origTxt=btn?btn.textContent:'';
+  if(btn) btn.disabled=true;
+  var d=new Date();
+  var dateStr=d.getFullYear()+'/'+('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2);
+  var okN=0, failCodes=[], i=0;
+  function step(){
+    if(i>=targets.length){ done(); return; }
+    var it=targets[i]; i++;
+    if(btn) btn.textContent='同步中 '+i+'/'+targets.length+'…';
+    var fd=new FormData();
+    fd.append(REG_SYNC_FIDS.cost, String(Math.round(it.calc.cost)));
+    var qr=regQuickRef(it);
+    fd.append(REG_SYNC_FIDS.quick, qr!=null?String(qr):'');
+    fd.append(REG_SYNC_FIDS.date, dateStr);
+    var url=WORKER_URL.replace(/\/$/,'')+'/?sheet=20&ragicId='+encodeURIComponent(it.ragicId);
+    fetch(url,{method:'POST',headers:route.headers,body:fd}).then(function(r){return r.text();}).then(function(t){
+      var ok=false; try{ var j=JSON.parse(t); ok=(j.status==='SUCCESS'); }catch(e){}
+      if(ok) okN++; else failCodes.push(it.code);
+    }).catch(function(){ failCodes.push(it.code); }).then(function(){
+      setTimeout(step, 300);  // 節流：每筆間隔 300ms（Ragic 同 IP >5/秒限流）
+    });
+  }
+  function done(){
+    if(btn){ btn.disabled=false; btn.textContent=origTxt; updateRegSyncBtn(); }
+    var msg='✅ 已同步 '+okN+' 筆（跳過 '+skipped+' 筆無法解析）';
+    if(failCodes.length) msg+='；失敗：'+failCodes.join('、');
+    toast(msg);
+  }
+  step();
+}
 function regCompareRows(it){
   var c=it.calc, r=(c&&c.ok)?c.r:null;
   return [
@@ -1864,6 +1925,10 @@ function openRegCompare(){
     items.forEach(function(it){ html+='<td style="text-align:center;padding:8px 6px">'+(it.cost!=null?'$'+it.cost.toLocaleString():'—')+'</td>'; });
     html+='</tr><tr><td style="'+sticky+'background:#fff;padding:8px 6px;color:#64748B">毛利%</td>';
     items.forEach(function(it){ var mg=(it.cost!=null&&it.price>0)?Math.round((it.price-it.cost)/it.price*100)+'%':'—'; html+='<td style="text-align:center;padding:8px 6px;font-weight:700;color:#059669">'+mg+'</td>'; });
+    html+='</tr>';
+    // v9.64：快速報價參考（每字參考價×字數，isMgr 限定）
+    html+='<tr><td style="'+sticky+'background:#fff;padding:8px 6px;color:#64748B;white-space:nowrap">快速報價參考</td>';
+    items.forEach(function(it){ var qr=regQuickRef(it); html+='<td style="text-align:center;padding:8px 6px;font-weight:700;color:#92400E">'+(qr!=null?'$'+qr.toLocaleString():'—')+'</td>'; });
     html+='</tr>';
   }
   var keys=items.length?regCompareRows(items[0]).map(function(x){return x.k;}):[];
@@ -2024,6 +2089,7 @@ function applyRole(){
   if(costTab) costTab.style.display=isMgr?'':'none';
   var aTab=document.getElementById('tab_analytics');
   if(aTab) aTab.style.display=isMgr?'':'none';
+  if(typeof updateRegSyncBtn==='function') updateRegSyncBtn();  // v9.64：同步成本按鈕跟角色連動
   updateTiers();
   updateAuthGate();   // v9.48：登入狀態變更時更新閘門
 }
