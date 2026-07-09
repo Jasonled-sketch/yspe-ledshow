@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.68</title>
+<title>USLED 快速報價 v9.69</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.68</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.69</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -2835,8 +2835,10 @@ function exchangeSession(){
     .then(function(r){return r.json();})
     .then(function(j){
       if(j&&j.status==='SUCCESS'&&j.session){
+        var hadSession=!!localStorage.getItem('usled_session');   // v9.69：首次領證給明確提示
         localStorage.setItem('usled_session',JSON.stringify({session:j.session,exp:j.exp,email:(j.email||currentUser.email).toLowerCase()}));
         console.log('[session] 已換發 60 天通行證，效期至',new Date(j.exp).toLocaleDateString());
+        if(!hadSession) toast('🎫 已取得 60 天通行證——之後開網頁不用再點登入');
       }
     }).catch(function(){}).then(function(){_sessExchanging=false;});
 }
