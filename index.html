@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.67</title>
+<title>USLED 快速報價 v9.68</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.67</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.68</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -2817,7 +2817,46 @@ function buildRagicUrl(base,extra){
 //  - 若 WORKER_URL 有設定且使用者已登入 Google → 走 Worker（前端不需 API Key）
 //  - 否則退回直連 Ragic + URL APIKey（需要設定面板填 Ragic 網址 + Key）
 // 回傳：{mode:'worker'|'direct'|null, postUrl, buildGetUrl(params), headers, reason}
+// ══ v9.68：長效通行證（Worker 簽發 60 天 session）——零點擊登入根治方案 ══
+function getSavedSession(){
+  try{
+    var s=JSON.parse(localStorage.getItem('usled_session')||'null');
+    if(s && s.session && s.exp && s.exp>Date.now() && currentUser && s.email===currentUser.email) return s;
+  }catch(e){}
+  return null;
+}
+var _sessExchanging=false;
+function exchangeSession(){
+  if(_sessExchanging) return;
+  if(!WORKER_URL||!currentUser||!currentUser.idToken) return;
+  if(currentUser.tokenExp && currentUser.tokenExp<Date.now()) return;   // Google 證已過期換不了，等靜默續期後再換
+  _sessExchanging=true;
+  fetch(WORKER_URL.replace(/\/$/,'')+'/auth/session',{method:'POST',headers:{'X-Google-Token':currentUser.idToken}})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(j&&j.status==='SUCCESS'&&j.session){
+        localStorage.setItem('usled_session',JSON.stringify({session:j.session,exp:j.exp,email:(j.email||currentUser.email).toLowerCase()}));
+        console.log('[session] 已換發 60 天通行證，效期至',new Date(j.exp).toLocaleDateString());
+      }
+    }).catch(function(){}).then(function(){_sessExchanging=false;});
+}
+
 function getApiRoute(){
+  // v9.68：優先用 60 天通行證（不依賴 Google 短證；快到期時背景自動換新）
+  if(WORKER_URL && currentUser){
+    var sess=getSavedSession();
+    if(sess){
+      if(sess.exp-Date.now() < 7*864e5) exchangeSession();
+      var sBase=WORKER_URL.replace(/\/$/,'');
+      return {
+        mode:'worker',
+        postUrl: sBase + '/',
+        buildGetUrl: function(extra){ return sBase + '/' + (extra ? '?'+extra : ''); },
+        headers: {'X-Session-Token': sess.session},
+        reason: '透過 Worker 代理（60 天通行證）'
+      };
+    }
+  }
   if(WORKER_URL && currentUser && currentUser.idToken){
     // 檢查 token 過期 — v9.23：嘗試靜默刷新，使用者不用手動點登入
     if(currentUser.tokenExp && currentUser.tokenExp < Date.now()){
@@ -3095,8 +3134,13 @@ function refreshTokenIfNeeded(){
     if(typeof google==='undefined'||!google.accounts) return;
     var u=currentUser;
     if(!u||!u.idToken) return;   // 沒登過（或已登出）不打擾
+    // v9.68：60 天通行證還有 8 天以上 → 完全不需要 Google，零打擾
+    var s=getSavedSession();
+    if(s && (s.exp-Date.now()) > 8*864e5) return;
     if(!u.tokenExp || (u.tokenExp - Date.now()) < 15*60*1000){
       google.accounts.id.prompt();
+    }else{
+      exchangeSession();   // Google 證還新鮮但通行證缺/快到期 → 直接換發
     }
   }catch(e){}
 }
@@ -3142,6 +3186,7 @@ function handleGoogleSignIn(response){
     canSeeFloor=(role==='mgr'||role==='manager');
     applyRole();
     if(!wasAuthed) toast('👋 歡迎 '+payload.name+' ('+role+')');
+    exchangeSession();   // v9.68：拿到新 Google 證立刻換發/續期 60 天通行證
     // v9.66：換到新 token 後，自動重試剛才因過期而擱置的動作（例如常規載入）
     try{
       if(window._afterAuthRetry){ var f=window._afterAuthRetry; window._afterAuthRetry=null; f(); }
@@ -3176,6 +3221,7 @@ function googleSignOut(){
   currentUser=null;
   isMgr=false; canSeeFloor=false;
   localStorage.removeItem('usled_user');
+  localStorage.removeItem('usled_session');   // v9.68：登出作廢 60 天通行證
   applyRole();
   toast('👋 已登出');
 }
