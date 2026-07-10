@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.69</title>
+<title>USLED 快速報價 v9.70</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.69</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.70</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -2109,6 +2109,23 @@ function openSettings(){
   // v9.2：顯示 Worker 模式提示（若已配置）
   var notice=document.getElementById('workerModeNotice');
   if(notice) notice.style.display = WORKER_URL ? '' : 'none';
+  // v9.70：通行證狀態列（診斷用——一眼看出 60 天通行證領到沒）
+  try{
+    var ss=document.getElementById('sessStatusLine');
+    if(!ss){
+      ss=document.createElement('div');
+      ss.id='sessStatusLine';
+      ss.style.cssText='margin:8px 0;padding:8px 12px;border-radius:8px;background:#F1F5F9;font-size:12.5px;line-height:1.6';
+      if(notice&&notice.parentNode) notice.parentNode.insertBefore(ss,notice.nextSibling);
+      else document.getElementById('settingsSheet').appendChild(ss);
+    }
+    var sd=null; try{ sd=JSON.parse(localStorage.getItem('usled_session')||'null'); }catch(e){}
+    if(sd&&sd.exp>Date.now()){
+      ss.innerHTML='🎫 60天通行證：<b style="color:#059669">有效</b>　效期至 '+new Date(sd.exp).toLocaleDateString()+'（剩 '+Math.round((sd.exp-Date.now())/864e5)+' 天）　帳號 '+(sd.email||'');
+    }else{
+      ss.innerHTML='🎫 60天通行證：<b style="color:#DC2626">尚未取得</b>'+(_lastSessError?('　上次換發失敗：'+_lastSessError):'　（Google 登入成功後會自動換發）');
+    }
+  }catch(e){}
   // v9.14：同步切換狀態到 UI
   var tg=document.getElementById('sheet8_toggle');
   if(tg) tg.checked = isSheet8Enabled();
@@ -2825,22 +2842,33 @@ function getSavedSession(){
   }catch(e){}
   return null;
 }
-var _sessExchanging=false;
+var _sessExchanging=false, _lastSessError='', _sessErrToasted=false;
 function exchangeSession(){
   if(_sessExchanging) return;
   if(!WORKER_URL||!currentUser||!currentUser.idToken) return;
   if(currentUser.tokenExp && currentUser.tokenExp<Date.now()) return;   // Google 證已過期換不了，等靜默續期後再換
   _sessExchanging=true;
   fetch(WORKER_URL.replace(/\/$/,'')+'/auth/session',{method:'POST',headers:{'X-Google-Token':currentUser.idToken}})
-    .then(function(r){return r.json();})
-    .then(function(j){
+    .then(function(r){ return r.json().then(function(j){ return {http:r.status, j:j}; }); })
+    .then(function(o){
+      var j=o.j;
       if(j&&j.status==='SUCCESS'&&j.session){
         var hadSession=!!localStorage.getItem('usled_session');   // v9.69：首次領證給明確提示
         localStorage.setItem('usled_session',JSON.stringify({session:j.session,exp:j.exp,email:(j.email||currentUser.email).toLowerCase()}));
+        _lastSessError='';
         console.log('[session] 已換發 60 天通行證，效期至',new Date(j.exp).toLocaleDateString());
         if(!hadSession) toast('🎫 已取得 60 天通行證——之後開網頁不用再點登入');
+      }else{
+        // v9.70：換發失敗要明講，不再默默吞掉
+        _lastSessError='HTTP '+o.http+'：'+((j&&(j.reason||j.status))||'未知回應');
+        console.warn('[session] 換發失敗',_lastSessError);
+        if(!_sessErrToasted){ _sessErrToasted=true; toast('⚠ 通行證換發失敗（'+_lastSessError+'）'); }
       }
-    }).catch(function(){}).then(function(){_sessExchanging=false;});
+    }).catch(function(e){
+      _lastSessError='網路錯誤：'+(e&&e.message||e);
+      console.warn('[session] 換發失敗',_lastSessError);
+      if(!_sessErrToasted){ _sessErrToasted=true; toast('⚠ 通行證換發失敗（網路）'); }
+    }).then(function(){_sessExchanging=false;});
 }
 
 function getApiRoute(){
@@ -3131,6 +3159,7 @@ function initGoogleSignIn(){
 
 // v9.66：token 快到期（15 分鐘內）或已過期 → 靜默 prompt 讓 Google 自動發新 token
 // auto_select:true 且帳號登過 → 完全無感換證；只有 Google 瀏覽器工作階段本身登出才會要人點
+var _lastPromptAt=0;
 function refreshTokenIfNeeded(){
   try{
     if(typeof google==='undefined'||!google.accounts) return;
@@ -3140,7 +3169,11 @@ function refreshTokenIfNeeded(){
     var s=getSavedSession();
     if(s && (s.exp-Date.now()) > 8*864e5) return;
     if(!u.tokenExp || (u.tokenExp - Date.now()) < 15*60*1000){
-      google.accounts.id.prompt();
+      // v9.70：同一頁最多 10 分鐘彈一次，避免每次切回分頁都跳彈窗
+      if(Date.now()-_lastPromptAt > 10*60*1000){
+        _lastPromptAt=Date.now();
+        google.accounts.id.prompt();
+      }
     }else{
       exchangeSession();   // Google 證還新鮮但通行證缺/快到期 → 直接換發
     }
