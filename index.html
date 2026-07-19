@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1A3A6B">
-<title>USLED 快速報價 v9.70</title>
+<title>USLED 快速報價 v9.71</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
@@ -335,7 +335,7 @@ body{background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
         <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
       </svg>
     </div>
-    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.70</div></div>
+    <div><div class="bar-title">USLED 快速報價</div><div class="bar-sub">譽昇科技｜v9.71</div></div>
   </div>
   <div class="bar-right">
     <button id="regUpdateBtn" onclick="commitRegOrder()" title="把拖曳後的排序寫回 Ragic" style="display:none;padding:5px 10px;background:#F59E0B;color:#1A2236;border:none;border-radius:7px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap">↑ 更新排序</button>
@@ -1722,6 +1722,10 @@ function renderRegularList(){
   var hasFilter=(REG_CAT||(((document.getElementById('regSearch')||{}).value)||'').trim());
   if(!items.length){box.innerHTML='<div style="text-align:center;color:var(--sub);padding:30px 0">'+(hasFilter?'此分類查無符合':'尚無常規價')+'</div>';renderRegBar();return;}
   var canDrag=isMgr;
+  // v9.71：重複型號偵測——用引擎同款容錯正規化（大寫＋去前導零）對「全清單」分組，>1 次者掛「重複」徽章
+  var _dupCnt={};
+  (REGULAR_DATA||[]).forEach(function(x){ var k=String(x.code||'').toUpperCase().replace(/0(\d)/g,'$1'); _dupCnt[k]=(_dupCnt[k]||0)+1; });
+  var _pill='display:inline-block;font-size:10px;font-weight:700;line-height:1.5;padding:1px 6px;border-radius:9px;margin-left:5px;vertical-align:1px;white-space:nowrap';
   box.innerHTML=items.map(function(it,idx){
     var no=idx+1;
     var checked=REG_SELECTED.indexOf(it.code)>=0;
@@ -1729,7 +1733,22 @@ function renderRegularList(){
     var r=(it.calc&&it.calc.ok)?it.calc.r:null;
     var sizeTxt=r?(r.fh.toFixed(1)+'×'+r.fw.toFixed(1)+'cm'):'<span style="color:#cbd5e1">尺寸—</span>';
     var charTxt=r?(r.rows+'×'+r.cols+'='+r.chars+'字'):'';
-    var line1R='<span style="font-weight:800;font-size:15px;color:#E8590C">$'+(it.price||0).toLocaleString()+'</span>'+(canSeeFloor?'<span style="font-size:12px;color:#0369A1;margin-left:6px">底$'+(it.floor||0).toLocaleString()+'</span>':'');
+    // v9.71：型號旁徽章（無法解析／電源缺失／重複）
+    var badges='';
+    if(it.calc&&it.calc.ok===false) badges+='<span style="'+_pill+';background:#FEE2E2;color:#DC2626">⚠ 無法解析</span>';
+    else if(it.calc&&it.calc.ok&&it.calc.warning) badges+='<span style="'+_pill+';background:#FFEDD5;color:#C2410C" title="'+_regEsc(it.calc.warning)+'">⚠ 電源缺失</span>';
+    if(_dupCnt[String(it.code||'').toUpperCase().replace(/0(\d)/g,'$1')]>1) badges+='<span style="'+_pill+';background:#FEF9C3;color:#A16207">重複</span>';
+    // v9.71：售價三態（$0 止血）——有售價照舊；無售價有快速參考→灰字「參考 $X」；兩者皆無→「洽詢」按鈕
+    var priceHtml;
+    if(it.price>0){
+      var _low=(isMgr&&it.cost!=null&&(it.price-it.cost)/it.price<0);   // isMgr 且售價低於成本 → 紅字警示
+      priceHtml='<span style="font-weight:800;font-size:15px;color:'+(_low?'#DC2626':'#E8590C')+'"'+(_low?' title="售價低於成本"':'')+'>$'+it.price.toLocaleString()+'</span>';
+    }else{
+      var _qr0=regQuickRef(it);
+      if(_qr0!=null) priceHtml='<span style="color:#94A3B8;font-weight:600;font-size:13px">參考 $'+_qr0.toLocaleString()+'</span>';
+      else priceHtml='<a href="https://lin.ee/Z6TdOXo" target="_blank" onclick="event.stopPropagation()" style="display:inline-block;background:#2563EB;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;text-decoration:none">洽詢</a>';
+    }
+    var line1R=priceHtml+(canSeeFloor?'<span style="font-size:12px;color:#0369A1;margin-left:6px">'+(it.floor>0?'底$'+it.floor.toLocaleString():'—')+'</span>':'');
     var line2R='';
     if(isMgr){
       var costInner;
@@ -1744,7 +1763,7 @@ function renderRegularList(){
       '<div style="'+noStyle+'">'+no+'</div>'+
       '<div class="reg-main" onclick="toggleRegSelect(\''+_regEsc(it.code)+'\')" style="flex:1;min-width:0;cursor:pointer">'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">'+
-          '<span style="font-weight:800;font-size:14px;color:#1A3A6B;word-break:break-all;min-width:0">'+_regEsc(it.code)+'</span>'+
+          '<span style="font-weight:800;font-size:14px;color:#1A3A6B;word-break:break-all;min-width:0">'+_regEsc(it.code)+badges+'</span>'+
           '<span style="white-space:nowrap;flex-shrink:0">'+line1R+'</span>'+
         '</div>'+
         '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:3px;font-size:11px">'+
@@ -1922,11 +1941,17 @@ function openRegCompare(){
   items.forEach(function(it){ html+='<th style="background:#1A3A6B;color:#fff;padding:8px 6px;text-align:center;min-width:96px;word-break:break-all">'+_regEsc(it.code)+'</th>'; });
   html+='</tr></thead><tbody>';
   html+='<tr style="background:#FFF7ED"><td style="'+sticky+'background:#FFF7ED;padding:9px 6px;font-weight:700">建議售價</td>';
-  items.forEach(function(it){ html+='<td style="text-align:center;padding:9px 6px;font-weight:800;font-size:15px;color:#E8590C">$'+(it.price||0).toLocaleString()+'</td>'; });
+  items.forEach(function(it){
+    // v9.71：售價三態同列表——無售價顯示灰字「參考 $X」，連參考價都沒有顯示「—」
+    var cell;
+    if(it.price>0) cell='<span style="font-weight:800;font-size:15px;color:#E8590C">$'+it.price.toLocaleString()+'</span>';
+    else { var _qr=regQuickRef(it); cell=(_qr!=null)?'<span style="color:#94A3B8;font-weight:600">參考 $'+_qr.toLocaleString()+'</span>':'—'; }
+    html+='<td style="text-align:center;padding:9px 6px">'+cell+'</td>';
+  });
   html+='</tr>';
   if(canSeeFloor){
     html+='<tr style="background:#EFF6FF"><td style="'+sticky+'background:#EFF6FF;padding:8px 6px;font-weight:700;color:#0369A1">業底價</td>';
-    items.forEach(function(it){ html+='<td style="text-align:center;padding:8px 6px;font-weight:800;color:#0369A1">$'+(it.floor||0).toLocaleString()+'</td>'; });
+    items.forEach(function(it){ html+='<td style="text-align:center;padding:8px 6px;font-weight:800;color:#0369A1">'+(it.floor>0?'$'+it.floor.toLocaleString():'—')+'</td>'; });
     html+='</tr>';
   }
   if(isMgr){

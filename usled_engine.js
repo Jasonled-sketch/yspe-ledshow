@@ -283,13 +283,17 @@ function catalogCompute(code){
   var p=parseFullModelCode(rest);
   if(p.error) return {ok:false, error:p.error, brandName:brand?brand.name:''};
   var pid=(p.pwrCandidates&&p.pwrCandidates.length)?p.pwrCandidates[0].id:null;
+  // v9.71：電源前綴有字但比對不到任何電源 → 靜默漏算改為明示警告（成本仍照原邏輯計算，不含電源）
+  var pwrWarn=(p.pwrPrefix&&!pid)?('電源代碼無法解析（'+p.pwrPrefix+'）——成本未含電源'):null;
   var _fobj=p.frm?FRMS.find(function(x){return x.id===p.frm;}):null;
   var _dual=(_fobj&&_fobj.forceDual)?_fobj.forceDual:(dualMark||1);   // D框強制雙面；其他框看型號「雙面」標記
   var r=computeRecord(p.mod.id, p.frm, pid, cid, p.rows||1, p.cols||1, _dual, 1);
   if(!r) return {ok:false, error:'無法建立規格', brandName:brand?brand.name:''};
   var cost=null;
   try{ var fc=computeFullCostBreakdown(r); cost=Math.round(fc.totalCost); r.totalCost=fc.totalCost; }catch(e){ console.warn('catalog cost fail',code,e); }
-  return {ok:true, brandName:brand?brand.name:'', r:r, cost:cost, pid:pid, cid:cid};
+  var out={ok:true, brandName:brand?brand.name:'', r:r, cost:cost, pid:pid, cid:cid};
+  if(pwrWarn) out.warning=pwrWarn;
+  return out;
 }
 
 // ══ 成本計算（材料明細＋工時明細＋總成本）══
